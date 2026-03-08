@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module Resolution Algorithm</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh; padding: 20px;
+  }
+  h1 { color: #00d4ff; text-align: center; margin-bottom: 6px; font-size: 1.5rem; }
+  .subtitle { color: #8892b0; text-align: center; margin-bottom: 20px; font-size: 0.9rem; }
+  .config-panel {
+    max-width: 900px; margin: 0 auto 16px; background: #16213e;
+    border-radius: 12px; border: 1px solid #2a3a5e; padding: 20px;
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;
+  }
+  .config-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+  .config-group label { color: #8892b0; font-size: 0.82rem; }
+  .config-group input, .config-group select {
+    background: #0f1629; border: 2px solid #2a3a5e; color: #00d4ff;
+    padding: 10px 14px; border-radius: 8px; font-size: 0.88rem;
+    font-family: 'Consolas', monospace; outline: none;
+  }
+  .config-group input:focus, .config-group select:focus { border-color: #00d4ff; }
+  .btn {
+    background: #00d4ff22; border: 2px solid #00d4ff; color: #00d4ff;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 0.88rem; font-weight: 600; transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #00d4ff33; box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .btn.secondary { background: #16213e; border-color: #2a3a5e; }
+  .btn.secondary:hover { border-color: #8892b0; }
+  .main-area {
+    max-width: 900px; margin: 0 auto; display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .panel {
+    background: #16213e; border-radius: 12px; border: 1px solid #2a3a5e; padding: 20px;
+    flex: 1; min-width: 300px;
+  }
+  .panel-title {
+    color: #00d4ff; font-size: 0.95rem; font-weight: 600; margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 1px solid #2a3a5e;
+  }
+  /* File tree */
+  .file-tree { font-family: 'Consolas', monospace; font-size: 0.82rem; }
+  .tree-item {
+    display: flex; align-items: center; gap: 8px; padding: 4px 8px;
+    border-radius: 4px; transition: all 0.4s; margin: 1px 0;
+    border-left: 3px solid transparent;
+  }
+  .tree-item.indent-1 { padding-left: 24px; }
+  .tree-item.indent-2 { padding-left: 44px; }
+  .tree-item.indent-3 { padding-left: 64px; }
+  .tree-item.checking {
+    background: rgba(0,212,255,0.1); border-left-color: #00d4ff;
+    animation: pulse 0.6s ease;
+  }
+  .tree-item.found {
+    background: rgba(0,255,136,0.15); border-left-color: #00ff88;
+    box-shadow: 0 0 10px rgba(0,255,136,0.1);
+  }
+  .tree-item.not-found {
+    background: rgba(255,107,107,0.08); border-left-color: #ff6b6b44;
+    color: #555;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.7} }
+  .tree-icon { font-size: 0.9rem; width: 18px; text-align: center; }
+  .tree-icon.folder { color: #ffcb6b; }
+  .tree-icon.file { color: #8892b0; }
+  .tree-icon.file.ts { color: #3178c6; }
+  .tree-icon.file.js { color: #f7df1e; }
+  .tree-icon.file.json { color: #c3e88d; }
+  /* Steps log */
+  .step-log { max-height: 400px; overflow-y: auto; }
+  .log-entry {
+    padding: 8px 12px; border-radius: 6px; margin-bottom: 6px;
+    font-size: 0.8rem; line-height: 1.5; opacity: 0;
+    transform: translateX(-10px); transition: all 0.3s;
+    border-left: 3px solid transparent;
+  }
+  .log-entry.visible { opacity: 1; transform: translateX(0); }
+  .log-entry.check { background: #0f1629; border-left-color: #00d4ff; }
+  .log-entry.found { background: #00ff8811; border-left-color: #00ff88; }
+  .log-entry.skip { background: #0f1629; border-left-color: #ff6b6b44; color: #666; }
+  .log-entry.info { background: #0f162966; border-left-color: #ffcb6b; color: #ffcb6b; }
+  .log-entry code {
+    background: #1a1a2e; padding: 1px 5px; border-radius: 3px;
+    font-family: 'Consolas', monospace; color: #a78bfa;
+  }
+  .log-entry .status { font-weight: 600; margin-right: 6px; }
+  .log-entry .status.ok { color: #00ff88; }
+  .log-entry .status.no { color: #ff6b6b; }
+  /* Controls */
+  .controls {
+    max-width: 900px; margin: 16px auto 0;
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .progress-bar { max-width:900px; margin:12px auto 0; height:4px; background:#2a3a5e; border-radius:2px; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,#00d4ff,#00ff88); border-radius:2px; transition:width 0.4s; width:0%; }
+  .strategy-info {
+    max-width: 900px; margin: 12px auto 0; background: #0f162966;
+    border-radius: 8px; padding: 10px 16px; font-size: 0.8rem;
+    color: #8892b0; border-left: 3px solid #ffcb6b;
+  }
+  .strategy-info strong { color: #ffcb6b; }
+</style>
+</head>
+<body>
+<h1>Module Resolution Algorithm</h1>
+<p class="subtitle">Visualisez comment TypeScript resout les chemins d'importation</p>
+
+<div class="config-panel">
+  <div class="config-group">
+    <label>Chemin d'importation :</label>
+    <input type="text" id="importPath" value="./utils" placeholder="./utils, lodash, @app/core..." />
+  </div>
+  <div class="config-group" style="min-width:150px;flex:0.5">
+    <label>Strategie :</label>
+    <select id="strategy">
+      <option value="node">Node (classique)</option>
+      <option value="node16">Node16 / NodeNext</option>
+      <option value="bundler" selected>Bundler</option>
+    </select>
+  </div>
+  <button class="btn" onclick="startResolution()">Resoudre</button>
+</div>
+
+<div class="strategy-info" id="strategyInfo"></div>
+
+<div class="main-area">
+  <div class="panel">
+    <div class="panel-title">Systeme de fichiers</div>
+    <div class="file-tree" id="fileTree"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Etapes de resolution</div>
+    <div class="step-log" id="stepLog"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn secondary" id="btnReset" onclick="resetView()">Reinitialiser</button>
+  <button class="btn" id="btnStep" onclick="nextStep()">Suivant &rarr;</button>
+  <button class="btn secondary" id="btnAuto" onclick="autoPlay()">Auto &raquo;</button>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<script>
+const strategyDescriptions = {
+  node: "<strong>Node (classique)</strong> : Imite la resolution de Node.js. Cherche .ts, .tsx, .d.ts, puis .js. Pour les packages, remonte dans node_modules.",
+  node16: "<strong>Node16 / NodeNext</strong> : Respecte le champ 'exports' dans package.json. Les imports relatifs necessitent une extension explicite.",
+  bundler: "<strong>Bundler</strong> : Comme Node16 mais sans exiger les extensions. Ideal pour Vite, webpack, esbuild."
+};
+
+function getFileTree(importPath, strategy) {
+  const isRelative = importPath.startsWith('./') || importPath.startsWith('../');
+  const isScoped = importPath.startsWith('@');
+  const name = importPath.replace(/^\.\/|^\.\.\//, '').replace(/\//g, '/');
+
+  if (isRelative) {
+    return [
+      {name:'src/', icon:'folder', indent:0, id:'src'},
+      {name:'index.ts', icon:'file ts', indent:1, id:'src/index.ts'},
+      {name: name+'.ts', icon:'file ts', indent:1, id: name+'.ts'},
+      {name: name+'.tsx', icon:'file ts', indent:1, id: name+'.tsx'},
+      {name: name+'.d.ts', icon:'file ts', indent:1, id: name+'.d.ts'},
+      {name: name+'.js', icon:'file js', indent:1, id: name+'.js'},
+      {name: name+'.jsx', icon:'file js', indent:1, id: name+'.jsx'},
+      {name: name+'/', icon:'folder', indent:1, id: name+'/'},
+      {name:'index.ts', icon:'file ts', indent:2, id: name+'/index.ts'},
+      {name:'index.tsx', icon:'file ts', indent:2, id: name+'/index.tsx'},
+      {name:'index.d.ts', icon:'file ts', indent:2, id: name+'/index.d.ts'},
+      {name:'index.js', icon:'file js', indent:2, id: name+'/index.js'},
+      {name:'package.json', icon:'file json', indent:2, id: name+'/package.json'},
+    ];
+  } else {
+    const pkg = isScoped ? importPath : importPath.split('/')[0];
+    return [
+      {name:'node_modules/', icon:'folder', indent:0, id:'nm'},
+      {name: pkg+'/', icon:'folder', indent:1, id:'nm/'+pkg},
+      {name:'package.json', icon:'file json', indent:2, id:'nm/'+pkg+'/package.json'},
+      {name:'index.d.ts', icon:'file ts', indent:2, id:'nm/'+pkg+'/index.d.ts'},
+      {name:'index.js', icon:'file js', indent:2, id:'nm/'+pkg+'/index.js'},
+      {name:'dist/', icon:'folder', indent:2, id:'nm/'+pkg+'/dist'},
+      {name:'index.d.ts', icon:'file ts', indent:3, id:'nm/'+pkg+'/dist/index.d.ts'},
+      {name:'index.js', icon:'file js', indent:3, id:'nm/'+pkg+'/dist/index.js'},
+      {name:'@types/', icon:'folder', indent:1, id:'nm/@types'},
+      {name: pkg+'/', icon:'folder', indent:2, id:'nm/@types/'+pkg},
+      {name:'index.d.ts', icon:'file ts', indent:3, id:'nm/@types/'+pkg+'/index.d.ts'},
+    ];
+  }
+}
+
+function getSteps(importPath, strategy) {
+  const isRelative = importPath.startsWith('./') || importPath.startsWith('../');
+  const name = importPath.replace(/^\.\/|^\.\.\//, '');
+  const steps = [];
+
+  if (isRelative) {
+    steps.push({type:'info', text:`Resolution d'un import relatif : <code>${importPath}</code>`, fileId:null});
+    steps.push({type:'info', text:`Strategie : <code>${strategy}</code> - Extensions verifiees dans l'ordre`, fileId:null});
+
+    const exts = strategy === 'node16'
+      ? ['.ts','.tsx','.d.ts','.js','.jsx']
+      : ['.ts','.tsx','.d.ts','.js','.jsx'];
+
+    exts.forEach(ext => {
+      const found = ext === '.ts';
+      steps.push({type: found?'found':'check', text:`Verification : <code>${name}${ext}</code>`, fileId: name+ext, status: found?'ok':'no'});
+      if (found) return;
+    });
+
+    if (strategy !== 'node16') {
+      steps.push({type:'check', text:`Dossier <code>${name}/</code> ? Cherche index.*`, fileId:name+'/'});
+      steps.push({type:'check', text:`Verification : <code>${name}/index.ts</code>`, fileId:name+'/index.ts', status:'no'});
+    }
+    steps.push({type:'found', text:`Resolu : <code>${name}.ts</code>`, fileId:name+'.ts', status:'ok'});
+  } else {
+    const pkg = importPath.startsWith('@') ? importPath : importPath.split('/')[0];
+    steps.push({type:'info', text:`Resolution d'un specifier nu : <code>${importPath}</code>`, fileId:null});
+    steps.push({type:'info', text:`Recherche dans <code>node_modules/</code>`, fileId:'nm'});
+    steps.push({type:'check', text:`Cherche <code>node_modules/${pkg}/package.json</code>`, fileId:'nm/'+pkg+'/package.json', status:'ok'});
+
+    if (strategy === 'bundler' || strategy === 'node16') {
+      steps.push({type:'info', text:`Lecture du champ "exports" dans package.json`, fileId:'nm/'+pkg+'/package.json'});
+      steps.push({type:'check', text:`exports["."] pointe vers <code>./dist/index.js</code>`, fileId:'nm/'+pkg+'/dist/index.js', status:'no'});
+      steps.push({type:'check', text:`Cherche les types : <code>./dist/index.d.ts</code>`, fileId:'nm/'+pkg+'/dist/index.d.ts', status:'ok'});
+      steps.push({type:'found', text:`Resolu via exports : <code>${pkg}/dist/index.d.ts</code>`, fileId:'nm/'+pkg+'/dist/index.d.ts', status:'ok'});
+    } else {
+      steps.push({type:'check', text:`Champ "types" dans package.json ?`, fileId:'nm/'+pkg+'/package.json'});
+      steps.push({type:'check', text:`Cherche <code>${pkg}/index.d.ts</code>`, fileId:'nm/'+pkg+'/index.d.ts', status:'ok'});
+      steps.push({type:'found', text:`Resolu : <code>node_modules/${pkg}/index.d.ts</code>`, fileId:'nm/'+pkg+'/index.d.ts', status:'ok'});
+      steps.push({type:'info', text:`Alternative : chercher dans <code>@types/${pkg}</code>`, fileId:'nm/@types'});
+      steps.push({type:'check', text:`<code>@types/${pkg}/index.d.ts</code> aussi disponible`, fileId:'nm/@types/'+pkg+'/index.d.ts', status:'ok'});
+    }
+  }
+  return steps;
+}
+
+let steps = [], currentStep = -1, autoTimer = null, treeItems = {};
+
+function renderFileTree(importPath, strategy) {
+  const tree = document.getElementById('fileTree');
+  tree.innerHTML = '';
+  treeItems = {};
+  const files = getFileTree(importPath, strategy);
+  files.forEach(f => {
+    const div = document.createElement('div');
+    div.className = `tree-item indent-${f.indent}`;
+    div.dataset.id = f.id;
+    const iconClass = f.icon.includes('folder') ? 'folder' : ('file ' + (f.icon.includes('ts')?'ts':f.icon.includes('js')?'js':f.icon.includes('json')?'json':''));
+    const iconChar = f.icon.includes('folder') ? '\uD83D\uDCC1' : '\uD83D\uDCC4';
+    div.innerHTML = `<span class="tree-icon ${iconClass}">${iconChar}</span><span>${f.name}</span>`;
+    tree.appendChild(div);
+    treeItems[f.id] = div;
+  });
+}
+
+function startResolution() {
+  clearInterval(autoTimer); autoTimer = null;
+  const importPath = document.getElementById('importPath').value.trim() || './utils';
+  const strategy = document.getElementById('strategy').value;
+  document.getElementById('strategyInfo').innerHTML = strategyDescriptions[strategy];
+  steps = getSteps(importPath, strategy);
+  currentStep = -1;
+  renderFileTree(importPath, strategy);
+  document.getElementById('stepLog').innerHTML = '';
+  document.getElementById('progress').style.width = '0%';
+  document.getElementById('btnStep').disabled = false;
+}
+
+function nextStep() {
+  if (currentStep >= steps.length - 1) { document.getElementById('btnStep').disabled = true; return; }
+  currentStep++;
+  const s = steps[currentStep];
+  const log = document.getElementById('stepLog');
+  const pct = ((currentStep+1)/steps.length)*100;
+  document.getElementById('progress').style.width = pct+'%';
+
+  // Clear previous "checking" states
+  Object.values(treeItems).forEach(el => el.classList.remove('checking'));
+
+  // Highlight file
+  if (s.fileId && treeItems[s.fileId]) {
+    const el = treeItems[s.fileId];
+    if (s.type === 'found') { el.classList.add('found'); }
+    else if (s.status === 'no') { el.classList.add('not-found'); }
+    else { el.classList.add('checking'); }
+  }
+
+  // Add log entry
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${s.type}`;
+  let statusHtml = '';
+  if (s.status === 'ok') statusHtml = '<span class="status ok">\u2713</span>';
+  else if (s.status === 'no') statusHtml = '<span class="status no">\u2717</span>';
+  entry.innerHTML = statusHtml + s.text;
+  log.appendChild(entry);
+  setTimeout(() => { entry.classList.add('visible'); entry.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 30);
+
+  if (currentStep >= steps.length - 1) document.getElementById('btnStep').disabled = true;
+}
+
+function resetView() {
+  clearInterval(autoTimer); autoTimer = null;
+  currentStep = -1; steps = [];
+  document.getElementById('fileTree').innerHTML = '<div style="color:#546e7a;font-size:0.82rem;padding:8px">Cliquez "Resoudre" pour commencer</div>';
+  document.getElementById('stepLog').innerHTML = '';
+  document.getElementById('progress').style.width = '0%';
+  document.getElementById('btnStep').disabled = false;
+  document.getElementById('strategyInfo').innerHTML = '';
+}
+
+function autoPlay() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; return; }
+  if (steps.length === 0) startResolution();
+  autoTimer = setInterval(() => {
+    if (currentStep >= steps.length - 1) { clearInterval(autoTimer); autoTimer = null; return; }
+    nextStep();
+  }, 900);
+}
+
+// Initialize with strategy info
+document.getElementById('strategy').addEventListener('change', () => {
+  document.getElementById('strategyInfo').innerHTML = strategyDescriptions[document.getElementById('strategy').value];
+});
+document.getElementById('strategyInfo').innerHTML = strategyDescriptions['bundler'];
+resetView();
+</script>
+</body>
+</html>

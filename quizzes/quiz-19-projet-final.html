@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz 19 — Projet final</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; color: #ffffff; }
+    .subtitle { text-align: center; color: #8892b0; margin-bottom: 2rem; font-size: 1rem; }
+    .progress-bar-container { background: #0d1117; border-radius: 10px; height: 14px; margin-bottom: 2rem; overflow: hidden; }
+    .progress-bar { background: linear-gradient(90deg, #0d6efd, #4dabf7); height: 100%; width: 0%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-text { text-align: center; color: #8892b0; margin-bottom: 1rem; font-size: 0.9rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .question-label { font-size: 0.85rem; color: #4dabf7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .question-text { font-size: 1.15rem; margin-bottom: 1.2rem; line-height: 1.5; color: #ffffff; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem; overflow-x: auto; font-size: 0.95rem; }
+    code { font-family: 'Consolas', 'Fira Code', 'Courier New', monospace; color: #c9d1d9; }
+    .options { list-style: none; }
+    .options li { margin-bottom: 0.5rem; }
+    .options label { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem; background: #0d1117; border: 2px solid #30363d; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 1rem; }
+    .options label:hover { border-color: #4dabf7; background: #1c2a4a; }
+    .options input[type="radio"] { accent-color: #0d6efd; width: 18px; height: 18px; flex-shrink: 0; }
+    .btn { display: inline-block; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .btn-primary { background: #0d6efd; color: #fff; }
+    .btn-primary:hover { background: #3b82f6; }
+    .btn-primary:disabled { background: #374151; cursor: not-allowed; }
+    .btn-restart { background: #238636; color: #fff; margin-top: 1rem; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-restart:hover { background: #2ea043; }
+    .feedback { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; display: none; }
+    .feedback.correct { background: #0f5132; border: 1px solid #198754; color: #d1fae5; display: block; }
+    .feedback.wrong { background: #842029; border: 1px solid #dc3545; color: #fdd; display: block; }
+    .score-card { text-align: center; padding: 3rem 2rem; }
+    .score-card .score { font-size: 3rem; font-weight: 700; color: #4dabf7; margin-bottom: 0.5rem; }
+    .score-card .score-label { font-size: 1.2rem; color: #8892b0; margin-bottom: 1.5rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz 19 — Projet final</h1>
+    <p class="subtitle">Synthese TypeScript avance</p>
+    <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+    <p class="progress-text" id="progressText">Question 1 / 5</p>
+    <div id="quizContainer"></div>
+    <div id="scoreContainer" class="card score-card hidden"></div>
+  </div>
+  <script>
+    const questions = [
+      {
+        label: "Question 1",
+        text: "Comment typer un <code>EventEmitter</code> generique qui garantit la correspondance entre noms d'evenements et types de payload ?",
+        code: "interface Events {\n  login: { userId: string; timestamp: Date };\n  logout: { userId: string };\n  error: { message: string; code: number };\n}\n\nclass TypedEmitter&lt;E extends Record&lt;string, any&gt;&gt; {\n  on&lt;K extends keyof E&gt;(event: K, handler: (payload: E[K]) =&gt; void): void { /* ... */ }\n  emit&lt;K extends keyof E&gt;(event: K, payload: E[K]): void { /* ... */ }\n}\n\nconst emitter = new TypedEmitter&lt;Events&gt;();\nemitter.on('login', (data) =&gt; { /* data: {userId: string; timestamp: Date} */ });",
+        options: [
+          "En utilisant des unions pour chaque type d'evenement",
+          "En utilisant une interface de mapping comme parametre generique et des lookups indexes K extends keyof E pour contraindre on() et emit()",
+          "En utilisant des enums pour les noms d'evenements",
+          "Ce n'est pas possible de typer cela en TypeScript"
+        ],
+        answer: 1,
+        explanation: "La cle est d'utiliser une interface qui mappe chaque nom d'evenement a son type de payload. En contraignant <code>K extends keyof E</code>, TypeScript peut inferer le type exact du payload pour chaque evenement. L'appel <code>on('login', handler)</code> infere automatiquement que <code>data</code> est de type <code>{ userId: string; timestamp: Date }</code>."
+      },
+      {
+        label: "Question 2",
+        text: "Comment creer un systeme de validation de schema type-safe au niveau des types ?",
+        code: "const userSchema = {\n  name: 'string' as const,\n  age: 'number' as const,\n  active: 'boolean' as const,\n} satisfies Record&lt;string, 'string' | 'number' | 'boolean'&gt;;\n\ntype SchemaToType&lt;S&gt; = {\n  [K in keyof S]: S[K] extends 'string' ? string\n    : S[K] extends 'number' ? number\n    : S[K] extends 'boolean' ? boolean\n    : never;\n};\n\ntype User = SchemaToType&lt;typeof userSchema&gt;;\n// { name: string; age: number; active: boolean }",
+        options: [
+          "En utilisant any pour les valeurs du schema",
+          "En utilisant as const pour preserver les literal types et un mapped type conditionnel pour convertir les descripteurs en types reels",
+          "En creant manuellement les types et les schemas separement",
+          "En utilisant uniquement des classes avec des decorateurs"
+        ],
+        answer: 1,
+        explanation: "<code>as const</code> preserve les types literals (<code>'string'</code> au lieu de <code>string</code>). Le mapped type <code>SchemaToType</code> itere sur chaque cle du schema et utilise des conditional types pour convertir les descripteurs (<code>'string'</code>, <code>'number'</code>, <code>'boolean'</code>) en types TypeScript reels. Le mot-cle <code>satisfies</code> valide le schema sans elargir les types."
+      },
+      {
+        label: "Question 3",
+        text: "Comment typer un conteneur d'injection de dependances (DI) simple ?",
+        code: "class Container {\n  private services = new Map&lt;string, any&gt;();\n\n  register&lt;T&gt;(token: string, factory: () =&gt; T): void {\n    this.services.set(token, factory);\n  }\n\n  resolve&lt;T&gt;(token: string): T {\n    const factory = this.services.get(token);\n    if (!factory) throw new Error(`Service ${token} not found`);\n    return factory();\n  }\n}\n\n// Probleme : resolve() retourne 'T' mais rien ne lie le token au type",
+        options: [
+          "En utilisant 'any' comme type de retour, c'est la seule solution",
+          "En utilisant des tokens types (classes ou symboles avec generiques) plutot que des strings, pour lier chaque token a son type",
+          "En ajoutant des validations a l'execution",
+          "En listant tous les services dans un enum"
+        ],
+        answer: 1,
+        explanation: "Le probleme du DI container base sur des strings est que le <strong>token ne porte pas d'information de type</strong>. La solution est d'utiliser des tokens types : soit des classes (<code>container.resolve(UserService)</code>), soit des <code>InjectionToken&lt;T&gt;</code> generiques qui encodent le type dans le token. Ainsi, <code>resolve()</code> peut retourner le bon type sans cast."
+      },
+      {
+        label: "Question 4",
+        text: "Quelles sont les bonnes pratiques pour publier une bibliotheque TypeScript sur npm ?",
+        code: "// package.json\n{\n  \"name\": \"my-lib\",\n  \"main\": \"./dist/index.js\",\n  \"types\": \"./dist/index.d.ts\",\n  \"exports\": {\n    \".\": {\n      \"import\": \"./dist/esm/index.js\",\n      \"require\": \"./dist/cjs/index.js\",\n      \"types\": \"./dist/index.d.ts\"\n    }\n  },\n  \"files\": [\"dist\"]\n}",
+        options: [
+          "Publier uniquement les fichiers .ts source",
+          "Inclure les fichiers .js compiles, les .d.ts, utiliser le champ 'types' dans package.json, et configurer 'exports' pour ESM/CJS",
+          "Ne publier que le fichier .d.ts sans le JavaScript",
+          "Toujours publier avec 'any' pour eviter les problemes de compatibilite"
+        ],
+        answer: 1,
+        explanation: "Pour une bibliotheque TypeScript, il faut publier : les fichiers <strong>.js compiles</strong>, les fichiers <strong>.d.ts</strong> (declarations), et configurer <code>package.json</code> avec le champ <code>types</code> (ou <code>typings</code>). Le champ <code>exports</code> avec conditions <code>import</code>/<code>require</code>/<code>types</code> permet le dual-package (ESM + CJS). On ne publie jamais les .ts source directement."
+      },
+      {
+        label: "Question 5",
+        text: "Quel est le resultat de cette combinaison de concepts avances TypeScript ?",
+        code: "type PathKeys&lt;T, Prefix extends string = ''&gt; =\n  T extends object\n    ? {\n        [K in keyof T &amp; string]: T[K] extends object\n          ? `${Prefix}${K}` | PathKeys&lt;T[K], `${Prefix}${K}.`&gt;\n          : `${Prefix}${K}`\n      }[keyof T &amp; string]\n    : never;\n\ninterface Config {\n  db: { host: string; port: number };\n  app: { name: string };\n}\n\ntype ConfigPaths = PathKeys&lt;Config&gt;;",
+        options: [
+          "'db' | 'app'",
+          "'db' | 'db.host' | 'db.port' | 'app' | 'app.name'",
+          "'db.host' | 'db.port' | 'app.name'",
+          "string"
+        ],
+        answer: 1,
+        explanation: "Ce type combine <strong>types recursifs</strong>, <strong>mapped types</strong>, <strong>template literal types</strong> et <strong>conditional types</strong>. Il genere toutes les chemins de cles possibles d'un objet imbrique. Pour <code>Config</code> : les cles de premier niveau (<code>'db'</code>, <code>'app'</code>) PLUS les chemins des sous-objets (<code>'db.host'</code>, <code>'db.port'</code>, <code>'app.name'</code>)."
+      }
+    ];
+    let currentQuestion = 0, score = 0, answered = false;
+    function renderQuestion() {
+      if (currentQuestion >= questions.length) { showScore(); return; }
+      const q = questions[currentQuestion];
+      const pct = (currentQuestion / questions.length) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = 'Question ' + (currentQuestion + 1) + ' / ' + questions.length;
+      let html = '<div class="card">';
+      html += '<div class="question-label">' + q.label + '</div>';
+      html += '<div class="question-text">' + q.text + '</div>';
+      if (q.code) html += '<pre><code>' + q.code + '</code></pre>';
+      html += '<ul class="options">';
+      q.options.forEach(function(opt, i) {
+        html += '<li><label><input type="radio" name="q" value="' + i + '"> ' + opt + '</label></li>';
+      });
+      html += '</ul>';
+      html += '<button class="btn btn-primary" id="validateBtn" onclick="validate()" disabled>Valider</button>';
+      html += '<div class="feedback" id="feedback"></div>';
+      html += '</div>';
+      document.getElementById('quizContainer').innerHTML = html;
+      document.getElementById('scoreContainer').classList.add('hidden');
+      answered = false;
+      document.querySelectorAll('input[name="q"]').forEach(function(input) {
+        input.addEventListener('change', function() { document.getElementById('validateBtn').disabled = false; });
+      });
+    }
+    function validate() {
+      if (answered) return;
+      answered = true;
+      const selected = document.querySelector('input[name="q"]:checked');
+      if (!selected) return;
+      const val = parseInt(selected.value);
+      const q = questions[currentQuestion];
+      const fb = document.getElementById('feedback');
+      if (val === q.answer) {
+        score++;
+        fb.className = 'feedback correct';
+        fb.innerHTML = '<strong>Correct !</strong> ' + q.explanation;
+      } else {
+        fb.className = 'feedback wrong';
+        fb.innerHTML = '<strong>Incorrect.</strong> ' + q.explanation;
+      }
+      document.getElementById('validateBtn').disabled = true;
+      setTimeout(function() { currentQuestion++; renderQuestion(); }, 3000);
+    }
+    function showScore() {
+      document.getElementById('quizContainer').innerHTML = '';
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressText').textContent = 'Terminé !';
+      const sc = document.getElementById('scoreContainer');
+      sc.classList.remove('hidden');
+      const pct = Math.round((score / questions.length) * 100);
+      let msg = pct >= 80 ? 'Excellent travail !' : pct >= 60 ? 'Bon travail, quelques points à revoir.' : 'Continuez à étudier, vous progresserez !';
+      sc.innerHTML = '<div class="score">' + score + ' / ' + questions.length + '</div><div class="score-label">' + pct + '% — ' + msg + '</div><button class="btn-restart" onclick="restart()">Recommencer</button>';
+    }
+    function restart() { currentQuestion = 0; score = 0; answered = false; renderQuestion(); }
+    renderQuestion();
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz 08 — Enums & Tuples</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; color: #ffffff; }
+    .subtitle { text-align: center; color: #8892b0; margin-bottom: 2rem; font-size: 1rem; }
+    .progress-bar-container { background: #0d1117; border-radius: 10px; height: 14px; margin-bottom: 2rem; overflow: hidden; }
+    .progress-bar { background: linear-gradient(90deg, #0d6efd, #4dabf7); height: 100%; width: 0%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-text { text-align: center; color: #8892b0; margin-bottom: 1rem; font-size: 0.9rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .question-label { font-size: 0.85rem; color: #4dabf7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .question-text { font-size: 1.15rem; margin-bottom: 1.2rem; line-height: 1.5; color: #ffffff; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem; overflow-x: auto; font-size: 0.95rem; }
+    code { font-family: 'Consolas', 'Fira Code', 'Courier New', monospace; color: #c9d1d9; }
+    .options { list-style: none; }
+    .options li { margin-bottom: 0.5rem; }
+    .options label { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem; background: #0d1117; border: 2px solid #30363d; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 1rem; }
+    .options label:hover { border-color: #4dabf7; background: #1c2a4a; }
+    .options input[type="radio"] { accent-color: #0d6efd; width: 18px; height: 18px; flex-shrink: 0; }
+    .btn { display: inline-block; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .btn-primary { background: #0d6efd; color: #fff; }
+    .btn-primary:hover { background: #3b82f6; }
+    .btn-primary:disabled { background: #374151; cursor: not-allowed; }
+    .btn-restart { background: #238636; color: #fff; margin-top: 1rem; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-restart:hover { background: #2ea043; }
+    .feedback { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; display: none; }
+    .feedback.correct { background: #0f5132; border: 1px solid #198754; color: #d1fae5; display: block; }
+    .feedback.wrong { background: #842029; border: 1px solid #dc3545; color: #fdd; display: block; }
+    .score-card { text-align: center; padding: 3rem 2rem; }
+    .score-card .score { font-size: 3rem; font-weight: 700; color: #4dabf7; margin-bottom: 0.5rem; }
+    .score-card .score-label { font-size: 1.2rem; color: #8892b0; margin-bottom: 1.5rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz 08 — Enums & Tuples</h1>
+    <p class="subtitle">Enums, tuples, never, unknown, void</p>
+    <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+    <p class="progress-text" id="progressText">Question 1 / 5</p>
+    <div id="quizContainer"></div>
+    <div id="scoreContainer" class="card score-card hidden"></div>
+  </div>
+  <script>
+    const questions = [
+      {
+        label: "Question 1",
+        text: "Quelle est la difference principale entre un enum numerique et un enum string ?",
+        code: "// Enum numerique\nenum Direction {\n  Up,    // 0\n  Down,  // 1\n  Left,  // 2\n  Right  // 3\n}\n\n// Enum string\nenum Color {\n  Red = 'RED',\n  Green = 'GREEN',\n  Blue = 'BLUE'\n}",
+        options: [
+          "Les enums string sont plus rapides a l'execution",
+          "Les enums numeriques supportent le reverse mapping (valeur vers nom) mais les enums string ont des valeurs plus lisibles et pas d'auto-increment",
+          "Les enums numeriques ne peuvent pas etre utilises dans un switch",
+          "Les enums string ne sont pas supportes avant TypeScript 5.0"
+        ],
+        answer: 1,
+        explanation: "Les enums numeriques auto-incrementent leurs valeurs (0, 1, 2...) et supportent le reverse mapping : Direction[0] donne 'Up'. Les enums string exigent une valeur explicite pour chaque membre, n'ont pas de reverse mapping, mais sont plus lisibles dans le debugging et les logs. Les enums string sont generalement preferes car les valeurs numeriques peuvent mener a des bugs subtils."
+      },
+      {
+        label: "Question 2",
+        text: "Quel est l'avantage d'un const enum par rapport a un enum classique ?",
+        code: "const enum Status {\n  Active = 'ACTIVE',\n  Inactive = 'INACTIVE'\n}\n\nconst s = Status.Active;\n// JavaScript genere : const s = 'ACTIVE';\n// (pas d'objet Status a l'execution)",
+        options: [
+          "Un const enum cree un objet JavaScript immutable",
+          "Un const enum est completement inline a la compilation : les references sont remplacees par les valeurs, aucun code n'est emis pour l'enum",
+          "Un const enum ne peut contenir que des nombres",
+          "Un const enum est accessible depuis d'autres modules"
+        ],
+        answer: 1,
+        explanation: "Un const enum est completement efface a la compilation. Chaque reference a un membre est remplacee par sa valeur directement dans le code JavaScript genere. Aucun objet enum n'est cree a l'execution, ce qui donne un code plus leger. Attention : cela empeche l'iteration sur les membres et peut poser des problemes avec l'option isolatedModules (utilisee par Babel, esbuild, etc.)."
+      },
+      {
+        label: "Question 3",
+        text: "Quelle est la difference entre un tuple et un tableau classique en TypeScript ?",
+        code: "// Tableau classique : tous les elements ont le meme type\nconst arr: number[] = [1, 2, 3, 4, 5];\n\n// Tuple : nombre fixe d'elements avec des types specifiques par position\nconst tuple: [string, number, boolean] = ['Alice', 30, true];",
+        options: [
+          "Un tuple est un tableau immutable, un tableau est mutable",
+          "Un tuple a un nombre fixe d'elements avec un type specifique pour chaque position, un tableau a une longueur variable avec un seul type",
+          "Un tuple ne peut contenir que des types primitifs",
+          "Il n'y a pas de difference au niveau du type, seulement a l'execution"
+        ],
+        answer: 1,
+        explanation: "Un tuple est un tableau a longueur fixe ou chaque position a un type specifique. TypeScript connait exactement la longueur et le type a chaque index. Un tableau classique (T[]) peut avoir n'importe quelle longueur et tous les elements partagent le meme type. Les tuples sont utiles pour les valeurs de retour multiples, les coordonnees, les paires cle-valeur, etc."
+      },
+      {
+        label: "Question 4",
+        text: "Que represente le type never et quand est-il utilise ?",
+        code: "// Fonction qui ne retourne jamais\nfunction throwError(msg: string): never {\n  throw new Error(msg);\n}\n\n// Boucle infinie\nfunction infinite(): never {\n  while (true) {}\n}\n\n// Type vide apres narrowing exhaustif\ntype Result = string &amp; number; // never",
+        options: [
+          "never est un alias pour void",
+          "never represente un type sans aucune valeur possible : fonctions qui ne retournent jamais, code inaccessible, ou intersections impossibles",
+          "never est utilise pour les variables non initialisees",
+          "never signifie que la variable peut etre null ou undefined"
+        ],
+        answer: 1,
+        explanation: "never est le type bottom de TypeScript : il represente l'ensemble vide des valeurs. Aucune valeur ne peut etre de type never. Il apparait naturellement dans trois cas : (1) les fonctions qui ne retournent jamais (throw, boucle infinie), (2) le code inaccessible apres un narrowing exhaustif, (3) les intersections impossibles (string & number). never est aussi tres utile dans les types conditionnels pour filtrer des types."
+      },
+      {
+        label: "Question 5",
+        text: "Pourquoi TypeScript exige-t-il un narrowing avant d'utiliser une valeur de type unknown ?",
+        code: "function process(value: unknown) {\n  // value.toUpperCase(); // Erreur !\n\n  if (typeof value === 'string') {\n    value.toUpperCase(); // OK apres narrowing\n  }\n\n  if (value instanceof Date) {\n    value.getTime(); // OK apres narrowing\n  }\n}",
+        options: [
+          "C'est un bug de TypeScript, unknown devrait se comporter comme any",
+          "unknown accepte toute assignation mais interdit toute operation tant que le type reel n'est pas verifie, ce qui garantit la securite de type",
+          "unknown est reserve aux types primitifs et refuse les objets",
+          "Le narrowing est optionnel avec unknown, c'est juste un avertissement"
+        ],
+        answer: 1,
+        explanation: "unknown est le type top type-safe de TypeScript. Contrairement a any, il vous oblige a verifier le type avant toute operation. C'est le choix ideal quand vous recevez des donnees dont le type est inconnu (API externe, JSON parse, catch). Le narrowing avec typeof, instanceof ou des type guards personnalises permet ensuite d'utiliser la valeur en toute securite."
+      }
+    ];
+
+    let currentQuestion = 0, score = 0, answered = false;
+
+    function renderQuestion() {
+      const q = questions[currentQuestion];
+      const total = questions.length;
+      document.getElementById('progressBar').style.width = ((currentQuestion / total) * 100) + '%';
+      document.getElementById('progressText').textContent = `Question ${currentQuestion + 1} / ${total}`;
+      let html = `<div class="card">
+        <p class="question-label">${q.label}</p>
+        <p class="question-text">${q.text}</p>`;
+      if (q.code) {
+        html += `<pre><code>${q.code}</code></pre>`;
+      }
+      html += `<ul class="options">`;
+      q.options.forEach((opt, i) => {
+        html += `<li><label><input type="radio" name="q" value="${i}"> ${opt}</label></li>`;
+      });
+      html += `</ul>
+        <button class="btn btn-primary" id="validateBtn" onclick="validate()" disabled>Valider</button>
+        <div class="feedback" id="feedback"></div>
+      </div>`;
+      document.getElementById('quizContainer').innerHTML = html;
+      document.querySelectorAll('input[name="q"]').forEach(r => {
+        r.addEventListener('change', () => {
+          document.getElementById('validateBtn').disabled = false;
+        });
+      });
+      answered = false;
+    }
+
+    function validate() {
+      if (answered) {
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+          renderQuestion();
+        } else {
+          showScore();
+        }
+        return;
+      }
+      answered = true;
+      const selected = document.querySelector('input[name="q"]:checked');
+      if (!selected) return;
+      const val = parseInt(selected.value);
+      const q = questions[currentQuestion];
+      const fb = document.getElementById('feedback');
+      const btn = document.getElementById('validateBtn');
+      document.querySelectorAll('input[name="q"]').forEach(r => r.disabled = true);
+      if (val === q.answer) {
+        score++;
+        fb.className = 'feedback correct';
+        fb.innerHTML = `<strong>Correct !</strong> ${q.explanation}`;
+      } else {
+        fb.className = 'feedback wrong';
+        fb.innerHTML = `<strong>Incorrect.</strong> ${q.explanation}`;
+      }
+      btn.textContent = currentQuestion < questions.length - 1 ? 'Suivant' : 'Voir le score';
+    }
+
+    function showScore() {
+      document.getElementById('quizContainer').classList.add('hidden');
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressText').textContent = `Termine !`;
+      const sc = document.getElementById('scoreContainer');
+      sc.classList.remove('hidden');
+      const pct = Math.round((score / questions.length) * 100);
+      let msg = pct === 100 ? 'Parfait !' : pct >= 60 ? 'Bien joue !' : 'Continuez a reviser !';
+      sc.innerHTML = `<div class="score">${score} / ${questions.length}</div>
+        <div class="score-label">${msg} (${pct}%)</div>
+        <button class="btn-restart" onclick="restart()">Recommencer</button>`;
+    }
+
+    function restart() {
+      currentQuestion = 0; score = 0; answered = false;
+      document.getElementById('scoreContainer').classList.add('hidden');
+      document.getElementById('quizContainer').classList.remove('hidden');
+      renderQuestion();
+    }
+
+    renderQuestion();
+  </script>
+</body>
+</html>

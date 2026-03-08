@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz 15 — Variance & Soundness</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; color: #ffffff; }
+    .subtitle { text-align: center; color: #8892b0; margin-bottom: 2rem; font-size: 1rem; }
+    .progress-bar-container { background: #0d1117; border-radius: 10px; height: 14px; margin-bottom: 2rem; overflow: hidden; }
+    .progress-bar { background: linear-gradient(90deg, #0d6efd, #4dabf7); height: 100%; width: 0%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-text { text-align: center; color: #8892b0; margin-bottom: 1rem; font-size: 0.9rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .question-label { font-size: 0.85rem; color: #4dabf7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .question-text { font-size: 1.15rem; margin-bottom: 1.2rem; line-height: 1.5; color: #ffffff; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem; overflow-x: auto; font-size: 0.95rem; }
+    code { font-family: 'Consolas', 'Fira Code', 'Courier New', monospace; color: #c9d1d9; }
+    .options { list-style: none; }
+    .options li { margin-bottom: 0.5rem; }
+    .options label { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem; background: #0d1117; border: 2px solid #30363d; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 1rem; }
+    .options label:hover { border-color: #4dabf7; background: #1c2a4a; }
+    .options input[type="radio"] { accent-color: #0d6efd; width: 18px; height: 18px; flex-shrink: 0; }
+    .btn { display: inline-block; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .btn-primary { background: #0d6efd; color: #fff; }
+    .btn-primary:hover { background: #3b82f6; }
+    .btn-primary:disabled { background: #374151; cursor: not-allowed; }
+    .btn-restart { background: #238636; color: #fff; margin-top: 1rem; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-restart:hover { background: #2ea043; }
+    .feedback { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; display: none; }
+    .feedback.correct { background: #0f5132; border: 1px solid #198754; color: #d1fae5; display: block; }
+    .feedback.wrong { background: #842029; border: 1px solid #dc3545; color: #fdd; display: block; }
+    .score-card { text-align: center; padding: 3rem 2rem; }
+    .score-card .score { font-size: 3rem; font-weight: 700; color: #4dabf7; margin-bottom: 0.5rem; }
+    .score-card .score-label { font-size: 1.2rem; color: #8892b0; margin-bottom: 1.5rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz 15 — Variance & Soundness</h1>
+    <p class="subtitle">Covariance, contravariance, soundness</p>
+    <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+    <p class="progress-text" id="progressText">Question 1 / 5</p>
+    <div id="quizContainer"></div>
+    <div id="scoreContainer" class="card score-card hidden"></div>
+  </div>
+  <script>
+    const questions = [
+      {
+        label: "Question 1",
+        text: "Qu'est-ce que la covariance pour les types de retour des fonctions ?",
+        code: "class Animal { name = ''; }\nclass Dog extends Animal { breed = ''; }\n\ntype Producer&lt;T&gt; = () =&gt; T;\n\n// Est-ce que Producer&lt;Dog&gt; est assignable a Producer&lt;Animal&gt; ?",
+        options: [
+          "Non, les types de retour sont invariants",
+          "Oui, car Dog extends Animal, et les types de retour sont covariants",
+          "Oui, mais seulement avec strictFunctionTypes desactive",
+          "Non, cela produirait une erreur a l'execution"
+        ],
+        answer: 1,
+        explanation: "Les types de retour des fonctions sont <strong>covariants</strong> : si <code>Dog extends Animal</code>, alors <code>() =&gt; Dog</code> est assignable a <code>() =&gt; Animal</code>. C'est logique : une fonction qui retourne un Dog retourne aussi un Animal."
+      },
+      {
+        label: "Question 2",
+        text: "Qu'est-ce que la contravariance pour les parametres de fonctions ?",
+        code: "class Animal { name = ''; }\nclass Dog extends Animal { breed = ''; }\n\ntype Consumer&lt;T&gt; = (x: T) =&gt; void;\n\n// Avec strictFunctionTypes active :\n// Est-ce que Consumer&lt;Animal&gt; est assignable a Consumer&lt;Dog&gt; ?",
+        options: [
+          "Non, les parametres sont covariants",
+          "Oui, car les parametres de fonctions sont contravariants avec strictFunctionTypes",
+          "Oui, mais seulement pour les types primitifs",
+          "Non, c'est toujours interdit en TypeScript"
+        ],
+        answer: 1,
+        explanation: "Avec <code>strictFunctionTypes</code> active, les parametres de fonctions sont <strong>contravariants</strong> : si <code>Dog extends Animal</code>, alors <code>Consumer&lt;Animal&gt;</code> est assignable a <code>Consumer&lt;Dog&gt;</code> (l'ordre est inverse). Une fonction qui accepte n'importe quel Animal peut aussi traiter un Dog."
+      },
+      {
+        label: "Question 3",
+        text: "Pourquoi les methodes d'interface sont-elles bivariantes par defaut en TypeScript ?",
+        code: "interface Handler {\n  handle(event: MouseEvent): void;  // methode\n}\n\ninterface StrictHandler {\n  handle: (event: MouseEvent) =&gt; void;  // propriete fonction\n}",
+        options: [
+          "Les methodes et les proprietes fonctions ont le meme comportement de variance",
+          "Les methodes sont bivariantes (covariantes et contravariantes) pour des raisons pratiques, les proprietes fonctions sont strictement contravariantes",
+          "Les methodes sont invariantes, les proprietes sont bivariantes",
+          "La bivariance n'existe pas en TypeScript"
+        ],
+        answer: 1,
+        explanation: "En TypeScript, les <strong>methodes</strong> (<code>handle(x: T)</code>) sont bivariantes pour des raisons de compatibilite pratique (ex: <code>Array.push</code>). Les <strong>proprietes de type fonction</strong> (<code>handle: (x: T) =&gt; void</code>) sont strictement contravariantes avec <code>strictFunctionTypes</code>. C'est un compromis entre soundness et utilisabilite."
+      },
+      {
+        label: "Question 4",
+        text: "Comment le mot-cle <code>readonly</code> affecte-t-il la variance ?",
+        code: "interface MutableBox&lt;T&gt; {\n  value: T;            // lecture + ecriture\n}\n\ninterface ReadonlyBox&lt;T&gt; {\n  readonly value: T;   // lecture seule\n}",
+        options: [
+          "readonly rend le type invariant",
+          "readonly n'a aucun effet sur la variance",
+          "readonly rend le type covariant car il supprime la position contravariante (ecriture)",
+          "readonly rend le type contravariant"
+        ],
+        answer: 2,
+        explanation: "Une propriete mutable est en position <strong>covariante</strong> (lecture) ET <strong>contravariante</strong> (ecriture), ce qui la rend invariante. Avec <code>readonly</code>, seule la lecture reste, donc le type devient <strong>covariant</strong>. C'est pourquoi <code>ReadonlyArray&lt;Dog&gt;</code> est assignable a <code>ReadonlyArray&lt;Animal&gt;</code>."
+      },
+      {
+        label: "Question 5",
+        text: "Quel est un exemple classique de trou de soundness (unsoundness) en TypeScript ?",
+        code: "const dogs: Dog[] = [new Dog()];\nconst animals: Animal[] = dogs;  // OK : les tableaux sont covariants\n\nanimals.push(new Animal());  // Compile... mais probleme !\n// dogs[1].breed  // runtime: undefined !",
+        options: [
+          "TypeScript est parfaitement sound, il n'y a pas de trous",
+          "La covariance des tableaux mutables permet d'inserer un Animal dans un tableau de Dogs",
+          "Le probleme vient uniquement du mode non-strict",
+          "Ce code ne compile pas en TypeScript"
+        ],
+        answer: 1,
+        explanation: "C'est un trou de soundness classique : les tableaux mutables sont <strong>covariants</strong> en TypeScript (pour des raisons pratiques), mais ils devraient etre <strong>invariants</strong>. En assignant <code>Dog[]</code> a <code>Animal[]</code>, on peut ajouter un <code>Animal</code> generique dans le tableau, ce qui corrompt le tableau de <code>Dog</code>."
+      }
+    ];
+    let currentQuestion = 0, score = 0, answered = false;
+    function renderQuestion() {
+      if (currentQuestion >= questions.length) { showScore(); return; }
+      const q = questions[currentQuestion];
+      const pct = (currentQuestion / questions.length) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = 'Question ' + (currentQuestion + 1) + ' / ' + questions.length;
+      let html = '<div class="card">';
+      html += '<div class="question-label">' + q.label + '</div>';
+      html += '<div class="question-text">' + q.text + '</div>';
+      if (q.code) html += '<pre><code>' + q.code + '</code></pre>';
+      html += '<ul class="options">';
+      q.options.forEach(function(opt, i) {
+        html += '<li><label><input type="radio" name="q" value="' + i + '"> ' + opt + '</label></li>';
+      });
+      html += '</ul>';
+      html += '<button class="btn btn-primary" id="validateBtn" onclick="validate()" disabled>Valider</button>';
+      html += '<div class="feedback" id="feedback"></div>';
+      html += '</div>';
+      document.getElementById('quizContainer').innerHTML = html;
+      document.getElementById('scoreContainer').classList.add('hidden');
+      answered = false;
+      document.querySelectorAll('input[name="q"]').forEach(function(input) {
+        input.addEventListener('change', function() { document.getElementById('validateBtn').disabled = false; });
+      });
+    }
+    function validate() {
+      if (answered) return;
+      answered = true;
+      const selected = document.querySelector('input[name="q"]:checked');
+      if (!selected) return;
+      const val = parseInt(selected.value);
+      const q = questions[currentQuestion];
+      const fb = document.getElementById('feedback');
+      if (val === q.answer) {
+        score++;
+        fb.className = 'feedback correct';
+        fb.innerHTML = '<strong>Correct !</strong> ' + q.explanation;
+      } else {
+        fb.className = 'feedback wrong';
+        fb.innerHTML = '<strong>Incorrect.</strong> ' + q.explanation;
+      }
+      document.getElementById('validateBtn').disabled = true;
+      setTimeout(function() { currentQuestion++; renderQuestion(); }, 3000);
+    }
+    function showScore() {
+      document.getElementById('quizContainer').innerHTML = '';
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressText').textContent = 'Terminé !';
+      const sc = document.getElementById('scoreContainer');
+      sc.classList.remove('hidden');
+      const pct = Math.round((score / questions.length) * 100);
+      let msg = pct >= 80 ? 'Excellent travail !' : pct >= 60 ? 'Bon travail, quelques points à revoir.' : 'Continuez à étudier, vous progresserez !';
+      sc.innerHTML = '<div class="score">' + score + ' / ' + questions.length + '</div><div class="score-label">' + pct + '% — ' + msg + '</div><button class="btn-restart" onclick="restart()">Recommencer</button>';
+    }
+    function restart() { currentQuestion = 0; score = 0; answered = false; renderQuestion(); }
+    renderQuestion();
+  </script>
+</body>
+</html>

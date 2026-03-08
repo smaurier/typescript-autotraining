@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conditional Types - Arbre d'evaluation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh; padding: 20px;
+  }
+  h1 { color: #00d4ff; text-align: center; margin-bottom: 6px; font-size: 1.5rem; }
+  .subtitle { color: #8892b0; text-align: center; margin-bottom: 20px; font-size: 0.9rem; }
+  .controls {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 20px; align-items: center;
+  }
+  select, .btn {
+    background: #16213e; border: 2px solid #2a3a5e; color: #00d4ff;
+    padding: 10px 18px; border-radius: 8px; font-size: 0.88rem; cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn:hover { border-color: #00d4ff; box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+  .btn.primary { background: #00d4ff22; }
+  .btn:disabled { opacity: 0.4; cursor: default; }
+  .container {
+    max-width: 900px; margin: 0 auto; background: #16213e;
+    border-radius: 12px; border: 1px solid #2a3a5e; padding: 24px;
+  }
+  /* Expression display */
+  .expression {
+    background: #0f1629; border-radius: 8px; padding: 16px;
+    font-family: 'Consolas', monospace; font-size: 1rem;
+    text-align: center; margin-bottom: 8px; border: 1px solid #2a3a5e;
+    line-height: 1.6;
+  }
+  .expr-type { color: #ffcb6b; } .expr-kw { color: #c792ea; }
+  .expr-op { color: #89ddff; } .expr-str { color: #c3e88d; }
+  .note {
+    text-align: center; font-size: 0.8rem; color: #546e7a;
+    margin-bottom: 16px; font-style: italic;
+  }
+  /* Tree */
+  .tree-area {
+    display: flex; flex-direction: column; align-items: center; gap: 0;
+    margin-top: 12px; overflow-x: auto; min-height: 300px;
+  }
+  .tree-level {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .tree-connector {
+    display: flex; justify-content: center; gap: 16px; margin: 0; height: 30px;
+  }
+  .connector-line {
+    width: 2px; height: 30px; position: relative;
+  }
+  .connector-line::after {
+    content: ''; position: absolute; left: 50%; top: 0;
+    width: 2px; height: 100%; transform: translateX(-50%);
+    transition: background 0.4s;
+    background: #2a3a5e;
+  }
+  .connector-line.true::after { background: #00ff88; }
+  .connector-line.false::after { background: #ff6b6b; }
+  .tree-node {
+    background: #0f1629; border: 2px solid #2a3a5e; border-radius: 10px;
+    padding: 10px 16px; font-family: 'Consolas', monospace; font-size: 0.82rem;
+    text-align: center; min-width: 120px; transition: all 0.5s ease;
+    opacity: 0; transform: translateY(-10px);
+  }
+  .tree-node.visible { opacity: 1; transform: translateY(0); }
+  .tree-node.source { border-color: #00d4ff; }
+  .tree-node.true-branch { border-color: #00ff88; box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+  .tree-node.false-branch { border-color: #ff6b6b; box-shadow: 0 0 12px rgba(255,107,107,0.15); }
+  .tree-node.result-node {
+    border-color: #a78bfa; background: #a78bfa11;
+    box-shadow: 0 0 15px rgba(167,139,250,0.2);
+  }
+  .tree-node .node-label {
+    font-size: 0.72rem; color: #8892b0; margin-bottom: 4px;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  .tree-node .node-type { color: #ffcb6b; }
+  .tree-node .node-check { color: #c792ea; font-size: 0.75rem; }
+  .tree-node.true-branch .node-label { color: #00ff88; }
+  .tree-node.false-branch .node-label { color: #ff6b6b; }
+  .branch-label {
+    font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;
+    opacity: 0; transition: opacity 0.4s;
+  }
+  .branch-label.visible { opacity: 1; }
+  .branch-label.true { color: #00ff88; background: #00ff8811; }
+  .branch-label.false { color: #ff6b6b; background: #ff6b6b11; }
+  /* Result */
+  .result-bar {
+    margin-top: 16px; padding: 14px; background: #0f1629;
+    border-radius: 8px; text-align: center; border: 2px solid #a78bfa;
+    font-family: 'Consolas', monospace; font-size: 1rem;
+    color: #a78bfa; opacity: 0; transition: all 0.5s;
+  }
+  .result-bar.visible { opacity: 1; }
+  .step-info {
+    text-align: center; margin-top: 12px; font-size: 0.82rem; color: #8892b0;
+    min-height: 20px;
+  }
+  .progress-bar { height: 4px; background: #2a3a5e; border-radius: 2px; margin-top: 12px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg,#00d4ff,#a78bfa); border-radius: 2px; transition: width 0.4s; width: 0%; }
+</style>
+</head>
+<body>
+<h1>Conditional Types - Arbre d'evaluation</h1>
+<p class="subtitle">Visualisez la distribution et l'evaluation des types conditionnels</p>
+
+<div class="controls">
+  <select id="exampleSelect"></select>
+  <button class="btn" id="btnReset" onclick="reset()">Reinitialiser</button>
+  <button class="btn primary" id="btnStep" onclick="nextStep()">Suivant &rarr;</button>
+  <button class="btn" id="btnAuto" onclick="autoPlay()">Auto &raquo;</button>
+</div>
+
+<div class="container">
+  <div class="expression" id="exprDisplay"></div>
+  <div class="note" id="noteDisplay"></div>
+  <div class="tree-area" id="treeArea"></div>
+  <div class="result-bar" id="resultBar"></div>
+  <div class="step-info" id="stepInfo"></div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+</div>
+
+<script>
+const examples = [
+  {
+    name: "Exclude<'a'|'b'|'c', 'a'>",
+    expr: '<span class="expr-type">Exclude</span><span class="expr-op">&lt;</span><span class="expr-str">\'a\' | \'b\' | \'c\'</span><span class="expr-op">, </span><span class="expr-str">\'a\'</span><span class="expr-op">&gt;</span>',
+    note: "Exclude<T, U> = T extends U ? never : T (distributif sur l'union)",
+    members: ['a','b','c'], excluded: 'a',
+    steps: [
+      {info:"Distribution : chaque membre de l'union est evalue separement", nodes:[], result:null},
+      {info:"'a' extends 'a' ? never : 'a'", nodes:[{val:"'a'",check:"extends 'a' ?", branch:'true', result:'never'}], result:null},
+      {info:"'b' extends 'a' ? never : 'b'", nodes:[{val:"'b'",check:"extends 'a' ?", branch:'false', result:"'b'"}], result:null},
+      {info:"'c' extends 'a' ? never : 'c'", nodes:[{val:"'c'",check:"extends 'a' ?", branch:'false', result:"'c'"}], result:null},
+      {info:"Union des resultats : never | 'b' | 'c' = 'b' | 'c'", nodes:[], result:"'b' | 'c'"},
+    ]
+  },
+  {
+    name: "Extract<string|number|boolean, string|number>",
+    expr: '<span class="expr-type">Extract</span><span class="expr-op">&lt;</span><span class="expr-type">string | number | boolean</span><span class="expr-op">, </span><span class="expr-type">string | number</span><span class="expr-op">&gt;</span>',
+    note: "Extract<T, U> = T extends U ? T : never",
+    members: ['string','number','boolean'], check: 'string | number',
+    steps: [
+      {info:"Distribution sur chaque membre de l'union T", nodes:[], result:null},
+      {info:"string extends string|number ? string : never", nodes:[{val:'string',check:'extends string|number ?',branch:'true',result:'string'}], result:null},
+      {info:"number extends string|number ? number : never", nodes:[{val:'number',check:'extends string|number ?',branch:'true',result:'number'}], result:null},
+      {info:"boolean extends string|number ? boolean : never", nodes:[{val:'boolean',check:'extends string|number ?',branch:'false',result:'never'}], result:null},
+      {info:"Resultat : string | number | never = string | number", nodes:[], result:"string | number"},
+    ]
+  },
+  {
+    name: "NonNullable<string|null|undefined>",
+    expr: '<span class="expr-type">NonNullable</span><span class="expr-op">&lt;</span><span class="expr-type">string | null | undefined</span><span class="expr-op">&gt;</span>',
+    note: "NonNullable<T> = T extends null | undefined ? never : T",
+    members: ['string','null','undefined'],
+    steps: [
+      {info:"Distribution sur chaque membre", nodes:[], result:null},
+      {info:"string extends null|undefined ? never : string", nodes:[{val:'string',check:'extends null|undefined ?',branch:'false',result:'string'}], result:null},
+      {info:"null extends null|undefined ? never : null", nodes:[{val:'null',check:'extends null|undefined ?',branch:'true',result:'never'}], result:null},
+      {info:"undefined extends null|undefined ? never : undefined", nodes:[{val:'undefined',check:'extends null|undefined ?',branch:'true',result:'never'}], result:null},
+      {info:"Resultat : string | never | never = string", nodes:[], result:"string"},
+    ]
+  },
+  {
+    name: "ReturnType<() => string>",
+    expr: '<span class="expr-type">ReturnType</span><span class="expr-op">&lt;</span><span class="expr-op">() =&gt; </span><span class="expr-type">string</span><span class="expr-op">&gt;</span>',
+    note: "ReturnType<T> = T extends (...args: any) => infer R ? R : never (non-distributif)",
+    members: ['() => string'],
+    steps: [
+      {info:"Type non-union : pas de distribution", nodes:[], result:null},
+      {info:"() => string extends (...args: any) => infer R ?", nodes:[{val:'() => string',check:'extends (...) => infer R ?',branch:'true',result:'R = string'}], result:null},
+      {info:"R est infere comme string", nodes:[], result:"string"},
+    ]
+  },
+  {
+    name: "Exclude<1|2|3|4|5, 1|3|5>",
+    expr: '<span class="expr-type">Exclude</span><span class="expr-op">&lt;</span><span class="expr-str">1 | 2 | 3 | 4 | 5</span><span class="expr-op">, </span><span class="expr-str">1 | 3 | 5</span><span class="expr-op">&gt;</span>',
+    note: "Exclure les nombres impairs de l'union",
+    members: ['1','2','3','4','5'],
+    steps: [
+      {info:"Distribution sur les 5 membres", nodes:[], result:null},
+      {info:"1 extends 1|3|5 ? never : 1", nodes:[{val:'1',check:'extends 1|3|5 ?',branch:'true',result:'never'}], result:null},
+      {info:"2 extends 1|3|5 ? never : 2", nodes:[{val:'2',check:'extends 1|3|5 ?',branch:'false',result:'2'}], result:null},
+      {info:"3 extends 1|3|5 ? never : 3", nodes:[{val:'3',check:'extends 1|3|5 ?',branch:'true',result:'never'}], result:null},
+      {info:"4 extends 1|3|5 ? never : 4", nodes:[{val:'4',check:'extends 1|3|5 ?',branch:'false',result:'4'}], result:null},
+      {info:"5 extends 1|3|5 ? never : 5", nodes:[{val:'5',check:'extends 1|3|5 ?',branch:'true',result:'never'}], result:null},
+      {info:"Union : never | 2 | never | 4 | never = 2 | 4", nodes:[], result:"2 | 4"},
+    ]
+  }
+];
+
+let currentEx = 0, currentStep = -1, autoTimer = null;
+const select = document.getElementById('exampleSelect');
+examples.forEach((ex,i) => {
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = ex.name; select.appendChild(opt);
+});
+select.addEventListener('change', e => { currentEx = parseInt(e.target.value); reset(); });
+
+function reset() {
+  clearInterval(autoTimer); autoTimer = null;
+  currentStep = -1;
+  const ex = examples[currentEx];
+  document.getElementById('exprDisplay').innerHTML = ex.expr;
+  document.getElementById('noteDisplay').textContent = ex.note;
+  document.getElementById('treeArea').innerHTML = '';
+  document.getElementById('resultBar').classList.remove('visible');
+  document.getElementById('resultBar').innerHTML = '';
+  document.getElementById('stepInfo').textContent = 'Cliquez "Suivant" pour commencer l\'evaluation';
+  document.getElementById('progress').style.width = '0%';
+  document.getElementById('btnStep').disabled = false;
+  allRenderedNodes = [];
+}
+
+let allRenderedNodes = [];
+
+function nextStep() {
+  const ex = examples[currentEx];
+  currentStep++;
+  if (currentStep >= ex.steps.length) { document.getElementById('btnStep').disabled = true; return; }
+  const step = ex.steps[currentStep];
+  const tree = document.getElementById('treeArea');
+  document.getElementById('stepInfo').textContent = step.info;
+  const pct = ((currentStep+1)/ex.steps.length)*100;
+  document.getElementById('progress').style.width = pct+'%';
+
+  // Render nodes for this step
+  if (step.nodes.length > 0) {
+    step.nodes.forEach(n => {
+      // Container for one evaluation
+      const evalBlock = document.createElement('div');
+      evalBlock.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin-bottom:8px;';
+
+      // Source node
+      const src = document.createElement('div');
+      src.className = 'tree-node source';
+      src.innerHTML = `<div class="node-label">Membre</div><div class="node-type">${n.val}</div><div class="node-check">${n.check}</div>`;
+      evalBlock.appendChild(src);
+      setTimeout(()=>src.classList.add('visible'),50);
+
+      // Branch labels row
+      const branchRow = document.createElement('div');
+      branchRow.style.cssText='display:flex;gap:40px;justify-content:center;margin:4px 0;';
+      const trueLabel = document.createElement('span');
+      trueLabel.className = `branch-label ${n.branch==='true'?'true':'false'}`;
+      trueLabel.textContent = n.branch === 'true' ? '\u2713 true' : '\u2717 false';
+      branchRow.appendChild(trueLabel);
+      evalBlock.appendChild(branchRow);
+      setTimeout(()=>trueLabel.classList.add('visible'),300);
+
+      // Result node
+      const res = document.createElement('div');
+      const isTrue = n.branch === 'true';
+      res.className = `tree-node ${isTrue?'true-branch':'false-branch'}`;
+      const isNever = n.result === 'never';
+      res.innerHTML = `<div class="node-label">Resultat</div><div class="node-type" style="color:${isNever?'#ff6b6b':'#00ff88'}">${n.result}</div>`;
+      evalBlock.appendChild(res);
+      setTimeout(()=>res.classList.add('visible'),500);
+
+      tree.appendChild(evalBlock);
+      allRenderedNodes.push(evalBlock);
+    });
+  }
+
+  // Final result
+  if (step.result) {
+    const rb = document.getElementById('resultBar');
+    rb.innerHTML = `Resultat final : <strong>${step.result}</strong>`;
+    setTimeout(() => rb.classList.add('visible'), 300);
+    document.getElementById('btnStep').disabled = true;
+  }
+}
+
+function autoPlay() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer=null; return; }
+  autoTimer = setInterval(() => {
+    const ex = examples[currentEx];
+    if (currentStep >= ex.steps.length - 1) { clearInterval(autoTimer); autoTimer=null; return; }
+    nextStep();
+  }, 1200);
+}
+
+reset();
+</script>
+</body>
+</html>

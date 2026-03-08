@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz 12 — Mapped Types & Template Literals</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #e0e0e0; min-height: 100vh; padding: 2rem 1rem; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 0.5rem; font-size: 1.8rem; color: #ffffff; }
+    .subtitle { text-align: center; color: #8892b0; margin-bottom: 2rem; font-size: 1rem; }
+    .progress-bar-container { background: #0d1117; border-radius: 10px; height: 14px; margin-bottom: 2rem; overflow: hidden; }
+    .progress-bar { background: linear-gradient(90deg, #0d6efd, #4dabf7); height: 100%; width: 0%; border-radius: 10px; transition: width 0.4s ease; }
+    .progress-text { text-align: center; color: #8892b0; margin-bottom: 1rem; font-size: 0.9rem; }
+    .card { background: #16213e; border-radius: 12px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .question-label { font-size: 0.85rem; color: #4dabf7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .question-text { font-size: 1.15rem; margin-bottom: 1.2rem; line-height: 1.5; color: #ffffff; }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-bottom: 1.2rem; overflow-x: auto; font-size: 0.95rem; }
+    code { font-family: 'Consolas', 'Fira Code', 'Courier New', monospace; color: #c9d1d9; }
+    .options { list-style: none; }
+    .options li { margin-bottom: 0.5rem; }
+    .options label { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem; background: #0d1117; border: 2px solid #30363d; border-radius: 8px; cursor: pointer; transition: border-color 0.2s, background 0.2s; font-size: 1rem; }
+    .options label:hover { border-color: #4dabf7; background: #1c2a4a; }
+    .options input[type="radio"] { accent-color: #0d6efd; width: 18px; height: 18px; flex-shrink: 0; }
+    .btn { display: inline-block; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .btn-primary { background: #0d6efd; color: #fff; }
+    .btn-primary:hover { background: #3b82f6; }
+    .btn-primary:disabled { background: #374151; cursor: not-allowed; }
+    .btn-restart { background: #238636; color: #fff; margin-top: 1rem; padding: 0.7rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .btn-restart:hover { background: #2ea043; }
+    .feedback { margin-top: 1rem; padding: 1rem 1.2rem; border-radius: 8px; font-size: 0.95rem; line-height: 1.5; display: none; }
+    .feedback.correct { background: #0f5132; border: 1px solid #198754; color: #d1fae5; display: block; }
+    .feedback.wrong { background: #842029; border: 1px solid #dc3545; color: #fdd; display: block; }
+    .score-card { text-align: center; padding: 3rem 2rem; }
+    .score-card .score { font-size: 3rem; font-weight: 700; color: #4dabf7; margin-bottom: 0.5rem; }
+    .score-card .score-label { font-size: 1.2rem; color: #8892b0; margin-bottom: 1.5rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Quiz 12 — Mapped Types & Template Literals</h1>
+    <p class="subtitle">Mapped types, modifiers, template literal types</p>
+    <div class="progress-bar-container"><div class="progress-bar" id="progressBar"></div></div>
+    <p class="progress-text" id="progressText">Question 1 / 5</p>
+    <div id="quizContainer"></div>
+    <div id="scoreContainer" class="card score-card hidden"></div>
+  </div>
+  <script>
+    const questions = [
+      {
+        label: "Question 1",
+        text: "Quelle est la syntaxe correcte d'un mapped type en TypeScript ?",
+        code: "type MaVersion&lt;T&gt; = {\n  [K in keyof T]: T[K];\n};",
+        options: [
+          "{ [K of keyof T]: T[K] }",
+          "{ [K in keyof T]: T[K] }",
+          "{ [K extends keyof T]: T[K] }",
+          "{ [K for keyof T]: T[K] }"
+        ],
+        answer: 1,
+        explanation: "Un mapped type utilise la syntaxe <code>[K in keyof T]</code> pour iterer sur chaque cle de <code>T</code>. Le mot-cle <code>in</code> est obligatoire. C'est similaire a une boucle <code>for...in</code> mais au niveau des types."
+      },
+      {
+        label: "Question 2",
+        text: "Que fait la clause <code>as</code> dans un mapped type ?",
+        code: "type Getters&lt;T&gt; = {\n  [K in keyof T as `get${Capitalize&lt;string &amp; K&gt;}`]: () =&gt; T[K];\n};\n\ninterface Person { name: string; age: number; }\ntype PersonGetters = Getters&lt;Person&gt;;",
+        options: [
+          "Elle filtre les cles du type",
+          "Elle renomme les cles du type mappe",
+          "Elle ajoute un alias au type",
+          "Elle declare une assertion de type"
+        ],
+        answer: 1,
+        explanation: "La clause <code>as</code> dans un mapped type permet de <strong>remapper les cles</strong>. Ici, chaque cle <code>K</code> est transformee en <code>get${Capitalize&lt;K&gt;}</code>. Le resultat est <code>{ getName: () =&gt; string; getAge: () =&gt; number; }</code>."
+      },
+      {
+        label: "Question 3",
+        text: "Que signifie le modificateur <code>-?</code> dans un mapped type ?",
+        code: "type Required&lt;T&gt; = {\n  [K in keyof T]-?: T[K];\n};",
+        options: [
+          "Il ajoute le caractere optionnel a chaque propriete",
+          "Il supprime le caractere optionnel de chaque propriete",
+          "Il supprime la propriete si elle est undefined",
+          "Il rend la propriete nullable"
+        ],
+        answer: 1,
+        explanation: "Le prefixe <code>-</code> devant un modificateur le supprime. <code>-?</code> supprime le modificateur optionnel <code>?</code>, rendant toutes les proprietes obligatoires. De meme, <code>-readonly</code> supprimerait le modificateur <code>readonly</code>."
+      },
+      {
+        label: "Question 4",
+        text: "Quel est le resultat de ce template literal type ?",
+        code: "type Color = 'red' | 'blue';\ntype Size = 'small' | 'large';\n\ntype Combo = `${Size}-${Color}`;",
+        options: [
+          "'small-red'",
+          "'small-red' | 'small-blue' | 'large-red' | 'large-blue'",
+          "'small' | 'large' | 'red' | 'blue'",
+          "string"
+        ],
+        answer: 1,
+        explanation: "Les template literal types distribuent automatiquement les unions. Chaque combinaison de <code>Size</code> et <code>Color</code> est generee, produisant le produit cartesien : <code>'small-red' | 'small-blue' | 'large-red' | 'large-blue'</code>."
+      },
+      {
+        label: "Question 5",
+        text: "Que font les types intrinsics <code>Uppercase</code> et <code>Lowercase</code> ?",
+        code: "type Loud = Uppercase&lt;'hello world'&gt;;\ntype Quiet = Lowercase&lt;'HELLO WORLD'&gt;;\ntype Cap = Capitalize&lt;'hello'&gt;;\ntype Uncap = Uncapitalize&lt;'Hello'&gt;;",
+        options: [
+          "Ils transforment les valeurs string a l'execution",
+          "Ils transforment les types string literals au niveau du systeme de types",
+          "Ils ne fonctionnent qu'avec des unions de strings",
+          "Ils convertissent entre string et number"
+        ],
+        answer: 1,
+        explanation: "Les types intrinsics <code>Uppercase</code>, <code>Lowercase</code>, <code>Capitalize</code> et <code>Uncapitalize</code> sont des types integres au compilateur qui transforment les string literal types. Ici : <code>Loud = 'HELLO WORLD'</code>, <code>Quiet = 'hello world'</code>, <code>Cap = 'Hello'</code>, <code>Uncap = 'hello'</code>."
+      }
+    ];
+    let currentQuestion = 0, score = 0, answered = false;
+    function renderQuestion() {
+      if (currentQuestion >= questions.length) { showScore(); return; }
+      const q = questions[currentQuestion];
+      const pct = (currentQuestion / questions.length) * 100;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = 'Question ' + (currentQuestion + 1) + ' / ' + questions.length;
+      let html = '<div class="card">';
+      html += '<div class="question-label">' + q.label + '</div>';
+      html += '<div class="question-text">' + q.text + '</div>';
+      if (q.code) html += '<pre><code>' + q.code + '</code></pre>';
+      html += '<ul class="options">';
+      q.options.forEach(function(opt, i) {
+        html += '<li><label><input type="radio" name="q" value="' + i + '"> ' + opt + '</label></li>';
+      });
+      html += '</ul>';
+      html += '<button class="btn btn-primary" id="validateBtn" onclick="validate()" disabled>Valider</button>';
+      html += '<div class="feedback" id="feedback"></div>';
+      html += '</div>';
+      document.getElementById('quizContainer').innerHTML = html;
+      document.getElementById('scoreContainer').classList.add('hidden');
+      answered = false;
+      document.querySelectorAll('input[name="q"]').forEach(function(input) {
+        input.addEventListener('change', function() { document.getElementById('validateBtn').disabled = false; });
+      });
+    }
+    function validate() {
+      if (answered) return;
+      answered = true;
+      const selected = document.querySelector('input[name="q"]:checked');
+      if (!selected) return;
+      const val = parseInt(selected.value);
+      const q = questions[currentQuestion];
+      const fb = document.getElementById('feedback');
+      if (val === q.answer) {
+        score++;
+        fb.className = 'feedback correct';
+        fb.innerHTML = '<strong>Correct !</strong> ' + q.explanation;
+      } else {
+        fb.className = 'feedback wrong';
+        fb.innerHTML = '<strong>Incorrect.</strong> ' + q.explanation;
+      }
+      document.getElementById('validateBtn').disabled = true;
+      setTimeout(function() { currentQuestion++; renderQuestion(); }, 3000);
+    }
+    function showScore() {
+      document.getElementById('quizContainer').innerHTML = '';
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressText').textContent = 'Terminé !';
+      const sc = document.getElementById('scoreContainer');
+      sc.classList.remove('hidden');
+      const pct = Math.round((score / questions.length) * 100);
+      let msg = pct >= 80 ? 'Excellent travail !' : pct >= 60 ? 'Bon travail, quelques points à revoir.' : 'Continuez à étudier, vous progresserez !';
+      sc.innerHTML = '<div class="score">' + score + ' / ' + questions.length + '</div><div class="score-label">' + pct + '% — ' + msg + '</div><button class="btn-restart" onclick="restart()">Recommencer</button>';
+    }
+    function restart() { currentQuestion = 0; score = 0; answered = false; renderQuestion(); }
+    renderQuestion();
+  </script>
+</body>
+</html>

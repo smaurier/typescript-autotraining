@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generics Instantiation Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh; padding: 20px;
+  }
+  h1 { color: #00d4ff; text-align: center; margin-bottom: 6px; font-size: 1.5rem; }
+  .subtitle { color: #8892b0; text-align: center; margin-bottom: 20px; font-size: 0.9rem; }
+  .tabs {
+    display: flex; gap: 4px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .tab {
+    background: #16213e; border: 2px solid #2a3a5e; color: #8892b0;
+    padding: 8px 20px; border-radius: 8px 8px 0 0; cursor: pointer;
+    font-size: 0.85rem; transition: all 0.3s;
+  }
+  .tab:hover { color: #00d4ff; }
+  .tab.active { border-color: #00d4ff; color: #00d4ff; background: #16213e; border-bottom-color: #16213e; }
+  .container {
+    max-width: 800px; margin: 0 auto; background: #16213e;
+    border-radius: 12px; border: 1px solid #2a3a5e; padding: 24px;
+  }
+  /* Signature display */
+  .signature {
+    background: #0f1629; border-radius: 8px; padding: 16px 20px;
+    font-family: 'Consolas', monospace; font-size: 1rem;
+    margin-bottom: 20px; text-align: center; line-height: 1.8;
+    border: 1px solid #2a3a5e;
+  }
+  .sig-kw { color: #c792ea; } .sig-fn { color: #82aaff; }
+  .sig-tp { color: #ffcb6b; } .sig-op { color: #89ddff; }
+  .sig-param { color: #f78c6c; }
+  .sig-tp-animated {
+    color: #ffcb6b; display: inline-block;
+    transition: all 0.5s ease;
+  }
+  .sig-tp-animated.replaced {
+    color: #00ff88; transform: scale(1.15);
+    text-shadow: 0 0 10px rgba(0,255,136,0.5);
+  }
+  /* Input area */
+  .input-area {
+    display: flex; gap: 12px; align-items: center; justify-content: center;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .input-area label { color: #8892b0; font-size: 0.9rem; }
+  .type-select {
+    background: #0f1629; border: 2px solid #2a3a5e; color: #00d4ff;
+    padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+    font-family: 'Consolas', monospace;
+  }
+  .type-input {
+    background: #0f1629; border: 2px solid #2a3a5e; color: #ffcb6b;
+    padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; width: 160px;
+    font-family: 'Consolas', monospace; outline: none;
+  }
+  .type-input:focus { border-color: #00d4ff; }
+  .btn {
+    background: #00d4ff22; border: 2px solid #00d4ff; color: #00d4ff;
+    padding: 8px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 0.9rem; font-weight: 600; transition: all 0.3s;
+  }
+  .btn:hover { background: #00d4ff33; box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+  /* Flow animation */
+  .flow-section { margin-top: 16px; }
+  .flow-step {
+    display: flex; align-items: center; gap: 12px; padding: 12px;
+    border-radius: 8px; margin-bottom: 8px; opacity: 0;
+    transform: translateX(-20px);
+    transition: all 0.4s ease;
+    background: #0f1629; border-left: 3px solid transparent;
+  }
+  .flow-step.visible { opacity: 1; transform: translateX(0); }
+  .flow-step.check { border-left-color: #ffcb6b; }
+  .flow-step.infer { border-left-color: #00d4ff; }
+  .flow-step.result { border-left-color: #00ff88; }
+  .flow-step.error { border-left-color: #ff6b6b; }
+  .flow-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .flow-icon.check { background: #ffcb6b22; color: #ffcb6b; }
+  .flow-icon.infer { background: #00d4ff22; color: #00d4ff; }
+  .flow-icon.result { background: #00ff8822; color: #00ff88; }
+  .flow-icon.error { background: #ff6b6b22; color: #ff6b6b; }
+  .flow-text { font-size: 0.85rem; line-height: 1.5; }
+  .flow-text code {
+    background: #1a1a2e; padding: 2px 6px; border-radius: 4px;
+    font-family: 'Consolas', monospace; color: #a78bfa;
+  }
+  .flow-arrow {
+    text-align: center; color: #2a3a5e; font-size: 1.2rem;
+    margin: 4px 0; opacity: 0; transition: opacity 0.3s;
+  }
+  .flow-arrow.visible { opacity: 1; }
+  /* Result */
+  .result-box {
+    background: #0f1629; border: 2px solid #00ff88; border-radius: 10px;
+    padding: 16px; text-align: center; margin-top: 16px;
+    font-family: 'Consolas', monospace; font-size: 1rem;
+    color: #00ff88; opacity: 0; transition: all 0.5s;
+    box-shadow: 0 0 20px rgba(0,255,136,0.1);
+  }
+  .result-box.visible { opacity: 1; }
+  .constraint-box {
+    background: #0f162966; border: 1px dashed #ffcb6b44;
+    border-radius: 8px; padding: 10px; margin: 12px 0;
+    font-size: 0.82rem; color: #8892b0;
+  }
+  .constraint-box code { color: #ffcb6b; background: #1a1a2e; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; }
+</style>
+</head>
+<body>
+<h1>Generics Instantiation Flow</h1>
+<p class="subtitle">Observez comment TypeScript instancie et verifie les types generiques</p>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-tab="0">Identite simple</div>
+  <div class="tab" data-tab="1">Contrainte extends</div>
+  <div class="tab" data-tab="2">Params multiples</div>
+  <div class="tab" data-tab="3">Inference complexe</div>
+</div>
+
+<div class="container" id="container"></div>
+
+<script>
+const examples = [
+  {
+    title: "Fonction identite",
+    signature: '<span class="sig-kw">function</span> <span class="sig-fn">identity</span><span class="sig-op">&lt;</span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">&gt;(</span><span class="sig-param">arg</span><span class="sig-op">: </span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">): </span><span class="sig-tp-animated" data-tp="T">T</span>',
+    typeParams: [{name:'T', constraint:null}],
+    presets: ['string','number','boolean','Date','string[]'],
+    customInput: true,
+    getSteps(chosen) {
+      return [
+        {type:'infer', icon:'?', text:`Appel : <code>identity(${this.valueFor(chosen)})</code> - TypeScript infere le type de l'argument`},
+        {type:'infer', icon:'\u2192', text:`Inference : l'argument est de type <code>${chosen}</code>, donc <code>T = ${chosen}</code>`},
+        {type:'result', icon:'\u2713', text:`Resultat : <code>identity&lt;${chosen}&gt;(arg: ${chosen}): ${chosen}</code>`}
+      ];
+    },
+    valueFor(t) {
+      const map = {string:'"hello"', number:'42', boolean:'true', Date:'new Date()', 'string[]':'["a","b"]'};
+      return map[t] || '"..."';
+    }
+  },
+  {
+    title: "Generique contraint",
+    signature: '<span class="sig-kw">function</span> <span class="sig-fn">getLength</span><span class="sig-op">&lt;</span><span class="sig-tp-animated" data-tp="T">T</span> <span class="sig-kw">extends</span> <span class="sig-op">{ </span><span class="sig-param">length</span><span class="sig-op">: </span><span class="sig-tp">number</span><span class="sig-op"> }&gt;(</span><span class="sig-param">arg</span><span class="sig-op">: </span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">): </span><span class="sig-tp">number</span>',
+    typeParams: [{name:'T', constraint:'{ length: number }'}],
+    presets: ['string','number[]','number','Set<any>'],
+    customInput: false,
+    constraintNote: 'T doit avoir une propriete <code>length: number</code>',
+    getSteps(chosen) {
+      const valid = ['string','number[]','Array<number>'].includes(chosen);
+      const steps = [
+        {type:'infer', icon:'?', text:`Type fourni : <code>T = ${chosen}</code>`},
+        {type:'check', icon:'\u2714', text:`Verification de la contrainte : <code>${chosen} extends { length: number }</code> ?`},
+      ];
+      if (valid || chosen.includes('[]') || chosen === 'string') {
+        steps.push({type:'result', icon:'\u2713', text:`<code>${chosen}</code> possede <code>.length</code> - contrainte satisfaite !`});
+        steps.push({type:'result', icon:'\u2192', text:`Resultat : <code>getLength&lt;${chosen}&gt;(arg: ${chosen}): number</code>`});
+      } else {
+        steps.push({type:'error', icon:'\u2717', text:`<code>${chosen}</code> ne possede pas de propriete <code>length: number</code>`});
+        steps.push({type:'error', icon:'!', text:`Erreur : Type '${chosen}' does not satisfy the constraint '{ length: number }'`});
+      }
+      return steps;
+    }
+  },
+  {
+    title: "Parametres multiples",
+    signature: '<span class="sig-kw">function</span> <span class="sig-fn">map</span><span class="sig-op">&lt;</span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">, </span><span class="sig-tp-animated" data-tp="U">U</span><span class="sig-op">&gt;(</span><span class="sig-param">arr</span><span class="sig-op">: </span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">[], </span><span class="sig-param">fn</span><span class="sig-op">: (</span><span class="sig-param">x</span><span class="sig-op">: </span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">) =&gt; </span><span class="sig-tp-animated" data-tp="U">U</span><span class="sig-op">): </span><span class="sig-tp-animated" data-tp="U">U</span><span class="sig-op">[]</span>',
+    typeParams: [{name:'T', constraint:null},{name:'U', constraint:null}],
+    presets: ['number \u2192 string', 'string \u2192 number', 'string \u2192 boolean'],
+    customInput: false,
+    getSteps(chosen) {
+      const [t, u] = chosen.split(' \u2192 ').map(s=>s.trim());
+      return [
+        {type:'infer', icon:'1', text:`Inference de <code>T</code> depuis le premier argument (tableau) : <code>T = ${t}</code>`},
+        {type:'infer', icon:'2', text:`Inference de <code>U</code> depuis le retour de la callback : <code>U = ${u}</code>`},
+        {type:'check', icon:'\u2714', text:`Verification : <code>fn: (x: ${t}) =&gt; ${u}</code> correspond au callback fourni`},
+        {type:'result', icon:'\u2713', text:`Resultat : <code>map&lt;${t}, ${u}&gt;(arr: ${t}[], fn: (x: ${t}) =&gt; ${u}): ${u}[]</code>`}
+      ];
+    }
+  },
+  {
+    title: "Inference conditionnelle",
+    signature: '<span class="sig-kw">function</span> <span class="sig-fn">first</span><span class="sig-op">&lt;</span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">&gt;(</span><span class="sig-param">arr</span><span class="sig-op">: </span><span class="sig-tp-animated" data-tp="T">T</span><span class="sig-op">[]): </span><span class="sig-tp-animated" data-tp="T">T</span> <span class="sig-op">|</span> <span class="sig-tp">undefined</span>',
+    typeParams: [{name:'T', constraint:null}],
+    presets: ['[1, 2, 3]','["a", "b"]','[true, false]','[]'],
+    customInput: false,
+    getSteps(chosen) {
+      const map = {'[1, 2, 3]':'number', '["a", "b"]':'string', '[true, false]':'boolean', '[]':'never'};
+      const t = map[chosen] || 'unknown';
+      const steps = [
+        {type:'infer', icon:'?', text:`Appel : <code>first(${chosen})</code>`},
+        {type:'infer', icon:'\u2192', text:`TypeScript examine le type du tableau : <code>${chosen}</code> est de type <code>${t}[]</code>`},
+        {type:'infer', icon:'T', text:`Inference : <code>T = ${t}</code>`},
+      ];
+      if (t === 'never') {
+        steps.push({type:'check', icon:'!', text:`Tableau vide : type infere comme <code>never[]</code>, donc <code>T = never</code>`});
+        steps.push({type:'result', icon:'\u2713', text:`Retour : <code>never | undefined = undefined</code>`});
+      } else {
+        steps.push({type:'result', icon:'\u2713', text:`Retour : <code>${t} | undefined</code>`});
+      }
+      return steps;
+    }
+  }
+];
+
+let currentTab = 0;
+const container = document.getElementById('container');
+const tabEls = document.querySelectorAll('.tab');
+tabEls.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabEls.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTab = parseInt(tab.dataset.tab);
+    renderExample(currentTab);
+  });
+});
+
+function renderExample(idx) {
+  const ex = examples[idx];
+  let html = `<div class="signature" id="sigBlock">${ex.signature}</div>`;
+  if (ex.constraintNote) {
+    html += `<div class="constraint-box">\u26A0 Contrainte : ${ex.constraintNote}</div>`;
+  }
+  html += `<div class="input-area">`;
+  html += `<label>Choisir un type :</label>`;
+  html += `<select class="type-select" id="typeSelect">`;
+  ex.presets.forEach(p => html += `<option value="${p}">${p}</option>`);
+  html += `</select>`;
+  if (ex.customInput) {
+    html += `<input class="type-input" id="typeInput" placeholder="ou tapez un type..." />`;
+  }
+  html += `<button class="btn" id="goBtn">Instancier</button></div>`;
+  html += `<div class="flow-section" id="flowSection"></div>`;
+  html += `<div class="result-box" id="resultBox"></div>`;
+  container.innerHTML = html;
+
+  document.getElementById('goBtn').addEventListener('click', () => {
+    const chosen = (ex.customInput && document.getElementById('typeInput').value.trim())
+      || document.getElementById('typeSelect').value;
+    animateFlow(ex, chosen);
+  });
+}
+
+async function animateFlow(ex, chosen) {
+  const flow = document.getElementById('flowSection');
+  const resultBox = document.getElementById('resultBox');
+  flow.innerHTML = ''; resultBox.classList.remove('visible');
+  resultBox.innerHTML = '';
+
+  // Replace T in signature
+  document.querySelectorAll('.sig-tp-animated').forEach(el => {
+    el.classList.remove('replaced');
+  });
+
+  const steps = ex.getSteps(chosen);
+
+  for (let i = 0; i < steps.length; i++) {
+    await delay(400);
+    const s = steps[i];
+    const step = document.createElement('div');
+    step.className = `flow-step ${s.type}`;
+    step.innerHTML = `<div class="flow-icon ${s.type}">${s.icon}</div><div class="flow-text">${s.text}</div>`;
+    flow.appendChild(step);
+    await delay(50);
+    step.classList.add('visible');
+
+    if (i < steps.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'flow-arrow'; arrow.textContent = '\u2193';
+      flow.appendChild(arrow);
+      await delay(100);
+      arrow.classList.add('visible');
+    }
+
+    if (s.type === 'result' && i === steps.length - 1) {
+      // Animate signature replacement
+      document.querySelectorAll('.sig-tp-animated').forEach(el => {
+        const tp = el.dataset.tp;
+        if (tp === 'T') { el.textContent = chosen.split(' \u2192 ')[0] || chosen; el.classList.add('replaced'); }
+        if (tp === 'U' && chosen.includes('\u2192')) { el.textContent = chosen.split(' \u2192 ')[1]; el.classList.add('replaced'); }
+      });
+      resultBox.innerHTML = `\u2705 Type instancie avec succes !`;
+      resultBox.style.borderColor = '#00ff88';
+      await delay(200);
+      resultBox.classList.add('visible');
+    }
+    if (s.type === 'error' && i === steps.length - 1) {
+      resultBox.innerHTML = `\u274C Erreur de type - contrainte non satisfaite`;
+      resultBox.style.borderColor = '#ff6b6b'; resultBox.style.color = '#ff6b6b';
+      await delay(200);
+      resultBox.classList.add('visible');
+    }
+  }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+renderExample(0);
+</script>
+</body>
+</html>

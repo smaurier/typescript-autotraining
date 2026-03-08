@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hierarchie des types TypeScript</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 20px; overflow-x: hidden;
+  }
+  h1 { color: #00d4ff; margin-bottom: 8px; font-size: 1.6rem; text-align: center; }
+  .subtitle { color: #8892b0; margin-bottom: 24px; text-align: center; font-size: 0.95rem; }
+  .hierarchy-container {
+    position: relative; width: 100%; max-width: 960px; min-height: 600px;
+  }
+  svg.connections {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
+  svg.connections line {
+    stroke: #2a3a5e; stroke-width: 2; transition: stroke 0.4s, stroke-width 0.4s;
+  }
+  svg.connections line.active { stroke: #00d4ff; stroke-width: 3; }
+  .type-node {
+    position: absolute; padding: 10px 18px; border-radius: 10px;
+    background: #16213e; border: 2px solid #2a3a5e; cursor: pointer;
+    transition: all 0.35s ease; z-index: 1; text-align: center;
+    font-size: 0.92rem; font-weight: 600; white-space: nowrap;
+    user-select: none;
+  }
+  .type-node:hover, .type-node.hovered {
+    border-color: #00d4ff; box-shadow: 0 0 20px rgba(0,212,255,0.3);
+    transform: scale(1.08);
+  }
+  .type-node.selected {
+    border-color: #ff6b6b; box-shadow: 0 0 25px rgba(255,107,107,0.4);
+  }
+  .type-node.glow-sub {
+    border-color: #00ff88; box-shadow: 0 0 18px rgba(0,255,136,0.35);
+  }
+  .type-node.glow-super {
+    border-color: #ffd700; box-shadow: 0 0 18px rgba(255,215,0,0.35);
+  }
+  .type-node .label { color: #00d4ff; }
+  .type-node.top .label { color: #ff6b6b; }
+  .type-node.bottom .label { color: #ffd700; }
+  .type-node.literal .label { color: #a78bfa; font-size: 0.82rem; }
+  .tooltip {
+    position: fixed; background: #0f1629; border: 1px solid #00d4ff;
+    border-radius: 10px; padding: 16px; max-width: 340px; z-index: 100;
+    pointer-events: none; opacity: 0; transition: opacity 0.25s;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip h3 { color: #00d4ff; margin-bottom: 8px; font-size: 1rem; }
+  .tooltip p { color: #8892b0; font-size: 0.85rem; line-height: 1.5; margin-bottom: 8px; }
+  .tooltip code {
+    display: block; background: #1a1a2e; padding: 8px 10px; border-radius: 6px;
+    font-family: 'Consolas', monospace; font-size: 0.82rem; color: #a78bfa;
+    white-space: pre; overflow-x: auto;
+  }
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    margin-top: 20px; font-size: 0.82rem;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid;
+  }
+  @media (max-width: 700px) {
+    .hierarchy-container { transform: scale(0.7); transform-origin: top center; }
+    h1 { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+<h1>Hierarchie des types TypeScript</h1>
+<p class="subtitle">Cliquez sur un type pour voir ses sous-types et super-types. Survolez pour les details.</p>
+<div class="hierarchy-container" id="container">
+  <svg class="connections" id="svg"></svg>
+</div>
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="border-color:#ff6b6b;background:#ff6b6b33"></div>Type selectionne</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:#00ff88;background:#00ff8833"></div>Sous-types</div>
+  <div class="legend-item"><div class="legend-dot" style="border-color:#ffd700;background:#ffd70033"></div>Super-types</div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const types = [
+  { id:'any', label:'any', x:300, y:30, tier:'top',
+    desc:"Le type 'top' permissif : desactive la verification de types.",
+    code:"let x: any = 42;\nx = 'hello'; // OK\nx.foo();     // OK (pas d'erreur)" },
+  { id:'unknown', label:'unknown', x:560, y:30, tier:'top',
+    desc:"Le type 'top' sur : accepte tout mais necessite une verification avant usage.",
+    code:"let x: unknown = 42;\nif (typeof x === 'number') {\n  console.log(x + 1); // OK\n}" },
+  { id:'string', label:'string', x:80, y:160, tier:'mid',
+    desc:"Type primitif pour les chaines de caracteres.",
+    code:'let s: string = "Bonjour";\nlet len: number = s.length;' },
+  { id:'number', label:'number', x:240, y:160, tier:'mid',
+    desc:"Type primitif pour les nombres (entiers et flottants).",
+    code:"let n: number = 3.14;\nlet hex: number = 0xff;" },
+  { id:'boolean', label:'boolean', x:400, y:160, tier:'mid',
+    desc:"Type primitif booleen : true ou false.",
+    code:"let ok: boolean = true;\nlet test = 5 > 3; // boolean" },
+  { id:'object', label:'object', x:550, y:160, tier:'mid',
+    desc:"Type pour toute valeur non-primitive (objets, tableaux, fonctions).",
+    code:"let o: object = { a: 1 };\nlet arr: object = [1, 2, 3];" },
+  { id:'symbol', label:'symbol', x:710, y:160, tier:'mid',
+    desc:"Type pour les symboles uniques et immuables.",
+    code:"let sym: symbol = Symbol('id');\nlet obj = { [sym]: 42 };" },
+  { id:'void', label:'void', x:840, y:160, tier:'mid',
+    desc:"Absence de valeur de retour (fonctions sans return).",
+    code:"function log(msg: string): void {\n  console.log(msg);\n}" },
+  { id:'null', label:'null', x:160, y:300, tier:'mid',
+    desc:"Represente l'absence intentionnelle de valeur.",
+    code:"let n: null = null;\n// Avec strictNullChecks active" },
+  { id:'undefined', label:'undefined', x:360, y:300, tier:'mid',
+    desc:"Variable declaree mais non initialisee.",
+    code:"let u: undefined = undefined;\nlet x: string | undefined;" },
+  { id:'bigint', label:'bigint', x:560, y:300, tier:'mid',
+    desc:"Entiers de precision arbitraire (ES2020+).",
+    code:"let big: bigint = 100n;\nlet huge = BigInt(9007199254740991);" },
+  // Literal types
+  { id:'lit_hello', label:'"hello"', x:20, y:430, tier:'literal',
+    desc:"Type litteral de chaine : exactement la valeur \"hello\".",
+    code:'let x: "hello" = "hello";\n// x = "world"; // Erreur!' },
+  { id:'lit_world', label:'"world"', x:140, y:430, tier:'literal',
+    desc:"Type litteral de chaine : exactement la valeur \"world\".",
+    code:'type Greeting = "hello" | "world";' },
+  { id:'lit_42', label:'42', x:240, y:430, tier:'literal',
+    desc:"Type litteral numerique : exactement la valeur 42.",
+    code:"let x: 42 = 42;\n// x = 43; // Erreur!" },
+  { id:'lit_0', label:'0', x:320, y:430, tier:'literal',
+    desc:"Type litteral numerique : exactement 0.",
+    code:"type Falsy = 0 | '' | false | null;" },
+  { id:'lit_true', label:'true', x:420, y:430, tier:'literal',
+    desc:"Type litteral booleen : exactement true.",
+    code:"let t: true = true;\n// t = false; // Erreur!" },
+  { id:'lit_false', label:'false', x:520, y:430, tier:'literal',
+    desc:"Type litteral booleen : exactement false.",
+    code:"type StrictBool = true | false; // = boolean" },
+  // never
+  { id:'never', label:'never', x:400, y:560, tier:'bottom',
+    desc:"Le type 'bottom' : aucune valeur possible. Sous-type de tous les types.",
+    code:"function fail(msg: string): never {\n  throw new Error(msg);\n}\n// Aussi: exhaustive checks" },
+];
+
+const edges = [
+  ['any','string'],['any','number'],['any','boolean'],['any','object'],['any','symbol'],['any','void'],
+  ['unknown','string'],['unknown','number'],['unknown','boolean'],['unknown','object'],['unknown','symbol'],['unknown','void'],
+  ['any','null'],['any','undefined'],['any','bigint'],
+  ['unknown','null'],['unknown','undefined'],['unknown','bigint'],
+  ['string','lit_hello'],['string','lit_world'],
+  ['number','lit_42'],['number','lit_0'],
+  ['boolean','lit_true'],['boolean','lit_false'],
+  ['lit_hello','never'],['lit_world','never'],['lit_42','never'],['lit_0','never'],
+  ['lit_true','never'],['lit_false','never'],
+  ['null','never'],['undefined','never'],['bigint','never'],
+  ['object','never'],['symbol','never'],['void','never'],
+];
+
+const container = document.getElementById('container');
+const svg = document.getElementById('svg');
+const tooltip = document.getElementById('tooltip');
+const nodeEls = {};
+const lineEls = [];
+
+// Create nodes
+types.forEach(t => {
+  const el = document.createElement('div');
+  el.className = `type-node ${t.tier}`;
+  el.innerHTML = `<span class="label">${t.label}</span>`;
+  el.style.left = t.x + 'px';
+  el.style.top = t.y + 'px';
+  el.dataset.id = t.id;
+  container.appendChild(el);
+  nodeEls[t.id] = el;
+
+  el.addEventListener('mouseenter', e => showTooltip(e, t));
+  el.addEventListener('mousemove', e => moveTooltip(e));
+  el.addEventListener('mouseleave', hideTooltip);
+  el.addEventListener('click', () => selectNode(t.id));
+});
+
+// Draw edges
+function drawEdges() {
+  svg.innerHTML = '';
+  const cRect = container.getBoundingClientRect();
+  edges.forEach(([from, to]) => {
+    const fEl = nodeEls[from], tEl = nodeEls[to];
+    const fR = fEl.getBoundingClientRect(), tR = tEl.getBoundingClientRect();
+    const x1 = fR.left + fR.width/2 - cRect.left;
+    const y1 = fR.top + fR.height - cRect.top;
+    const x2 = tR.left + tR.width/2 - cRect.left;
+    const y2 = tR.top - cRect.top;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.dataset.from = from; line.dataset.to = to;
+    svg.appendChild(line);
+    lineEls.push(line);
+  });
+}
+setTimeout(drawEdges, 50);
+window.addEventListener('resize', drawEdges);
+
+function showTooltip(e, t) {
+  tooltip.innerHTML = `<h3>${t.label}</h3><p>${t.desc}</p><code>${t.code}</code>`;
+  tooltip.classList.add('visible');
+  moveTooltip(e);
+  nodeEls[t.id].classList.add('hovered');
+}
+function moveTooltip(e) {
+  let x = e.clientX + 16, y = e.clientY + 16;
+  if (x + 350 > window.innerWidth) x = e.clientX - 356;
+  if (y + 200 > window.innerHeight) y = e.clientY - 200;
+  tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px';
+}
+function hideTooltip() {
+  tooltip.classList.remove('visible');
+  Object.values(nodeEls).forEach(n => n.classList.remove('hovered'));
+}
+
+let selectedId = null;
+function selectNode(id) {
+  // Reset
+  Object.values(nodeEls).forEach(n => n.classList.remove('selected','glow-sub','glow-super'));
+  lineEls.forEach(l => { l.classList.remove('active'); });
+  if (selectedId === id) { selectedId = null; return; }
+  selectedId = id;
+  nodeEls[id].classList.add('selected');
+
+  // Find subtypes (children) and supertypes (parents)
+  const subs = new Set(), supers = new Set();
+  function findDown(nid) {
+    edges.forEach(([f,t]) => { if (f===nid && !subs.has(t)) { subs.add(t); findDown(t); }});
+  }
+  function findUp(nid) {
+    edges.forEach(([f,t]) => { if (t===nid && !supers.has(f)) { supers.add(f); findUp(f); }});
+  }
+  findDown(id); findUp(id);
+  subs.forEach(s => nodeEls[s].classList.add('glow-sub'));
+  supers.forEach(s => nodeEls[s].classList.add('glow-super'));
+  lineEls.forEach(l => {
+    const f = l.dataset.from, t = l.dataset.to;
+    if ((f===id && subs.has(t)) || (t===id && supers.has(f)) ||
+        (subs.has(f) && subs.has(t)) || (supers.has(f) && supers.has(t))) {
+      l.classList.add('active');
+    }
+  });
+}
+</script>
+</body>
+</html>

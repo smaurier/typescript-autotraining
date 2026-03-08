@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type Narrowing Flow</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh; padding: 20px;
+  }
+  h1 { color: #00d4ff; text-align: center; margin-bottom: 6px; font-size: 1.5rem; }
+  .subtitle { color: #8892b0; text-align: center; margin-bottom: 20px; font-size: 0.9rem; }
+  .main-layout {
+    display: flex; gap: 20px; max-width: 1100px; margin: 0 auto; flex-wrap: wrap;
+  }
+  .panel {
+    background: #16213e; border-radius: 12px; border: 1px solid #2a3a5e;
+    padding: 20px; flex: 1; min-width: 320px;
+  }
+  .panel-title {
+    color: #00d4ff; font-size: 1rem; font-weight: 600; margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 1px solid #2a3a5e;
+  }
+  /* Code panel */
+  .code-block {
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 0.85rem;
+    line-height: 1.9; counter-reset: line;
+  }
+  .code-line {
+    display: flex; padding: 2px 8px; border-radius: 4px;
+    transition: background 0.3s, border-color 0.3s;
+    border-left: 3px solid transparent;
+  }
+  .code-line.active {
+    background: rgba(0,212,255,0.1); border-left-color: #00d4ff;
+  }
+  .code-line.passed {
+    background: rgba(0,255,136,0.05); border-left-color: #00ff8844;
+  }
+  .line-num {
+    color: #4a5568; min-width: 28px; text-align: right; margin-right: 12px;
+    user-select: none;
+  }
+  .kw { color: #c792ea; } .fn { color: #82aaff; } .tp { color: #ffcb6b; }
+  .str { color: #c3e88d; } .cm { color: #546e7a; } .op { color: #89ddff; }
+  .param { color: #f78c6c; } .num { color: #f78c6c; }
+
+  /* Type state diagram */
+  .type-state { display: flex; flex-direction: column; gap: 12px; }
+  .type-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .type-badge {
+    padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
+    transition: all 0.5s ease; border: 2px solid;
+  }
+  .type-badge.active {
+    background: rgba(0,255,136,0.15); border-color: #00ff88; color: #00ff88;
+    box-shadow: 0 0 12px rgba(0,255,136,0.25);
+  }
+  .type-badge.excluded {
+    background: rgba(255,255,255,0.03); border-color: #333;
+    color: #555; text-decoration: line-through;
+    transform: scale(0.9);
+  }
+  .type-badge.pending {
+    background: rgba(0,212,255,0.1); border-color: #2a3a5e; color: #8892b0;
+  }
+  .narrowing-arrow {
+    color: #00d4ff; font-size: 1.3rem; text-align: center;
+    opacity: 0; transition: opacity 0.5s; height: 24px;
+  }
+  .narrowing-arrow.visible { opacity: 1; }
+  .step-label {
+    background: #0f1629; padding: 8px 14px; border-radius: 8px;
+    font-size: 0.8rem; color: #8892b0; border-left: 3px solid #00d4ff;
+    opacity: 0; transition: opacity 0.4s; margin-bottom: 4px;
+  }
+  .step-label.visible { opacity: 1; }
+  .step-label .guard { color: #c792ea; font-family: 'Consolas', monospace; }
+
+  /* Controls */
+  .controls {
+    display: flex; gap: 12px; justify-content: center; margin-top: 20px;
+    flex-wrap: wrap; max-width: 1100px; margin-left: auto; margin-right: auto;
+  }
+  .btn {
+    background: #16213e; border: 2px solid #2a3a5e; color: #00d4ff;
+    padding: 10px 24px; border-radius: 8px; cursor: pointer;
+    font-size: 0.9rem; font-weight: 600; transition: all 0.3s;
+  }
+  .btn:hover { border-color: #00d4ff; box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+  .btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; border-color: #2a3a5e; }
+  .btn.primary { background: #00d4ff22; }
+  .progress-bar {
+    height: 4px; background: #2a3a5e; border-radius: 2px;
+    max-width: 1100px; margin: 16px auto 0;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, #00d4ff, #00ff88);
+    border-radius: 2px; transition: width 0.4s;
+  }
+  select {
+    background: #16213e; border: 2px solid #2a3a5e; color: #00d4ff;
+    padding: 10px 16px; border-radius: 8px; font-size: 0.9rem; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<h1>Type Narrowing Flow</h1>
+<p class="subtitle">Visualisez comment TypeScript reduit progressivement les types possibles</p>
+
+<div class="controls" style="margin-bottom:16px">
+  <select id="exampleSelect">
+    <option value="0">Exemple 1 : typeof guards</option>
+    <option value="1">Exemple 2 : truthiness + instanceof</option>
+    <option value="2">Exemple 3 : discriminated union</option>
+  </select>
+</div>
+
+<div class="main-layout">
+  <div class="panel">
+    <div class="panel-title">Code TypeScript</div>
+    <div class="code-block" id="codeBlock"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Etat du type de <span style="color:#f78c6c" id="varName">x</span></div>
+    <div class="type-state" id="typeState"></div>
+  </div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+<div class="controls">
+  <button class="btn" id="btnReset" onclick="resetSteps()">Reinitialiser</button>
+  <button class="btn primary" id="btnNext" onclick="nextStep()">Suivant &rarr;</button>
+</div>
+
+<script>
+const examples = [
+  {
+    varName: 'x',
+    types: ['string', 'number', 'null'],
+    code: [
+      { tokens: [{t:'kw',v:'function'},{t:'',v:' '},{t:'fn',v:'process'},{t:'op',v:'('},{t:'param',v:'x'},{t:'op',v:': '},{t:'tp',v:'string | number | null'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'if'},{t:'',v:' '},{t:'op',v:'('},{t:'param',v:'x'},{t:'',v:' '},{t:'op',v:'==='},{t:'',v:' '},{t:'kw',v:'null'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'    '},{t:'fn',v:'console.log'},{t:'op',v:'('},{t:'str',v:'"Valeur nulle"'},{t:'op',v:');'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'return'},{t:'op',v:';'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'}] },
+      { tokens: [{t:'',v:'  '},{t:'cm',v:'// x est maintenant string | number'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'if'},{t:'',v:' '},{t:'op',v:'('},{t:'kw',v:'typeof'},{t:'',v:' '},{t:'param',v:'x'},{t:'',v:' '},{t:'op',v:'==='},{t:'',v:' '},{t:'str',v:'"string"'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'    '},{t:'fn',v:'console.log'},{t:'op',v:'('},{t:'param',v:'x'},{t:'op',v:'.'},{t:'fn',v:'toUpperCase'},{t:'op',v:'());'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'},{t:'',v:' '},{t:'kw',v:'else'},{t:'',v:' '},{t:'op',v:'{'}] },
+      { tokens: [{t:'',v:'    '},{t:'fn',v:'console.log'},{t:'op',v:'('},{t:'param',v:'x'},{t:'op',v:'.'},{t:'fn',v:'toFixed'},{t:'op',v:'('},{t:'num',v:'2'},{t:'op',v:'));'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'}] },
+      { tokens: [{t:'op',v:'}'}] },
+    ],
+    steps: [
+      { line: 0, activeTypes: ['string','number','null'], excluded: [], label: "Parametre declare avec le type union", guard: "x: string | number | null" },
+      { line: 1, activeTypes: ['null'], excluded: ['string','number'], label: "Verification de nullite avec ===", guard: "x === null" },
+      { line: 5, activeTypes: ['string','number'], excluded: ['null'], label: "Apres le return, null est exclu", guard: "apres return -> exclut null" },
+      { line: 6, activeTypes: ['string'], excluded: ['number','null'], label: "typeof guard isole string", guard: 'typeof x === "string"' },
+      { line: 8, activeTypes: ['number'], excluded: ['string','null'], label: "Branche else : seul number reste", guard: "else -> number" },
+    ]
+  },
+  {
+    varName: 'val',
+    types: ['string', 'Date', 'null', 'undefined'],
+    code: [
+      { tokens: [{t:'kw',v:'function'},{t:'',v:' '},{t:'fn',v:'format'},{t:'op',v:'('},{t:'param',v:'val'},{t:'op',v:': '},{t:'tp',v:'string | Date | null | undefined'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'if'},{t:'',v:' '},{t:'op',v:'(!'},{t:'param',v:'val'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'return'},{t:'',v:' '},{t:'str',v:'"(vide)"'},{t:'op',v:';'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'}] },
+      { tokens: [{t:'',v:'  '},{t:'cm',v:'// val est string | Date (truthy)'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'if'},{t:'',v:' '},{t:'op',v:'('},{t:'param',v:'val'},{t:'',v:' '},{t:'kw',v:'instanceof'},{t:'',v:' '},{t:'tp',v:'Date'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'return'},{t:'',v:' '},{t:'param',v:'val'},{t:'op',v:'.'},{t:'fn',v:'toISOString'},{t:'op',v:'();'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'return'},{t:'',v:' '},{t:'param',v:'val'},{t:'op',v:'.'},{t:'fn',v:'trim'},{t:'op',v:'();'}] },
+      { tokens: [{t:'op',v:'}'}] },
+    ],
+    steps: [
+      { line: 0, activeTypes: ['string','Date','null','undefined'], excluded: [], label: "Type initial large avec nullables", guard: "val: string | Date | null | undefined" },
+      { line: 1, activeTypes: ['null','undefined'], excluded: ['string','Date'], label: "Verification de falsy (!, truthiness guard)", guard: "!val -> null | undefined" },
+      { line: 4, activeTypes: ['string','Date'], excluded: ['null','undefined'], label: "Apres return, les falsy sont exclus", guard: "truthy -> string | Date" },
+      { line: 5, activeTypes: ['Date'], excluded: ['string','null','undefined'], label: "instanceof isole la classe Date", guard: "val instanceof Date" },
+      { line: 8, activeTypes: ['string'], excluded: ['Date','null','undefined'], label: "Apres le bloc Date, seul string reste", guard: "else -> string" },
+    ]
+  },
+  {
+    varName: 'shape',
+    types: ['Circle', 'Square', 'Triangle'],
+    code: [
+      { tokens: [{t:'kw',v:'type'},{t:'',v:' '},{t:'tp',v:'Shape'},{t:'',v:' '},{t:'op',v:'='}] },
+      { tokens: [{t:'',v:'  | { '},{t:'param',v:'kind'},{t:'op',v:': '},{t:'str',v:'"circle"'},{t:'op',v:';'},{t:'',v:' '},{t:'param',v:'radius'},{t:'op',v:': '},{t:'tp',v:'number'},{t:'',v:' }'}] },
+      { tokens: [{t:'',v:'  | { '},{t:'param',v:'kind'},{t:'op',v:': '},{t:'str',v:'"square"'},{t:'op',v:';'},{t:'',v:' '},{t:'param',v:'side'},{t:'op',v:': '},{t:'tp',v:'number'},{t:'',v:' }'}] },
+      { tokens: [{t:'',v:'  | { '},{t:'param',v:'kind'},{t:'op',v:': '},{t:'str',v:'"triangle"'},{t:'op',v:';'},{t:'',v:' '},{t:'param',v:'base'},{t:'op',v:': '},{t:'tp',v:'number'},{t:'',v:' };'}] },
+      { tokens: [] },
+      { tokens: [{t:'kw',v:'function'},{t:'',v:' '},{t:'fn',v:'area'},{t:'op',v:'('},{t:'param',v:'shape'},{t:'op',v:': '},{t:'tp',v:'Shape'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'  '},{t:'kw',v:'switch'},{t:'',v:' '},{t:'op',v:'('},{t:'param',v:'shape'},{t:'op',v:'.'},{t:'param',v:'kind'},{t:'op',v:') {'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'case'},{t:'',v:' '},{t:'str',v:'"circle"'},{t:'op',v:':'}] },
+      { tokens: [{t:'',v:'      '},{t:'kw',v:'return'},{t:'',v:' '},{t:'fn',v:'Math.PI'},{t:'',v:' '},{t:'op',v:'*'},{t:'',v:' '},{t:'param',v:'shape'},{t:'op',v:'.'},{t:'param',v:'radius'},{t:'',v:' '},{t:'op',v:'**'},{t:'',v:' '},{t:'num',v:'2'},{t:'op',v:';'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'case'},{t:'',v:' '},{t:'str',v:'"square"'},{t:'op',v:':'}] },
+      { tokens: [{t:'',v:'      '},{t:'kw',v:'return'},{t:'',v:' '},{t:'param',v:'shape'},{t:'op',v:'.'},{t:'param',v:'side'},{t:'',v:' '},{t:'op',v:'**'},{t:'',v:' '},{t:'num',v:'2'},{t:'op',v:';'}] },
+      { tokens: [{t:'',v:'    '},{t:'kw',v:'case'},{t:'',v:' '},{t:'str',v:'"triangle"'},{t:'op',v:':'}] },
+      { tokens: [{t:'',v:'      '},{t:'kw',v:'return'},{t:'',v:' '},{t:'num',v:'0.5'},{t:'',v:' '},{t:'op',v:'*'},{t:'',v:' '},{t:'param',v:'shape'},{t:'op',v:'.'},{t:'param',v:'base'},{t:'op',v:';'}] },
+      { tokens: [{t:'',v:'  '},{t:'op',v:'}'}] },
+      { tokens: [{t:'op',v:'}'}] },
+    ],
+    steps: [
+      { line: 5, activeTypes: ['Circle','Square','Triangle'], excluded: [], label: "Union discriminee par la propriete kind", guard: "shape: Shape (union)" },
+      { line: 7, activeTypes: ['Circle'], excluded: ['Square','Triangle'], label: 'case "circle" : narrowing via discriminant', guard: 'shape.kind === "circle"' },
+      { line: 9, activeTypes: ['Square'], excluded: ['Circle','Triangle'], label: 'case "square" : acces a .side garanti', guard: 'shape.kind === "square"' },
+      { line: 11, activeTypes: ['Triangle'], excluded: ['Circle','Square'], label: 'case "triangle" : acces a .base garanti', guard: 'shape.kind === "triangle"' },
+    ]
+  }
+];
+
+let currentExample = 0, currentStep = -1;
+const codeBlock = document.getElementById('codeBlock');
+const typeState = document.getElementById('typeState');
+
+function renderExample(idx) {
+  currentExample = idx; currentStep = -1;
+  const ex = examples[idx];
+  document.getElementById('varName').textContent = ex.varName;
+  // Render code
+  codeBlock.innerHTML = '';
+  ex.code.forEach((line, i) => {
+    const div = document.createElement('div');
+    div.className = 'code-line'; div.dataset.line = i;
+    let html = `<span class="line-num">${i+1}</span>`;
+    line.tokens.forEach(tok => {
+      html += tok.t ? `<span class="${tok.t}">${escHtml(tok.v)}</span>` : escHtml(tok.v);
+    });
+    div.innerHTML = html;
+    codeBlock.appendChild(div);
+  });
+  // Render initial type state
+  typeState.innerHTML = '';
+  renderTypeState(ex.types, [], "Type initial", ex.varName + ': ' + ex.types.join(' | '));
+  updateControls();
+}
+
+function renderTypeState(activeTypes, excludedTypes, label, guard) {
+  const block = document.createElement('div');
+  // Label
+  const lbl = document.createElement('div');
+  lbl.className = 'step-label'; lbl.innerHTML = `${label} <span class="guard">${guard}</span>`;
+  block.appendChild(lbl);
+  setTimeout(() => lbl.classList.add('visible'), 50);
+  // Badges row
+  const row = document.createElement('div'); row.className = 'type-row';
+  const ex = examples[currentExample];
+  ex.types.forEach(t => {
+    const badge = document.createElement('span');
+    badge.className = 'type-badge';
+    badge.textContent = t;
+    if (activeTypes.includes(t)) badge.classList.add('active');
+    else if (excludedTypes.includes(t)) badge.classList.add('excluded');
+    else badge.classList.add('pending');
+    row.appendChild(badge);
+  });
+  block.appendChild(row);
+  // Arrow
+  const arrow = document.createElement('div');
+  arrow.className = 'narrowing-arrow'; arrow.textContent = '\u2193';
+  block.appendChild(arrow);
+  setTimeout(() => arrow.classList.add('visible'), 200);
+  typeState.appendChild(block);
+}
+
+function nextStep() {
+  const ex = examples[currentExample];
+  currentStep++;
+  if (currentStep >= ex.steps.length) return;
+  const step = ex.steps[currentStep];
+  // Update code highlighting
+  document.querySelectorAll('.code-line').forEach(l => {
+    const ln = parseInt(l.dataset.line);
+    l.classList.remove('active');
+    if (ln < step.line) l.classList.add('passed');
+    if (ln === step.line) l.classList.add('active');
+  });
+  // Clear and rebuild type state
+  if (currentStep === 0) typeState.innerHTML = '';
+  renderTypeState(step.activeTypes, step.excluded, step.label, step.guard);
+  // Smooth scroll
+  typeState.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  updateControls();
+}
+
+function resetSteps() {
+  renderExample(currentExample);
+}
+
+function updateControls() {
+  const ex = examples[currentExample];
+  document.getElementById('btnNext').disabled = currentStep >= ex.steps.length - 1;
+  const pct = ex.steps.length > 0 ? ((currentStep + 1) / ex.steps.length * 100) : 0;
+  document.getElementById('progress').style.width = Math.max(0, pct) + '%';
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+document.getElementById('exampleSelect').addEventListener('change', e => renderExample(parseInt(e.target.value)));
+renderExample(0);
+</script>
+</body>
+</html>

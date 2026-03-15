@@ -12,6 +12,8 @@
 
 ---
 
+> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la theorie du module precedent. Si apres 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+
 ## Introduction
 
 Le **type-level programming** consiste a ecrire des programmes qui s'executent **au moment de la compilation**, dans le systeme de types. TypeScript, bien qu'il ne soit pas concu pour cela, possede un systeme de types suffisamment puissant pour permettre des calculs complexes.

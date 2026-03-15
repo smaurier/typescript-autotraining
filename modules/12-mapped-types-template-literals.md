@@ -11,6 +11,8 @@
 
 ---
 
+> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la theorie du module precedent. Si apres 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+
 ## Introduction
 
 Les **mapped types** et les **template literal types** sont deux mecanismes complementaires :

@@ -4,12 +4,12 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/14-decorateurs.md`
 - **Lab associe** : Lab 14
-- **Prerequis** : Screencast 05 (classes)
+- **Prérequis** : Screencast 05 (classes)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/14-decorateurs.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/14-decorateurs.ts` pret a etre créé
 - [ ] `tsconfig.json` avec `"target": "ES2022"` minimum
 - [ ] Ne PAS activer `experimentalDecorators` (on utilise les Stage 3)
 
@@ -17,9 +17,9 @@
 
 ### [00:00-03:30] Introduction aux decorateurs Stage 3
 
-> Les decorateurs sont un mecanisme pour annoter et modifier les classes et leurs membres. TypeScript 5.0 a introduit le support des decorateurs Stage 3 du standard ECMAScript — ils sont differents des anciens decorateurs experimentaux. Dans ce screencast, nous utilisons exclusivement les decorateurs Stage 3.
+> Les decorateurs sont un mécanisme pour annoter et modifier les classes et leurs membres. TypeScript 5.0 a introduit le support des decorateurs Stage 3 du standard ECMAScript — ils sont différents des anciens decorateurs experimentaux. Dans ce screencast, nous utilisons exclusivement les decorateurs Stage 3.
 
-**Action** : Creer le fichier `src/14-decorateurs.ts`. Verifier que `experimentalDecorators` n'est PAS dans `tsconfig.json`.
+**Action** : Créer le fichier `src/14-decorateurs.ts`. Vérifier que `experimentalDecorators` n'est PAS dans `tsconfig.json`.
 
 ```typescript
 // Un decorateur est une fonction qui recoit la cible et un contexte
@@ -46,13 +46,13 @@ const service = new UserService();
 console.log(service.getUser("1"));
 ```
 
-**Action** : Executer avec `npx tsx src/14-decorateurs.ts` et montrer le log a la definition de la classe.
+**Action** : Exécuter avec `npx tsx src/14-decorateurs.ts` et montrer le log à la définition de la classe.
 
 > Le decorateur recoit deux arguments : la valeur decoree (ici le constructeur de la classe) et un objet de contexte qui contient des metadonnees comme le nom, le type (class, method, field, etc.) et un hook `addInitializer`.
 
-### [03:30-08:30] Decorateurs de methode
+### [03:30-08:30] Decorateurs de méthode
 
-> Les decorateurs de methode sont les plus courants en pratique.
+> Les decorateurs de méthode sont les plus courants en pratique.
 
 **Action** : Ajouter le code suivant.
 
@@ -125,13 +125,13 @@ calc.multiply(5, 6);
 // Les deux decorateurs s'appliquent (log puis measure)
 ```
 
-**Action** : Executer et montrer les logs dans le terminal. Montrer l'ordre d'application des decorateurs empiles.
+**Action** : Exécuter et montrer les logs dans le terminal. Montrer l'ordre d'application des decorateurs empiles.
 
-> Quand plusieurs decorateurs sont empiles, ils s'appliquent de bas en haut (le plus proche de la methode d'abord). Ici, `multiply` passe d'abord par `@measure` puis par `@log`.
+> Quand plusieurs decorateurs sont empiles, ils s'appliquent de bas en haut (le plus proche de la méthode d'abord). Ici, `multiply` passe d'abord par `@measure` puis par `@log`.
 
-### [08:30-13:00] Decorateurs de propriete et d'accesseur
+### [08:30-13:00] Decorateurs de propriété et d'accesseur
 
-> On peut aussi decorer les proprietes et les accesseurs.
+> On peut aussi decorer les propriétés et les accesseurs.
 
 **Action** : Ajouter le code suivant.
 
@@ -197,13 +197,13 @@ try {
 }
 ```
 
-**Action** : Montrer que `player.name` a la valeur par defaut, et que l'assignation invalide de `health` lance une erreur.
+**Action** : Montrer que `player.name` à la valeur par defaut, et que l'assignation invalide de `health` lance une erreur.
 
-> Le mot-cle `accessor` est nouveau en TypeScript 5.0. Il cree automatiquement un getter et un setter, ce qui permet au decorateur de les intercepter. C'est beaucoup plus propre que les anciens decorateurs experimentaux.
+> Le mot-clé `accessor` est nouveau en TypeScript 5.0. Il créé automatiquement un getter et un setter, ce qui permet au decorateur de les intercepter. C'est beaucoup plus propre que les anciens decorateurs experimentaux.
 
-### [13:00-17:00] Decorateurs avec parametres et composition
+### [13:00-17:00] Decorateurs avec paramètres et composition
 
-> La plupart des decorateurs utiles acceptent des parametres. C'est un pattern de "factory de decorateurs".
+> La plupart des decorateurs utiles acceptent des paramètres. C'est un pattern de "factory de decorateurs".
 
 **Action** : Ajouter le code suivant.
 
@@ -287,11 +287,11 @@ console.log(client.computeExpensive(5));  // [cache hit]
 console.log(client.computeExpensive(10)); // Calcul... (cle differente)
 ```
 
-**Action** : Executer et montrer le cache hit au deuxieme appel de `computeExpensive`.
+**Action** : Exécuter et montrer le cache hit au deuxieme appel de `computeExpensive`.
 
-### [17:00-19:30] Recapitulatif et bonnes pratiques
+### [17:00-19:30] Récapitulatif et bonnes pratiques
 
-> Resumons les differents types de decorateurs.
+> Resumons les différents types de decorateurs.
 
 ```typescript
 // Types de decorateurs Stage 3 :
@@ -319,11 +319,11 @@ console.log(client.computeExpensive(10)); // Calcul... (cle differente)
 // - Testez les decorateurs independamment des classes
 ```
 
-> En resume : les decorateurs Stage 3 sont une fonctionnalite stable et standardisee. Ils permettent d'ajouter des comportements transverses (logging, caching, validation, retry) de maniere declarative. L'objet `context` fournit des metadonnees riches et le mot-cle `accessor` simplifie les decorateurs de propriete.
+> En résumé : les decorateurs Stage 3 sont une fonctionnalite stable et standardisee. Ils permettent d'ajouter des comportements transverses (logging, caching, validation, retry) de manière declarative. L'objet `context` fournit des metadonnees riches et le mot-clé `accessor` simplifie les decorateurs de propriété.
 
 ## Points d'attention pour l'enregistrement
-- Verifier que `experimentalDecorators` n'est PAS actif — les deux systemes sont incompatibles
-- Bien expliquer la difference entre decorateurs Stage 3 et les anciens experimentaux
+- Vérifier que `experimentalDecorators` n'est PAS actif — les deux systèmes sont incompatibles
+- Bien expliquer la différence entre decorateurs Stage 3 et les anciens experimentaux
 - L'ordre d'application (bas vers haut) est important — bien le demontrer visuellement
-- Le mot-cle `accessor` est specifique a TypeScript 5.0+ — le mentionner
-- Executer chaque exemple pour montrer le comportement a l'execution
+- Le mot-clé `accessor` est spécifique a TypeScript 5.0+ — le mentionner
+- Exécuter chaque exemple pour montrer le comportement a l'exécution

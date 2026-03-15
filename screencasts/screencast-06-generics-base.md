@@ -4,21 +4,21 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/06-generics-base.md`
 - **Lab associe** : Lab 06
-- **Prerequis** : Screencast 05 (classes)
+- **Prérequis** : Screencast 05 (classes)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/06-generics.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/06-generics.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
 ### [00:00-04:00] Pourquoi les generics ?
 
-> Les generics sont l'un des mecanismes les plus puissants de TypeScript. Ils permettent de creer du code reutilisable sans sacrifier la securite des types. Commencons par comprendre le probleme qu'ils resolvent.
+> Les generics sont l'un des mécanismes les plus puissants de TypeScript. Ils permettent de créer du code réutilisable sans sacrifier la sécurité des types. Commencons par comprendre le problème qu'ils resolvent.
 
-**Action** : Creer le fichier `src/06-generics.ts`.
+**Action** : Créer le fichier `src/06-generics.ts`.
 
 ```typescript
 // Probleme : comment ecrire une fonction "identite" typee ?
@@ -51,11 +51,11 @@ const explicit = identity<string>("hello"); // type: string
 
 **Action** : Survoler `str`, `num`, `bool` pour montrer que chacun a le bon type infere.
 
-> Le parametre de type `T` est comme un placeholder. Quand on appelle `identity("hello")`, TypeScript remplace `T` par `string`. On obtient une fonction typee qui fonctionne pour tout type, sans utiliser `any`.
+> Le paramètre de type `T` est comme un placeholder. Quand on appelle `identity("hello")`, TypeScript remplace `T` par `string`. On obtient une fonction typee qui fonctionne pour tout type, sans utiliser `any`.
 
-### [04:00-08:30] Fonctions generiques avancees
+### [04:00-08:30] Fonctions génériques avancees
 
-> Les generics deviennent encore plus utiles avec plusieurs parametres de type et des contraintes.
+> Les generics deviennent encore plus utiles avec plusieurs paramètres de type et des contraintes.
 
 **Action** : Ajouter le code suivant.
 
@@ -92,7 +92,7 @@ console.log(doubled); // [2, 4, 6]
 
 **Action** : Montrer l'inference contextuelle dans le callback de `mapArray` — `s` est infere comme `string`.
 
-> Remarquez que dans `mapArray`, le callback `fn` recoit automatiquement le bon type pour son parametre. TypeScript propage les generics a travers les arguments.
+> Remarquez que dans `mapArray`, le callback `fn` recoit automatiquement le bon type pour son paramètre. TypeScript propage les generics a travers les arguments.
 
 ### [08:30-13:00] Contraintes avec extends
 
@@ -153,9 +153,9 @@ console.log(found?.name); // "Alice"
 
 **Action** : Decommenter l'appel avec `42` pour montrer l'erreur de contrainte. Montrer l'autocompletion sur le deuxieme argument de `getProperty`.
 
-> `extends` dans un generic signifie "doit etre au moins". C'est une contrainte, pas un heritage. La combinaison `keyof T` avec une contrainte garantit que seules les cles valides d'un objet sont acceptees.
+> `extends` dans un generic signifie "doit etre au moins". C'est une contrainte, pas un héritage. La combinaison `keyof T` avec une contrainte garantit que seules les clés valides d'un objet sont acceptees.
 
-### [13:00-17:00] Classes et interfaces generiques
+### [13:00-17:00] Classes et interfaces génériques
 
 > Les generics s'appliquent aussi aux classes et interfaces.
 
@@ -228,11 +228,11 @@ const userRepo = new InMemoryRepository<User>();
 // userRepo.save({ price: 10 }); // Erreur — pas un User
 ```
 
-**Action** : Montrer l'autocompletion sur `userRepo.save()` — le parametre est type `User`.
+**Action** : Montrer l'autocompletion sur `userRepo.save()` — le paramètre est type `User`.
 
-### [17:00-19:30] Valeurs par defaut et recapitulatif
+### [17:00-19:30] Valeurs par defaut et récapitulatif
 
-> Les parametres de type peuvent avoir des valeurs par defaut.
+> Les paramètres de type peuvent avoir des valeurs par defaut.
 
 ```typescript
 // Valeur par defaut pour un parametre de type
@@ -265,11 +265,11 @@ interface PaginatedResponse<T = unknown, M = Record<string, unknown>> {
 }
 ```
 
-> En resume : les generics permettent de creer du code reutilisable et type. Les contraintes avec `extends` garantissent un minimum de structure. La combinaison avec `keyof` rend les acces aux proprietes totalement surs. Dans le prochain screencast, nous irons plus loin avec les generics avances.
+> En résumé : les generics permettent de créer du code réutilisable et type. Les contraintes avec `extends` garantissent un minimum de structure. La combinaison avec `keyof` rend les acces aux propriétés totalement surs. Dans le prochain screencast, nous irons plus loin avec les generics avances.
 
 ## Points d'attention pour l'enregistrement
-- Commencer par le probleme (`any` vs surcharges) pour motiver les generics
+- Commencer par le problème (`any` vs surcharges) pour motiver les generics
 - Toujours survoler les variables pour montrer les types inferes
 - L'exemple `getProperty` avec `keyof` est un classique — prendre le temps de bien l'expliquer
-- Executer le `Stack` et le `Repository` pour montrer le comportement a l'execution
+- Exécuter le `Stack` et le `Repository` pour montrer le comportement a l'exécution
 - Faire la transition vers le screencast suivant sur les generics avances

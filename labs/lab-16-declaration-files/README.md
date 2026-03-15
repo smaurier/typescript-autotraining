@@ -2,7 +2,7 @@
 
 ## Objectifs
 
-- Ecrire des fichiers `.d.ts` pour une bibliotheque JavaScript
+- Écrire des fichiers `.d.ts` pour une bibliotheque JavaScript
 - Comprendre les declarations ambiantes (`declare`)
 - Pratiquer l'augmentation de modules (module augmentation)
 - Utiliser la fusion de declarations (declaration merging)
@@ -11,7 +11,7 @@
 ## Exercices
 
 1. **Declarations ambiantes** -- Declarer les types pour une lib JS imaginaire
-2. **Augmentation de module** -- Ajouter des proprietes a un module existant
+2. **Augmentation de module** -- Ajouter des propriétés à un module existant
 3. **Fusion de declarations** -- Fusionner interfaces et namespaces
 4. **Variables globales** -- Declarer des types pour des globales
 

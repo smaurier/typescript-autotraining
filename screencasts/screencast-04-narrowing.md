@@ -4,21 +4,21 @@
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/04-narrowing.md`
 - **Lab associe** : Lab 04
-- **Prerequis** : Screencast 03 (objets et interfaces)
+- **Prérequis** : Screencast 03 (objets et interfaces)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/04-narrowing.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/04-narrowing.ts` pret a etre créé
 - [ ] Mode strict actif dans `tsconfig.json`
 
 ## Script
 
 ### [00:00-03:00] Introduction au narrowing
 
-> Le narrowing est un concept central de TypeScript. Quand une variable a un type union, TypeScript peut affiner (narrow) ce type en se basant sur les verifications de votre code. Voyons comment ca fonctionne.
+> Le narrowing est un concept central de TypeScript. Quand une variable à un type union, TypeScript peut affiner (narrow) ce type en se basant sur les verifications de votre code. Voyons comment ça fonctionne.
 
-**Action** : Creer le fichier `src/04-narrowing.ts`.
+**Action** : Créer le fichier `src/04-narrowing.ts`.
 
 ```typescript
 // Type union de base
@@ -57,7 +57,7 @@ function checkType(x: string | number | boolean | object | undefined): void {
 
 **Action** : Survoler `value` dans chaque branche du `if` pour montrer comment le type change.
 
-> A chaque verification, TypeScript restreint le type. C'est ce qu'on appelle le control flow analysis — l'analyse du flux de controle.
+> A chaque vérification, TypeScript restreint le type. C'est ce qu'on appelle le control flow analysis — l'analyse du flux de controle.
 
 ### [03:00-07:00] Truthiness, equality et in narrowing
 
@@ -120,7 +120,7 @@ function formatDate(input: string | Date): string {
 
 **Action** : Survoler `pet` dans chaque branche du `if ("meow" in pet)` pour voir le type affine.
 
-> Chaque technique a son utilite : `typeof` pour les primitifs, `in` pour les objets avec des proprietes distinctives, `instanceof` pour les classes.
+> Chaque technique a son utilite : `typeof` pour les primitifs, `in` pour les objets avec des propriétés distinctives, `instanceof` pour les classes.
 
 ### [07:00-12:00] Discriminated unions
 
@@ -192,7 +192,7 @@ function handleResponse(response: ApiResponse): void {
 
 **Action** : Survoler `shape` dans chaque `case` pour montrer le type affine.
 
-> Le champ `kind` (ou `status`, `type`, etc.) est le discriminant. TypeScript utilise sa valeur pour determiner quelle variante de l'union est en jeu. C'est un pattern extremement courant dans les applications reelles.
+> Le champ `kind` (où `status`, `type`, etc.) est le discriminant. TypeScript utilise sa valeur pour déterminer quelle variante de l'union est en jeu. C'est un pattern extremement courant dans les applications reelles.
 
 ### [12:00-15:30] Exhaustive switch et never
 
@@ -231,11 +231,11 @@ interface Pentagon {
 
 **Action** : Decommenter la modification de `Shape` pour ajouter `Pentagon` et montrer l'erreur de compilation.
 
-> La variable `_exhaustive: never` ne peut recevoir aucune valeur. Si on oublie un cas dans le switch, le type residuel n'est pas `never` et TypeScript nous signale l'oubli. C'est une garantie a la compilation que tous les cas sont traites.
+> La variable `_exhaustive: never` ne peut recevoir aucune valeur. Si on oublie un cas dans le switch, le type residuel n'est pas `never` et TypeScript nous signale l'oubli. C'est une garantie à la compilation que tous les cas sont traites.
 
-### [15:30-17:30] Custom type guards et recapitulatif
+### [15:30-17:30] Custom type guards et récapitulatif
 
-> Combinons le narrowing avec les predicats de type vus au screencast precedent.
+> Combinons le narrowing avec les predicats de type vus au screencast précédent.
 
 ```typescript
 // Type guard custom pour une discriminated union
@@ -258,11 +258,11 @@ console.log(circles); // Seulement les cercles, type Circle[]
 
 **Action** : Survoler `circles` pour montrer que le type est bien `Circle[]` et non `Shape[]`.
 
-> En resume : le narrowing permet a TypeScript de suivre la logique de votre code pour affiner les types. Les discriminated unions avec un switch exhaustif sont le pattern le plus robuste. Utilisez-les pour modeliser les etats de votre application — c'est ce qui rend TypeScript veritablement puissant.
+> En résumé : le narrowing permet a TypeScript de suivre la logique de votre code pour affiner les types. Les discriminated unions avec un switch exhaustif sont le pattern le plus robuste. Utilisez-les pour modeliser les états de votre application — c'est ce qui rend TypeScript veritablement puissant.
 
 ## Points d'attention pour l'enregistrement
 - Toujours survoler la variable dans chaque branche pour montrer le type affine
 - Le pattern exhaustif avec `never` est crucial : prendre le temps de bien l'expliquer
 - Montrer l'ajout d'un nouveau cas a l'union pour declencher l'erreur de compilation
-- L'exemple `ApiResponse` est tres concret — insister sur son usage en contexte reel
-- Eviter d'aller trop vite sur les discriminated unions, c'est le coeur du screencast
+- L'exemple `ApiResponse` est très concret — insister sur son usage en contexte réel
+- Éviter d'aller trop vite sur les discriminated unions, c'est le coeur du screencast

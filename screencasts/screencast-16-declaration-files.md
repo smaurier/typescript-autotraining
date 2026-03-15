@@ -4,12 +4,12 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/16-declaration-files.md`
 - **Lab associe** : Lab 16
-- **Prerequis** : Screencast 09 (modules)
+- **Prérequis** : Screencast 09 (modules)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Dossier `src/16-declarations/` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Dossier `src/16-declarations/` pret a etre créé
 - [ ] npm installe et fonctionnel
 - [ ] Connexion internet pour installer des paquets
 
@@ -19,7 +19,7 @@
 
 > Les fichiers de declaration (`.d.ts`) decrivent la forme des modules JavaScript sans contenir de code executable. Ils sont essentiels pour utiliser des librairies JavaScript en TypeScript. Voyons comment ils fonctionnent.
 
-**Action** : Creer le dossier `src/16-declarations/` et le fichier `src/16-declarations/demo.ts`.
+**Action** : Créer le dossier `src/16-declarations/` et le fichier `src/16-declarations/demo.ts`.
 
 ```typescript
 // TypeScript genere des fichiers .d.ts automatiquement avec "declaration: true"
@@ -48,7 +48,7 @@ export class Vector {
 }
 ```
 
-**Action** : Compiler avec `npx tsc --declaration` et montrer le fichier `.d.ts` genere.
+**Action** : Compiler avec `npx tsc --declaration` et montrer le fichier `.d.ts` généré.
 
 ```typescript
 // dist/16-declarations/math-lib.d.ts (genere automatiquement)
@@ -66,13 +66,13 @@ export declare class Vector {
 }
 ```
 
-> Le fichier `.d.ts` contient uniquement les signatures — pas d'implementation. Le mot-cle `declare` indique que l'implementation existe ailleurs (dans le `.js`). C'est ce fichier que TypeScript utilise pour la verification de types.
+> Le fichier `.d.ts` contient uniquement les signatures — pas d'implementation. Le mot-clé `declare` indique que l'implementation existe ailleurs (dans le `.js`). C'est ce fichier que TypeScript utilise pour la vérification de types.
 
-### [03:30-08:00] Ecrire des declarations manuelles
+### [03:30-08:00] Écrire des declarations manuelles
 
-> Parfois, on doit ecrire des declarations pour une librairie JavaScript qui n'en a pas.
+> Parfois, on doit écrire des declarations pour une librairie JavaScript qui n'en a pas.
 
-**Action** : Creer un fichier `src/16-declarations/legacy-lib.js`.
+**Action** : Créer un fichier `src/16-declarations/legacy-lib.js`.
 
 ```javascript
 // src/16-declarations/legacy-lib.js
@@ -91,7 +91,7 @@ const VERSION = "1.0.0";
 module.exports = { formatCurrency, parseDate, VERSION };
 ```
 
-**Action** : Creer le fichier de declaration `src/16-declarations/legacy-lib.d.ts`.
+**Action** : Créer le fichier de declaration `src/16-declarations/legacy-lib.d.ts`.
 
 ```typescript
 // src/16-declarations/legacy-lib.d.ts
@@ -119,7 +119,7 @@ console.log(VERSION);                        // "1.0.0"
 
 **Action** : Montrer l'autocompletion sur `formatCurrency` et l'erreur quand on passe les mauvais types.
 
-> Ecrire des fichiers `.d.ts` est la facon de connecter du JavaScript existant au systeme de types TypeScript. C'est particulierement utile pour les librairies internes legacy.
+> Écrire des fichiers `.d.ts` est la façon de connecter du JavaScript existant au système de types TypeScript. C'est particulierement utile pour les librairies internes legacy.
 
 ### [08:00-13:00] DefinitelyTyped et @types
 
@@ -135,7 +135,7 @@ npm install lodash
 npm install -D @types/lodash
 ```
 
-**Action** : Creer un fichier pour utiliser lodash avec les types.
+**Action** : Créer un fichier pour utiliser lodash avec les types.
 
 ```typescript
 // src/16-declarations/use-lodash.ts
@@ -162,9 +162,9 @@ console.log(grouped);
 console.log(names);
 ```
 
-**Action** : Montrer l'autocompletion riche sur les methodes lodash.
+**Action** : Montrer l'autocompletion riche sur les méthodes lodash.
 
-> Les paquets `@types/*` proviennent du depot DefinitelyTyped sur GitHub — c'est le plus grand depot de declarations de types au monde. Quand vous installez un paquet npm, verifiez s'il inclut deja ses types (propriete `types` dans `package.json`) ou s'il faut installer `@types/nom-du-paquet`.
+> Les paquets `@types/*` proviennent du depot DefinitelyTyped sur GitHub — c'est le plus grand depot de declarations de types au monde. Quand vous installez un paquet npm, verifiez s'il inclut déjà ses types (propriété `types` dans `package.json`) ou s'il faut installer `@types/nom-du-paquet`.
 
 ```bash
 # Verifier si les types sont inclus
@@ -236,11 +236,11 @@ const dbUrl: string = process.env.DATABASE_URL;
 const env: "development" | "production" | "test" = process.env.NODE_ENV;
 ```
 
-**Action** : Montrer l'autocompletion sur `process.env.` avec les proprietes ajoutees.
+**Action** : Montrer l'autocompletion sur `process.env.` avec les propriétés ajoutees.
 
-> L'augmentation de module est extremement utile. Elle permet de typer les variables d'environnement, d'etendre les librairies tierces, et d'ajouter des proprietes aux types globaux. Le `declare global` est necessaire quand on est dans un fichier module (qui a un import/export).
+> L'augmentation de module est extremement utile. Elle permet de typer les variables d'environnement, d'etendre les librairies tierces, et d'ajouter des propriétés aux types globaux. Le `declare global` est nécessaire quand on est dans un fichier module (qui à un import/export).
 
-### [17:00-19:30] Bonnes pratiques et recapitulatif
+### [17:00-19:30] Bonnes pratiques et récapitulatif
 
 > Terminons avec les bonnes pratiques.
 
@@ -271,11 +271,11 @@ const env: "development" | "production" | "test" = process.env.NODE_ENV;
 //    - Des fichiers .d.ts avec du code (import/export de valeurs)
 ```
 
-> En resume : les fichiers `.d.ts` sont le pont entre JavaScript et TypeScript. `@types` couvre la majorite des librairies populaires. L'augmentation de module permet d'etendre les types existants. Et quand vous publiez une librairie, generez toujours les declarations pour vos utilisateurs TypeScript.
+> En résumé : les fichiers `.d.ts` sont le pont entre JavaScript et TypeScript. `@types` couvre la majorite des librairies populaires. L'augmentation de module permet d'etendre les types existants. Et quand vous publiez une librairie, generez toujours les declarations pour vos utilisateurs TypeScript.
 
 ## Points d'attention pour l'enregistrement
 - Compiler avec `--declaration` et montrer les fichiers generes cote a cote
 - L'installation de `@types/lodash` doit etre en live pour montrer le processus
-- L'augmentation de `process.env` est un cas d'usage tres concret et motivant
+- L'augmentation de `process.env` est un cas d'usage très concret et motivant
 - Bien distinguer `declare module` (augmentation) de `declare module` (declaration)
-- Mentionner l'outil `attw` pour verifier les types avant publication
+- Mentionner l'outil `attw` pour vérifier les types avant publication

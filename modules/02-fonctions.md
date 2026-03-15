@@ -2,14 +2,14 @@
 
 > **Duree estimee** : 4h00
 > **Difficulte** : 2/5
-> **Prerequis** : Module 01 (types primitifs, inference, any vs unknown)
+> **Prérequis** : Module 01 (types primitifs, inference, any vs unknown)
 > **Objectifs** :
-> - Typer les **parametres** et les **retours** de fonctions
-> - Maitriser les parametres **optionnels**, **par defaut** et **rest**
+> - Typer les **paramètres** et les **retours** de fonctions
+> - Maîtriser les paramètres **optionnels**, **par defaut** et **rest**
 > - Comprendre et utiliser les **surcharges** (overloads)
 > - Typer les **callbacks** correctement
 > - Decouvrir les **type predicates** (`is`) et **assertion functions** (`asserts`)
-> - Apercu des **generiques** dans les fonctions
+> - Apercu des **génériques** dans les fonctions
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### Syntaxe de base
 
-En TypeScript, on annote les parametres et le type de retour d'une fonction :
+En TypeScript, on annote les paramètres et le type de retour d'une fonction :
 
 ```typescript
 // Syntaxe : function nom(param: Type): TypeRetour { ... }
@@ -35,7 +35,7 @@ const resultat = additionner(10, 20); // resultat est number (infere)
 // additionner(10, 20, 30); // Erreur : Expected 2 arguments, but got 3
 ```
 
-### Pourquoi toujours typer les parametres ?
+### Pourquoi toujours typer les paramètres ?
 
 ```typescript
 // TypeScript NE PEUT PAS inferer les types des parametres
@@ -62,7 +62,7 @@ Une fonction typee, c'est comme un **contrat de travail** :
 
 - **Parametres** = Ce que tu dois fournir (ton CV, tes diplomes)
 - **Type de retour** = Ce que tu recois en echange (ton salaire)
-- **Le compilateur** = Le juriste qui verifie que les deux parties respectent le contrat
+- **Le compilateur** = Le juriste qui vérifié que les deux parties respectent le contrat
 
 ```typescript
 // Le "contrat" de cette fonction :
@@ -84,7 +84,7 @@ formaterPrix(19.99, "EUR"); // "19.99 EUR"
 
 ### Syntaxe typee
 
-Les fonctions flechees (arrow functions) se typent de la meme maniere :
+Les fonctions flechees (arrow functions) se typent de la même manière :
 
 ```typescript
 // Fonction flechee avec types
@@ -137,7 +137,7 @@ operations.forEach((op) => {
 
 ### Syntaxe
 
-Un parametre optionnel est marque avec `?`. Il peut etre omis a l'appel :
+Un paramètre optionnel est marque avec `?`. Il peut etre omis a l'appel :
 
 ```typescript
 // 'titre' est optionnel — son type est string | undefined
@@ -170,7 +170,7 @@ function afficherAge(age?: number): void {
 
 ### Analogie — Le menu du restaurant
 
-Les parametres optionnels, c'est comme un **menu de restaurant** :
+Les paramètres optionnels, c'est comme un **menu de restaurant** :
 
 - Le plat principal est **obligatoire** (tu dois en choisir un)
 - Le dessert est **optionnel** (tu peux le prendre ou non)
@@ -200,7 +200,7 @@ commander("Steak", "Eau", "Tiramisu", "Fromage"); // OK
 
 ### Syntaxe
 
-Un parametre avec une valeur par defaut n'a pas besoin du `?` — il est automatiquement optionnel :
+Un paramètre avec une valeur par defaut n'a pas besoin du `?` — il est automatiquement optionnel :
 
 ```typescript
 // Le parametre 'tva' a une valeur par defaut de 0.2
@@ -233,7 +233,7 @@ creerUtilisateur("Bob", "admin");
 // { nom: "Bob", role: "admin", actif: true, dateInscription: Date }
 ```
 
-### Difference entre optionnel et defaut
+### Différence entre optionnel et defaut
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -327,9 +327,9 @@ function mesurerTemps<T>(
 
 ## Surcharges de fonctions (Overloads)
 
-### Le probleme
+### Le problème
 
-Parfois, une fonction doit avoir des **comportements differents** selon les types des arguments :
+Parfois, une fonction doit avoir des **comportements différents** selon les types des arguments :
 
 ```typescript
 // On veut une fonction 'formater' qui :
@@ -378,7 +378,7 @@ formater("hello");         // OK — correspond a la signature (string) → stri
 // formater(true);          // Erreur — aucune surcharge ne correspond
 ```
 
-### Surcharge avec types de retour differents
+### Surcharge avec types de retour différents
 
 ```typescript
 // Fonction qui retourne des types DIFFERENTS selon l'input
@@ -509,7 +509,7 @@ lireFichier("/chemin/fichier.txt", (erreur, contenu) => {
 });
 ```
 
-### Callbacks dans les evenements
+### Callbacks dans les événements
 
 ```typescript
 // Type de callback pour les evenements
@@ -540,7 +540,7 @@ const monBouton: Bouton = {
 
 ### La subtilite
 
-`void` et `undefined` sont differents quand il s'agit du type de retour :
+`void` et `undefined` sont différents quand il s'agit du type de retour :
 
 ```typescript
 // void = "je ne retourne rien d'utile" (mais je peux retourner undefined)
@@ -575,14 +575,14 @@ const nombres: number[] = [];
 
 ### Analogie
 
-- **`void`** en retour de fonction = "Tu peux jeter la lettre de reponse, elle ne contient rien d'important."
-- **`undefined`** en retour de fonction = "La lettre de reponse contient explicitement la mention 'neant'."
+- **`void`** en retour de fonction = "Tu peux jeter la lettre de réponse, elle ne contient rien d'important."
+- **`undefined`** en retour de fonction = "La lettre de réponse contient explicitement la mention 'neant'."
 
 ---
 
 ## this parameter typing
 
-### Le probleme de this en JavaScript
+### Le problème de this en JavaScript
 
 ```typescript
 // En JavaScript, 'this' depend du CONTEXTE d'appel
@@ -603,7 +603,7 @@ fn(); // Erreur ! this est undefined (en mode strict)
 
 ### Typer this
 
-TypeScript permet de declarer le type de `this` comme **premier parametre** (il est efface a la compilation) :
+TypeScript permet de declarer le type de `this` comme **premier paramètre** (il est efface à la compilation) :
 
 ```typescript
 // Le parametre 'this' est un parametre special :
@@ -656,7 +656,7 @@ bouton.addEventListener("click", handleClick);
 
 ### Concept
 
-Une assertion function est une fonction qui **lance une erreur** si une condition n'est pas remplie. Apres l'appel, TypeScript sait que la condition est vraie :
+Une assertion function est une fonction qui **lance une erreur** si une condition n'est pas remplie. Après l'appel, TypeScript sait que la condition est vraie :
 
 ```typescript
 // Le mot-cle 'asserts' dans le type de retour
@@ -678,7 +678,7 @@ function traiter(donnee: unknown): void {
 // Le code apres l'assertion ne s'execute que si la condition est vraie
 ```
 
-### assert plus general
+### assert plus général
 
 ```typescript
 // Assertion generique : verifier qu'une condition est vraie
@@ -751,7 +751,7 @@ function traiter(donnee: unknown): void {
 }
 ```
 
-### Difference entre is et asserts
+### Différence entre is et asserts
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -820,9 +820,9 @@ const chats: Chat[] = animaux.filter(estChat);
 
 ## Generiques dans les fonctions (apercu)
 
-### Le probleme
+### Le problème
 
-Parfois, on veut ecrire une fonction qui fonctionne avec **n'importe quel type** tout en gardant la relation entre les types :
+Parfois, on veut écrire une fonction qui fonctionne avec **n'importe quel type** tout en gardant la relation entre les types :
 
 ```typescript
 // MAUVAIS — Perd l'information de type
@@ -867,11 +867,11 @@ const p = paire("hello", 42);  // [string, number]
 const p2 = paire(true, [1]);   // [boolean, number[]]
 ```
 
-### Analogie — Les generiques comme des boites
+### Analogie — Les génériques comme des boites
 
-Les generiques, c'est comme des **boites etiquetees** :
+Les génériques, c'est comme des **boites etiquetees** :
 
-- `function emballer<T>(objet: T): Boite<T>` = "Donne-moi n'importe quel objet, je te le mets dans une boite du meme type."
+- `function emballer<T>(objet: T): Boite<T>` = "Donne-moi n'importe quel objet, je te le mets dans une boite du même type."
 - Si tu me donnes un **livre**, tu recuperes une **boite a livres**.
 - Si tu me donnes un **bijou**, tu recuperes une **boite a bijoux**.
 - La boite s'adapte a son contenu.
@@ -893,7 +893,7 @@ const boiteNombre = emballer(42, "Nombre");
 // Boite<number>
 ```
 
-> Les generiques seront explores en profondeur dans un module dedie. Ceci n'est qu'un apercu.
+> Les génériques seront explores en profondeur dans un module dedie. Ceci n'est qu'un apercu.
 
 ---
 
@@ -904,7 +904,7 @@ const boiteNombre = emballer(42, "Nombre");
 Ecris les fonctions suivantes avec les bons types :
 
 1. `estPair(n)` — retourne `true` si un nombre est pair
-2. `tronquer(texte, longueurMax)` — tronque un texte et ajoute "..." si necessaire
+2. `tronquer(texte, longueurMax)` — tronque un texte et ajoute "..." si nécessaire
 3. `calculerMoyenne(...notes)` — calcule la moyenne d'un nombre variable de notes
 
 <details>
@@ -1105,11 +1105,11 @@ console.log(decrire(true));
 
 </details>
 
-### Exercice 5 — Systeme d'evenements type
+### Exercice 5 — Système d'événements type
 
-Cree un mini systeme d'evenements (EventEmitter simplifie) avec :
-- Une methode `on(event, callback)` pour ecouter un evenement
-- Une methode `emit(event, data)` pour emettre un evenement
+Cree un mini système d'événements (EventEmitter simplifie) avec :
+- Une méthode `on(event, callback)` pour ecouter un événement
+- Une méthode `emit(event, data)` pour emettre un événement
 - Typage correct des callbacks
 
 <details>
@@ -1164,7 +1164,7 @@ emitter.emit("message", { texte: "Salut !", auteur: "Alice" });
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -1201,12 +1201,22 @@ emitter.emit("message", { texte: "Salut !", auteur: "Alice" });
 
 ## Pour aller plus loin
 
-Dans le prochain module, **03 — Objets — Interfaces, Type Aliases & Structural Typing**, nous allons decouvrir :
+Dans le prochain module, **03 — Objets — Interfaces, Type Aliases & Structural Typing**, nous allons découvrir :
 
-- Comment definir la **forme** des objets avec des interfaces et des type aliases
-- La difference entre `interface` et `type`
+- Comment définir la **forme** des objets avec des interfaces et des type aliases
+- La différence entre `interface` et `type`
 - Le concept de **structural typing** (duck typing)
-- Les proprietes `readonly`, optionnelles, et les index signatures
+- Les propriétés `readonly`, optionnelles, et les index signatures
 - La composition avec les **intersections** (`&`)
 
-> **Conseil** : Entraine-toi a ecrire des fonctions avec des surcharges et des type predicates. Ce sont des outils puissants que tu utiliseras regulierement dans du code TypeScript professionnel.
+> **Conseil** : Entraine-toi à écrire des fonctions avec des surcharges et des type predicates. Ce sont des outils puissants que tu utiliseras regulierement dans du code TypeScript professionnel.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 02 fonctions](../screencasts/screencast-02-fonctions.md)
+2. **Lab** : [lab-02-fonctions](../labs/lab-02-fonctions/README)
+3. **Quiz** : [quiz 02 fonctions](../quizzes/quiz-02-fonctions.html)
+:::

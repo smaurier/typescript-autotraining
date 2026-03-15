@@ -4,11 +4,11 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/17-tsconfig.md`
 - **Lab associe** : Lab 17
-- **Prerequis** : Screencast 09 (modules), Screencast 16 (declaration files)
+- **Prérequis** : Screencast 09 (modules), Screencast 16 (declaration files)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
+- [ ] Terminal intégré ouvert
 - [ ] `tsconfig.json` existant dans le projet
 - [ ] Plusieurs fichiers TypeScript existants pour tester les options
 
@@ -16,7 +16,7 @@
 
 ### [00:00-04:00] Structure et options fondamentales
 
-> Le fichier `tsconfig.json` controle tout le comportement du compilateur TypeScript. Dans ce screencast, nous allons explorer en profondeur les options les plus importantes, configurer un projet multi-packages avec les project references, et optimiser la performance de compilation.
+> Le fichier `tsconfig.json` controle tout le comportement du compilateur TypeScript. Dans ce screencast, nous allons explorer en profondeur les options les plus importantes, configurer un projet multi-packages avec les project références, et optimiser la performance de compilation.
 
 **Action** : Ouvrir le `tsconfig.json` du projet et le remplacer par une configuration commentee.
 
@@ -69,7 +69,7 @@
 
 > Voyons ce que chaque option strict apporte concretement.
 
-**Action** : Creer un fichier `src/17-strict-demo.ts` pour demontrer les options.
+**Action** : Créer un fichier `src/17-strict-demo.ts` pour demontrer les options.
 
 ```typescript
 // strictNullChecks : null et undefined sont des types distincts
@@ -120,7 +120,7 @@ if (first !== undefined) {
 }
 ```
 
-**Action** : Activer et desactiver `strictNullChecks` pour montrer la difference de comportement.
+**Action** : Activer et désactiver `strictNullChecks` pour montrer la différence de comportement.
 
 > Je recommande fortement d'ajouter `noUncheckedIndexedAccess: true` en plus de `strict`. Ce n'est pas inclus dans `strict` car il a ete ajoute plus tard, mais il evite beaucoup de bugs lies aux acces par index.
 
@@ -153,7 +153,7 @@ if (first !== undefined) {
 }
 ```
 
-**Action** : Creer des exemples qui declenchent chaque erreur.
+**Action** : Créer des exemples qui declenchent chaque erreur.
 
 ```typescript
 // noUnusedLocals
@@ -196,9 +196,9 @@ const opts: Options = {}; // OK
 
 > `isolatedModules` est crucial si vous utilisez un bundler (esbuild, swc, Vite) car ces outils compilent fichier par fichier. `verbatimModuleSyntax` remplace `importsNotUsedAsValues` et force l'utilisation de `import type` pour les imports de types.
 
-### [13:30-17:00] Project references (monorepo)
+### [13:30-17:00] Project références (monorepo)
 
-> Les project references permettent de structurer un monorepo TypeScript avec une compilation incrementale.
+> Les project références permettent de structurer un monorepo TypeScript avec une compilation incrementale.
 
 **Action** : Montrer la structure d'un monorepo.
 
@@ -274,9 +274,9 @@ npx tsc --build --clean
 npx tsc --build packages/api
 ```
 
-> `composite: true` active les project references. `tsc --build` compile les projets dans le bon ordre en respectant les dependances. La compilation incrementale ne recompile que ce qui a change — c'est essentiel pour les gros monorepos.
+> `composite: true` active les project références. `tsc --build` compile les projets dans le bon ordre en respectant les dépendances. La compilation incrementale ne recompile que ce qui a change — c'est essentiel pour les gros monorepos.
 
-### [17:00-19:30] Performance et recapitulatif
+### [17:00-19:30] Performance et récapitulatif
 
 > Quelques options pour accelerer la compilation dans les gros projets.
 
@@ -306,13 +306,13 @@ npx tsc --generateTrace ./trace
 # Ouvrir dans chrome://tracing
 ```
 
-**Action** : Executer `npx tsc --diagnostics` et montrer les metriques.
+**Action** : Exécuter `npx tsc --diagnostics` et montrer les metriques.
 
-> En resume : `tsconfig.json` est le cerveau de votre projet TypeScript. Activez `strict` et `noUncheckedIndexedAccess` pour la securite maximale. Utilisez les project references pour les monorepos. Et mesurez la performance avec `--diagnostics` et `--generateTrace` quand la compilation devient lente.
+> En résumé : `tsconfig.json` est le cerveau de votre projet TypeScript. Activez `strict` et `noUncheckedIndexedAccess` pour la sécurité maximale. Utilisez les project références pour les monorepos. Et mesurez la performance avec `--diagnostics` et `--generateTrace` quand la compilation devient lente.
 
 ## Points d'attention pour l'enregistrement
-- Le `tsconfig.json` peut etre ecrasant — presenter les options par categorie
+- Le `tsconfig.json` peut etre ecrasant — présenter les options par categorie
 - Montrer l'effet concret de chaque option strict avec un exemple de code
-- La section project references necessite une structure de fichiers claire
-- `tsc --diagnostics` est un outil meconnu mais tres utile — le montrer
-- Mentionner que `tsconfig.json` peut heriter d'un autre avec `"extends"`
+- La section project références nécessité une structure de fichiers claire
+- `tsc --diagnostics` est un outil meconnu mais très utile — le montrer
+- Mentionner que `tsconfig.json` peut hériter d'un autre avec `"extends"`

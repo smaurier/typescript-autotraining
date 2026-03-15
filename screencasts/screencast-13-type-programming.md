@@ -1,24 +1,24 @@
-# Screencast 13 — Programmation au niveau des types : recursion et puzzles
+# Screencast 13 — Programmation au niveau des types : récursion et puzzles
 
 ## Informations
 - **Duree estimee** : 20-25 min
 - **Module** : `modules/13-type-programming.md`
 - **Lab associe** : Lab 13
-- **Prerequis** : Screencast 11 (conditional types), Screencast 12 (mapped types)
+- **Prérequis** : Screencast 11 (conditional types), Screencast 12 (mapped types)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/13-type-programming.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/13-type-programming.ts` pret a etre créé
 - [ ] Patience et curiosite (les types deviennent complexes !)
 
 ## Script
 
-### [00:00-04:30] Types recursifs
+### [00:00-04:30] Types récursifs
 
-> Le systeme de types de TypeScript est Turing-complet — on peut theoriquement calculer n'importe quoi au niveau des types. Dans ce screencast, nous allons explorer la recursion de types, l'arithmetique au niveau des types, et resoudre des puzzles.
+> Le système de types de TypeScript est Turing-complet — on peut theoriquement calculer n'importe quoi au niveau des types. Dans ce screencast, nous allons explorer la récursion de types, l'arithmetique au niveau des types, et résoudre des puzzles.
 
-**Action** : Creer le fichier `src/13-type-programming.ts`.
+**Action** : Créer le fichier `src/13-type-programming.ts`.
 
 ```typescript
 // Types recursifs de base : structures de donnees
@@ -91,9 +91,9 @@ type PartialConfig = DeepPartial<Config>;
 // Toutes les proprietes sont optionnelles, meme les imbriquees
 ```
 
-**Action** : Survoler `PartialConfig` pour montrer le type resolu avec toutes les proprietes optionnelles en profondeur.
+**Action** : Survoler `PartialConfig` pour montrer le type resolu avec toutes les propriétés optionnelles en profondeur.
 
-> Les types recursifs referent a eux-memes dans leur definition. C'est naturel pour les structures de donnees comme les arbres et les listes chainees. `DeepPartial` est un utility type recursif tres utilise en pratique.
+> Les types récursifs referent a eux-memes dans leur définition. C'est naturel pour les structures de donnees comme les arbres et les listes chainees. `DeepPartial` est un utility type récursif très utilise en pratique.
 
 ### [04:30-10:30] Arithmetique au niveau des types
 
@@ -149,13 +149,13 @@ type Product = Multiply<3, 4>; // 12
 type Product2 = Multiply<5, 6>; // 30
 ```
 
-**Action** : Survoler `Sum`, `Diff` et `Product` pour montrer les resultats calcules a la compilation.
+**Action** : Survoler `Sum`, `Diff` et `Product` pour montrer les résultats calcules à la compilation.
 
-> C'est fascinant : on fait des calculs mathematiques sans aucun code runtime — tout est resolu a la compilation. La limite est la profondeur de recursion (environ 1000 pour les tuples). Ce n'est pas utile au quotidien, mais ca montre la puissance du systeme de types.
+> C'est fascinant : on fait des calculs mathematiques sans aucun code runtime — tout est resolu à la compilation. La limite est la profondeur de récursion (environ 1000 pour les tuples). Ce n'est pas utile au quotidien, mais ça montre la puissance du système de types.
 
 ### [10:30-16:00] Manipulation avancee de tuples
 
-> Les tuples sont la structure de donnees cle pour la programmation au niveau des types.
+> Les tuples sont la structure de donnees clé pour la programmation au niveau des types.
 
 **Action** : Ajouter le code suivant.
 
@@ -211,7 +211,7 @@ type Uniq = Unique<[1, 2, 3, 2, 1, 4]>;
 
 **Action** : Survoler `Rev`, `Flat` et `Uniq` pour montrer les types resolus.
 
-> Ces manipulations de tuples sont la base de type-challenges et de librairies avancees. La technique cle est toujours la meme : pattern matching avec `infer`, decomposition en `First` et `Rest`, et recursion.
+> Ces manipulations de tuples sont la base de type-challenges et de librairies avancees. La technique clé est toujours la même : pattern matching avec `infer`, decomposition en `First` et `Rest`, et récursion.
 
 ### [16:00-21:00] Puzzles de types
 
@@ -287,7 +287,7 @@ type Zip = Get<NestedObj, "user.address.zip">;    // number
 type Bad = Get<NestedObj, "user.phone">;           // never
 ```
 
-**Action** : Decomposer chaque puzzle en montrant la resolution pas a pas.
+**Action** : Decomposer chaque puzzle en montrant la résolution pas a pas.
 
 ### [21:00-24:00] Limites et bonnes pratiques
 
@@ -318,11 +318,11 @@ type Bad = Get<NestedObj, "user.phone">;           // never
 // - Quand ca rend le code illisible
 ```
 
-> En resume : TypeScript est un langage de programmation au niveau des types. Les types recursifs, l'arithmetique de tuples et le pattern matching avec `infer` permettent des abstractions impressionnantes. Mais utilisez ces pouvoirs avec sagesse — la complexite au niveau des types doit servir la simplicite au niveau du code.
+> En résumé : TypeScript est un langage de programmation au niveau des types. Les types récursifs, l'arithmetique de tuples et le pattern matching avec `infer` permettent des abstractions impressionnantes. Mais utilisez ces pouvoirs avec sagesse — la complexite au niveau des types doit servir la simplicite au niveau du code.
 
 ## Points d'attention pour l'enregistrement
 - Les puzzles sont le coeur du screencast — les decomposer pas a pas
-- Montrer les types resolus a chaque etape intermediaire
+- Montrer les types resolus à chaque étape intermédiaire
 - L'arithmetique de tuples est spectaculaire mais academic — le mentionner
 - `Equal<A, B>` est un helper non trivial — ne pas s'attarder sur son implementation
 - Mentionner type-challenges.github.io pour ceux qui veulent aller plus loin

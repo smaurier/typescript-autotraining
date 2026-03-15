@@ -4,21 +4,21 @@
 - **Duree estimee** : 20-25 min
 - **Module** : `modules/11-conditional-types.md`
 - **Lab associe** : Lab 11
-- **Prerequis** : Screencast 10 (utility types)
+- **Prérequis** : Screencast 10 (utility types)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/11-conditional.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/11-conditional.ts` pret a etre créé
 - [ ] Bonne comprehension des generics et de `keyof`
 
 ## Script
 
 ### [00:00-04:30] Introduction aux types conditionnels
 
-> Les types conditionnels sont l'equivalent du `if/else` au niveau des types. Ils permettent de creer des types qui changent en fonction d'une condition. C'est l'un des mecanismes les plus puissants — et les plus deroutants — de TypeScript.
+> Les types conditionnels sont l'équivalent du `if/else` au niveau des types. Ils permettent de créer des types qui changent en fonction d'une condition. C'est l'un des mécanismes les plus puissants — et les plus deroutants — de TypeScript.
 
-**Action** : Creer le fichier `src/11-conditional.ts`.
+**Action** : Créer le fichier `src/11-conditional.ts`.
 
 ```typescript
 // Syntaxe de base : T extends U ? X : Y
@@ -53,11 +53,11 @@ const r2 = process(42);       // type: number
 
 **Action** : Survoler les types `A` a `F` pour montrer les types resolus. Expliquer la syntaxe ternaire au niveau des types.
 
-> La syntaxe est identique a l'operateur ternaire JavaScript, mais elle opere au niveau des types. `T extends U` est la condition — elle verifie si T est assignable a U.
+> La syntaxe est identique a l'operateur ternaire JavaScript, mais elle opere au niveau des types. `T extends U` est la condition — elle vérifié si T est assignable a U.
 
-### [04:30-10:00] Le mot-cle infer
+### [04:30-10:00] Le mot-clé infer
 
-> `infer` est le mecanisme qui permet d'extraire un type a l'interieur d'un conditional type. C'est comme une capture de groupe dans une regex.
+> `infer` est le mécanisme qui permet d'extraire un type a l'interieur d'un conditional type. C'est comme une capture de groupe dans une regex.
 
 **Action** : Ajouter le code suivant.
 
@@ -101,13 +101,13 @@ type Params = ExtractRouteParams<"/users/:userId/posts/:postId">;
 // { userId: string; postId: string }
 ```
 
-**Action** : Survoler `Params` pour montrer l'extraction des parametres de route. C'est un usage concret impressionnant.
+**Action** : Survoler `Params` pour montrer l'extraction des paramètres de route. C'est un usage concret impressionnant.
 
-> `infer` permet de "deconstruire" un type. On peut extraire le type de retour d'une fonction, l'element d'un tableau, le contenu d'une Promise, ou meme parser des template literals. C'est la base de librairies comme Zod et tRPC.
+> `infer` permet de "deconstruire" un type. On peut extraire le type de retour d'une fonction, l'élément d'un tableau, le contenu d'une Promise, ou même parser des template literals. C'est la base de librairies comme Zod et tRPC.
 
 ### [10:00-15:30] Distributivite
 
-> Quand un conditional type recoit une union, il se distribue sur chaque membre. C'est un comportement crucial a comprendre.
+> Quand un conditional type recoit une union, il se distribue sur chaque membre. C'est un comportement crucial à comprendre.
 
 **Action** : Ajouter le code suivant.
 
@@ -159,7 +159,7 @@ type L = IsNeverFixed<never>; // true
 
 **Action** : Montrer le type `K` qui est `never` au lieu de `true`, puis montrer la correction avec `IsNeverFixed`.
 
-> La distributivite est le piege numero un des conditional types. Retenez cette regle : quand le type teste est un parametre de type nu (bare type parameter) et qu'il recoit une union, le conditional type se distribue. Encadrez avec `[T]` pour l'empecher.
+> La distributivite est le piege numéro un des conditional types. Retenez cette regle : quand le type teste est un paramètre de type nu (bare type parameter) et qu'il recoit une union, le conditional type se distribue. Encadrez avec `[T]` pour l'empecher.
 
 ### [15:30-20:30] Patterns avances avec infer et conditionnels
 
@@ -238,9 +238,9 @@ emitter.emit("error", { message: "Oops", code: 500 }); // OK
 // emitter.emit("error", { message: "Oops" }); // Erreur : 'code' manquant
 ```
 
-**Action** : Montrer l'autocompletion du premier argument de `on()` (les noms d'evenements) et du payload dans le callback.
+**Action** : Montrer l'autocompletion du premier argument de `on()` (les noms d'événements) et du payload dans le callback.
 
-### [20:30-24:00] Exercice recapitulatif et conclusion
+### [20:30-24:00] Exercice récapitulatif et conclusion
 
 > Terminons par un exercice de synthese.
 
@@ -260,13 +260,13 @@ type ServiceReturns = MethodReturnTypes<UserService>;
 // }
 ```
 
-**Action** : Construire ce type pas a pas en decomposant chaque etape.
+**Action** : Construire ce type pas a pas en decomposant chaque étape.
 
-> En resume : les conditional types, `infer` et la distributivite forment le moteur de la meta-programmation en TypeScript. Avec ces outils, vous pouvez creer des abstractions de types aussi expressives que du code runtime. Mais attention a la complexite : un type trop complexe devient illisible. Privilegiez toujours la clarte.
+> En résumé : les conditional types, `infer` et la distributivite forment le moteur de la meta-programmation en TypeScript. Avec ces outils, vous pouvez créer des abstractions de types aussi expressives que du code runtime. Mais attention à la complexite : un type trop complexe devient illisible. Privilegiez toujours la clarte.
 
 ## Points d'attention pour l'enregistrement
 - La distributivite est le point le plus delicat : utiliser des exemples concrets pas a pas
 - Le piege `IsNever<never>` est celebre — bien prendre le temps de l'expliquer
-- L'exemple du `TypedEmitter` est tres motivant — montrer l'autocompletion en action
-- Decomposer `ExtractRouteParams` etape par etape pour ne pas perdre le spectateur
+- L'exemple du `TypedEmitter` est très motivant — montrer l'autocompletion en action
+- Decomposer `ExtractRouteParams` étape par étape pour ne pas perdre le spectateur
 - Rappeler que ces concepts seront utilises dans les screencasts suivants

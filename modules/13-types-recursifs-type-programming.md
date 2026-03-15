@@ -1,34 +1,34 @@
-# 13 — Types recursifs & Type-Level Programming
+# 13 — Types récursifs & Type-Level Programming
 
 > **Duree estimee** : 6 heures
 > **Difficulte** : 5/5
-> **Prerequis** : Conditional types, infer, mapped types, template literal types, tuples
+> **Prérequis** : Conditional types, infer, mapped types, template literal types, tuples
 > **Objectifs** :
-> - Comprendre et creer des types recursifs
-> - Maitriser l'arithmetique au niveau des types
-> - Parser des chaines au niveau du systeme de types
-> - Connaitre les limites de recursion de TypeScript
+> - Comprendre et créer des types récursifs
+> - Maîtriser l'arithmetique au niveau des types
+> - Parser des chaines au niveau du système de types
+> - Connaître les limites de récursion de TypeScript
 > - Explorer le type-level programming comme discipline
 
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la theorie du module precedent. Si apres 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
 ## Introduction
 
-Le **type-level programming** consiste a ecrire des programmes qui s'executent **au moment de la compilation**, dans le systeme de types. TypeScript, bien qu'il ne soit pas concu pour cela, possede un systeme de types suffisamment puissant pour permettre des calculs complexes.
+Le **type-level programming** consiste à écrire des programmes qui s'executent **au moment de la compilation**, dans le système de types. TypeScript, bien qu'il ne soit pas concu pour cela, possede un système de types suffisamment puissant pour permettre des calculs complexes.
 
 ### Analogie
 
-Imaginez que vous ecrivez un livre (votre programme). Le **type-level programming**, c'est comme ecrire des regles de grammaire et d'orthographe si sophistiquees que le correcteur orthographique peut non seulement verifier votre texte, mais aussi **generer de nouveaux mots** selon des regles complexes, verifier la coherence logique de votre recit, et meme resoudre des equations mathematiques — tout cela avant que quiconque ne lise le livre.
+Imaginez que vous ecrivez un livre (votre programme). Le **type-level programming**, c'est comme écrire des regles de grammaire et d'orthographe si sophistiquees que le correcteur orthographique peut non seulement vérifier votre texte, mais aussi **générer de nouveaux mots** selon des regles complexes, vérifier la coherence logique de votre recit, et même résoudre des equations mathematiques — tout cela avant que quiconque ne lise le livre.
 
 ---
 
-## Types recursifs : les fondamentaux
+## Types récursifs : les fondamentaux
 
-### Qu'est-ce qu'un type recursif ?
+### Qu'est-ce qu'un type récursif ?
 
-Un type recursif est un type qui se **reference lui-meme** dans sa definition. C'est l'equivalent au niveau des types d'une fonction recursive.
+Un type récursif est un type qui se **référence lui-même** dans sa définition. C'est l'équivalent au niveau des types d'une fonction recursive.
 
 ```typescript
 // Un arbre binaire : chaque noeud contient une valeur
@@ -93,7 +93,7 @@ type MaListe = ListeHeterogene<[string, number, boolean]>;
 // }
 ```
 
-### JSON recursif
+### JSON récursif
 
 ```typescript
 // Le type JSON est naturellement recursif
@@ -261,7 +261,7 @@ type Diff3 = Soustraire<100, 1>; // 99
 // type Diff4 = Soustraire<3, 10>; // never (negatif)
 ```
 
-### Multiplication (via recursion)
+### Multiplication (via récursion)
 
 ```typescript
 // Multiplication : additionner A, B fois
@@ -314,7 +314,7 @@ type Min1 = Min<3, 7>;  // 3
 type Max1 = Max<3, 7>;  // 7
 ```
 
-### Range : generer une sequence de nombres
+### Range : générer une sequence de nombres
 
 ```typescript
 // Generer un tuple [0, 1, 2, ..., N-1]
@@ -446,7 +446,7 @@ type T2 = Trim<"\t bonjour \n">; // "bonjour"
 
 ## Type-level JSON parser (simplifie)
 
-C'est un des exemples les plus impressionnants de type-level programming : un parser JSON qui fonctionne entierement au niveau des types.
+C'est un des exemples les plus impressionnants de type-level programming : un parser JSON qui fonctionne entièrement au niveau des types.
 
 ```typescript
 // Parser un nombre
@@ -492,7 +492,7 @@ type V4 = ParseValeur<"null">;     // null
 
 ## Type-level state machines
 
-### Machine a etats typee
+### Machine a états typee
 
 ```typescript
 // Definir les etats et transitions d'une machine a etats
@@ -547,7 +547,7 @@ type Seq2 = VerifierSequence<"eteint", ["allumer", "eteindre"]>;
 // "eteint"
 ```
 
-### Machine a etats avec une classe
+### Machine a états avec une classe
 
 ```typescript
 // Implementation runtime avec verification au niveau des types
@@ -590,11 +590,11 @@ const enVeille = allume.transition("mettre_en_veille");
 
 ---
 
-## Limites de recursion TypeScript
+## Limites de récursion TypeScript
 
 ### La profondeur maximale
 
-TypeScript impose une **limite de recursion** pour eviter les boucles infinies et les temps de compilation excessifs.
+TypeScript impose une **limite de récursion** pour éviter les boucles infinies et les temps de compilation excessifs.
 
 ```typescript
 // TypeScript supporte environ 1000 niveaux de recursion pour les types
@@ -615,7 +615,7 @@ type T50 = GrandTuple<50>;   // Fonctionne
 
 ### Tail-call optimization
 
-Depuis TypeScript 4.5, les types recursifs beneficient d'une **optimisation tail-call** dans certains cas. Cela signifie que si la recursion est en position terminale, TypeScript peut gerer une profondeur beaucoup plus grande.
+Depuis TypeScript 4.5, les types récursifs beneficient d'une **optimisation tail-call** dans certains cas. Cela signifie que si la récursion est en position terminale, TypeScript peut gérer une profondeur beaucoup plus grande.
 
 ```typescript
 // Version SANS tail-call optimization
@@ -637,7 +637,7 @@ type Test1 = InverserSans<[1, 2, 3, 4, 5]>;  // [5, 4, 3, 2, 1]
 type Test2 = InverserAvec<[1, 2, 3, 4, 5]>;   // [5, 4, 3, 2, 1]
 ```
 
-### Techniques pour optimiser la recursion
+### Techniques pour optimiser la récursion
 
 ```typescript
 // 1. Utiliser un accumulateur (tail-call)
@@ -849,7 +849,7 @@ type FB15 = FizzBuzz<15>;
 
 ### Exercice 4 : Deep Get type-safe
 
-Creez un type qui permet d'acceder a une valeur profondement imbriquee de maniere type-safe.
+Creez un type qui permet d'acceder à une valeur profondement imbriquee de manière type-safe.
 
 <details>
 <summary>Solution</summary>
@@ -913,7 +913,7 @@ type T4 = DeepGet<BaseDeDonnees, "utilisateurs.0.preferences.theme">;
 
 ### Exercice 5 : Permutations d'un tuple
 
-Creez un type qui genere toutes les permutations d'un tuple.
+Creez un type qui généré toutes les permutations d'un tuple.
 
 <details>
 <summary>Solution</summary>
@@ -952,25 +952,25 @@ type P2 = Permutations<[1, 2, 3]>;
 
 ---
 
-## Resume
+## Résumé
 
 ### Concepts maitrises
 
 | Concept | Description |
 |---------|-------------|
-| Types recursifs | Types qui se referencent eux-memes |
+| Types récursifs | Types qui se referencent eux-memes |
 | Arbres et listes | Structures de donnees recursives |
 | Arithmetique type-level | Addition, soustraction via tuples |
 | String parsing | Decomposer et transformer des chaines |
-| State machines | Verifier des sequences de transitions |
-| Tail-call optimization | Accumulateur pour recursion profonde |
+| State machines | Vérifier des sequences de transitions |
+| Tail-call optimization | Accumulateur pour récursion profonde |
 
 ### Regles d'or du type-level programming
 
 1. **Representez les nombres par des tuples** pour l'arithmetique
 2. **Utilisez un accumulateur** pour la tail-call optimization
-3. **Restez sous 50-100 niveaux** de recursion en pratique
-4. **Testez incrementalement** : chaque type intermediaire separement
+3. **Restez sous 50-100 niveaux** de récursion en pratique
+4. **Testez incrementalement** : chaque type intermédiaire separement
 5. **Evitez la complexite inutile** : le type-level programming est puissant mais difficile a maintenir
 6. **Documentez abondamment** : les types complexes sont incomprehensibles sans explication
 
@@ -978,10 +978,20 @@ type P2 = Permutations<[1, 2, 3]>;
 
 - **Oui** : Libraries, frameworks, outils de validation, ORMs
 - **Non** : Code metier simple, applications CRUD basiques
-- **Avec prudence** : Quand la complexite du type depasse celle du code runtime
+- **Avec prudence** : Quand la complexite du type dépasse celle du code runtime
 
 ---
 
 ## Pour aller plus loin
 
-Le prochain module, **[14 — Decorateurs & Metadata (Stage 3)](./14-decorateurs-metadata.md)**, change de registre et explore les decorateurs — une fonctionnalite qui combine le runtime et le systeme de types pour de la metaprogrammation elegante.
+Le prochain module, **[14 — Decorateurs & Metadata (Stage 3)](./14-decorateurs-metadata.md)**, change de registre et explore les decorateurs — une fonctionnalite qui combine le runtime et le système de types pour de la metaprogrammation elegante.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 13 type programming](../screencasts/screencast-13-type-programming.md)
+2. **Lab** : [lab-13-type-programming](../labs/lab-13-type-programming/README)
+3. **Quiz** : [quiz 13 type programming](../quizzes/quiz-13-type-programming.html)
+:::

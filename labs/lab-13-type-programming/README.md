@@ -2,11 +2,11 @@
 
 ## Objectifs
 
-- Comprendre la recursion au niveau des types
+- Comprendre la récursion au niveau des types
 - Implementer `Length<T>` pour calculer la longueur d'un tuple
 - Realiser l'addition au niveau des types via des tuples
 - Construire un parseur de chaines au niveau des types
-- Manipuler des types d'arbres recursifs et leur traversee
+- Manipuler des types d'arbres récursifs et leur traversee
 
 ## Exercices
 
@@ -16,7 +16,7 @@
 4. **`Subtract<A, B>`** -- Soustraire deux nombres au niveau des types
 5. **ParseInt** -- Extraire un nombre depuis une chaine au niveau des types
 6. **Split** -- Decouper une chaine en tableau au niveau des types
-7. **TreeNode / Depth** -- Calculer la profondeur d'un arbre recursif
+7. **TreeNode / Depth** -- Calculer la profondeur d'un arbre récursif
 
 ## Lancer les tests
 

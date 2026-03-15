@@ -2,26 +2,26 @@
 
 > **Duree estimee** : 5 heures
 > **Difficulte** : 4/5
-> **Prerequis** : Generics, conditional types, infer, keyof, unions
+> **Prérequis** : Generics, conditional types, infer, keyof, unions
 > **Objectifs** :
-> - Maitriser les mapped types et leurs modificateurs
+> - Maîtriser les mapped types et leurs modificateurs
 > - Comprendre le key remapping avec `as`
 > - Utiliser les template literal types pour manipuler des chaines au niveau des types
 > - Combiner mapped types et template literals pour des transformations avancees
 
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la theorie du module precedent. Si apres 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
 ## Introduction
 
-Les **mapped types** et les **template literal types** sont deux mecanismes complementaires :
-- Les **mapped types** permettent de transformer la structure d'un type objet (ajouter/retirer des modificateurs, renommer des cles, filtrer des proprietes)
+Les **mapped types** et les **template literal types** sont deux mécanismes complementaires :
+- Les **mapped types** permettent de transformer la structure d'un type objet (ajouter/retirer des modificateurs, renommer des clés, filtrer des propriétés)
 - Les **template literal types** permettent de manipuler des types string (construction, decomposition, transformation)
 
 ### Analogie
 
-Pensez aux mapped types comme a une **machine de duplication avec modification** : vous inserez un plan de maison (un type objet), et la machine produit un nouveau plan ou chaque piece a ete modifiee selon vos instructions (agrandie, verrouillée, renommee...).
+Pensez aux mapped types comme à une **machine de duplication avec modification** : vous inserez un plan de maison (un type objet), et la machine produit un nouveau plan ou chaque piece a ete modifiee selon vos instructions (agrandie, verrouillée, renommee...).
 
 Les template literal types, eux, sont comme un **jeu de Scrabble** : vous assemblez des lettres et des mots pour former de nouveaux mots, avec des regles de transformation (majuscules, minuscules, etc.).
 
@@ -166,7 +166,7 @@ type ExpliciteReadonly<T> = {
 
 ### Syntaxe
 
-Depuis TypeScript 4.1, on peut **renommer les cles** dans un mapped type grace a `as`.
+Depuis TypeScript 4.1, on peut **renommer les clés** dans un mapped type grâce à `as`.
 
 ```typescript
 // Syntaxe : [K in keyof T as NouvelleClé]: T[K]
@@ -219,9 +219,9 @@ type PersonneHandlers = EvenementHandlers<Personne>;
 // }
 ```
 
-### Filtrer des cles avec `as` et `never`
+### Filtrer des clés avec `as` et `never`
 
-Le remapping avec `as` permet aussi de **filtrer** des cles : si le nouveau nom est `never`, la propriete est exclue.
+Le remapping avec `as` permet aussi de **filtrer** des clés : si le nouveau nom est `never`, la propriété est exclue.
 
 ```typescript
 // Garder uniquement les proprietes de type string
@@ -270,7 +270,7 @@ type SeulementProprietes<T> = {
 
 ## Mapped types avances
 
-### Transformer les cles en minuscules/majuscules
+### Transformer les clés en minuscules/majuscules
 
 ```typescript
 type ClesEnMajuscules<T> = {
@@ -287,7 +287,7 @@ type ReponseMajuscules = ClesEnMajuscules<ApiReponse>;
 // { USERID: number; USERNAME: string; USEREMAIL: string }
 ```
 
-### Creer un type avec getters ET setters
+### Créer un type avec getters ET setters
 
 ```typescript
 type GettersEtSetters<T> = {
@@ -375,7 +375,7 @@ type ConfigComplete = DeepRequired<AppConfig>;
 
 ### Syntaxe de base
 
-Les template literal types utilisent la meme syntaxe que les template strings de JavaScript, mais au niveau des types.
+Les template literal types utilisent la même syntaxe que les template strings de JavaScript, mais au niveau des types.
 
 ```typescript
 // Type literal simple
@@ -480,7 +480,7 @@ type FormulaireHandlers = PropHandlers<EtatFormulaire>;
 // }
 ```
 
-### Creer des cles CSS-like
+### Créer des clés CSS-like
 
 ```typescript
 // Generer des proprietes CSS typees
@@ -503,7 +503,7 @@ const mesStyles: Styles = {
 };
 ```
 
-### Convertir les cles d'un objet d'un format a un autre
+### Convertir les clés d'un objet d'un format à un autre
 
 ```typescript
 // Transformer les cles camelCase en SCREAMING_SNAKE_CASE pour des constantes
@@ -538,7 +538,7 @@ type Constantes = ObjetEnConstantes<ActionsApp>;
 
 ---
 
-## Path Types : acceder a des proprietes imbriquees
+## Path Types : acceder a des propriétés imbriquees
 
 ### Construire un type de chemins d'acces
 
@@ -575,7 +575,7 @@ type Chemins = CheminsPossibles<Formulaire>;
 // | `produits.${number}`
 ```
 
-### Obtenir le type d'une valeur a partir d'un chemin
+### Obtenir le type d'une valeur à partir d'un chemin
 
 ```typescript
 // Obtenir le type d'une valeur en suivant un chemin
@@ -727,9 +727,9 @@ async function exemple() {
 
 ## Pratique : Exercices
 
-### Exercice 1 : Creer un type `Nullable<T>`
+### Exercice 1 : Créer un type `Nullable<T>`
 
-Creez un type `Nullable<T>` qui rend toutes les proprietes de `T` potentiellement `null`.
+Creez un type `Nullable<T>` qui rend toutes les propriétés de `T` potentiellement `null`.
 
 <details>
 <summary>Solution</summary>
@@ -763,9 +763,9 @@ type DeepNullable<T> =
 ```
 </details>
 
-### Exercice 2 : Transformer les cles d'un objet en camelCase
+### Exercice 2 : Transformer les clés d'un objet en camelCase
 
-Creez un type qui transforme les cles snake_case d'un objet en camelCase.
+Creez un type qui transforme les clés snake_case d'un objet en camelCase.
 
 <details>
 <summary>Solution</summary>
@@ -815,9 +815,9 @@ type DeepCamelCase<T> =
 ```
 </details>
 
-### Exercice 3 : Creer un type `PickByType<T, V>`
+### Exercice 3 : Créer un type `PickByType<T, V>`
 
-Creez un type qui ne garde que les proprietes dont la valeur est du type `V`.
+Creez un type qui ne garde que les propriétés dont la valeur est du type `V`.
 
 <details>
 <summary>Solution</summary>
@@ -857,7 +857,7 @@ type SansStrings = OmitByType<Entite, string>;
 ```
 </details>
 
-### Exercice 4 : Generer des event names a partir d'un type
+### Exercice 4 : Générer des event names à partir d'un type
 
 A partir d'un type objet, generez un type union de tous les event names possibles au format `"propriete:change"`.
 
@@ -920,7 +920,7 @@ emetteur.sur("valeur:change", (payload) => {
 
 ### Exercice 5 : Split d'une chaine en tuple
 
-Creez un type `Split<S, Sep>` qui decoupe une chaine en un tuple de sous-chaines.
+Creez un type `Split<S, Sep>` qui découpé une chaine en un tuple de sous-chaines.
 
 <details>
 <summary>Solution</summary>
@@ -973,19 +973,19 @@ type Age = Get<Donnees, "utilisateur.profil.age">; // number
 
 ---
 
-## Resume
+## Résumé
 
 ### Mapped Types
 
 | Concept | Syntaxe | Effet |
 |---------|---------|-------|
-| Mapped type de base | `{ [K in keyof T]: ... }` | Itere sur les cles |
+| Mapped type de base | `{ [K in keyof T]: ... }` | Itere sur les clés |
 | Ajouter readonly | `{ readonly [K in keyof T]: ... }` | Proprietes en lecture seule |
 | Retirer readonly | `{ -readonly [K in keyof T]: ... }` | Proprietes modifiables |
 | Ajouter optionnel | `{ [K in keyof T]?: ... }` | Proprietes optionnelles |
 | Retirer optionnel | `{ [K in keyof T]-?: ... }` | Proprietes obligatoires |
-| Key remapping | `{ [K in keyof T as ...]: ... }` | Renommer les cles |
-| Filtrer des cles | `as ... ? K : never` | Exclure des proprietes |
+| Key remapping | `{ [K in keyof T as ...]: ... }` | Renommer les clés |
+| Filtrer des clés | `as ... ? K : never` | Exclure des propriétés |
 
 ### Template Literal Types
 
@@ -998,16 +998,27 @@ type Age = Get<Donnees, "utilisateur.profil.age">; // number
 | `Uncapitalize<T>` | Premiere minuscule | `"Hello"` -> `"hello"` |
 | `infer` dans template | Pattern matching | Extraire des parties |
 
-### Points cles
+### Points clés
 
 1. Les mapped types sont la base de `Partial`, `Required`, `Readonly`, `Pick`
 2. Le key remapping avec `as` permet des renommages et filtrages puissants
 3. Les template literal types generent automatiquement toutes les combinaisons d'unions
-4. Combiner mapped types + template literals = transformations tres expressives
-5. Les path types permettent un acces type-safe a des proprietes imbriquees
+4. Combiner mapped types + template literals = transformations très expressives
+5. Les path types permettent un acces type-safe a des propriétés imbriquees
 
 ---
 
 ## Pour aller plus loin
 
-Le prochain module, **[13 — Types recursifs & Type-Level Programming](./13-types-recursifs-type-programming.md)**, pousse ces concepts a l'extreme en explorant les types recursifs, l'arithmetique au niveau des types, et le parsing de chaines au niveau du systeme de types.
+Le prochain module, **[13 — Types récursifs & Type-Level Programming](./13-types-recursifs-type-programming.md)**, pousse ces concepts a l'extreme en explorant les types récursifs, l'arithmetique au niveau des types, et le parsing de chaines au niveau du système de types.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 12 mapped template](../screencasts/screencast-12-mapped-template.md)
+2. **Lab** : [lab-12-mapped-template](../labs/lab-12-mapped-template/README)
+3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
+4. **Quiz** : [quiz 12 mapped template](../quizzes/quiz-12-mapped-template.html)
+:::

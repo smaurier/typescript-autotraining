@@ -2,15 +2,15 @@
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 2/5
-> **Prerequis** : Modules 01 a 08 (types de base, fonctions, interfaces, unions, classes, generics, enums)
+> **Prérequis** : Modules 01 a 08 (types de base, fonctions, interfaces, unions, classes, generics, enums)
 > **Objectifs** :
 >
-> - Comprendre le systeme de modules ECMAScript (ESM) en TypeScript
-> - Maitriser les differentes formes d'import et d'export
-> - Gerer l'interoperabilite avec CommonJS (`esModuleInterop`)
+> - Comprendre le système de modules ECMAScript (ESM) en TypeScript
+> - Maîtriser les différentes formes d'import et d'export
+> - Gérer l'interoperabilite avec CommonJS (`esModuleInterop`)
 > - Organiser le code avec les re-exports et les barrel files
-> - Comprendre les namespaces (heritage) et pourquoi les eviter
-> - Configurer la resolution de modules (`node`, `node16`, `bundler`)
+> - Comprendre les namespaces (héritage) et pourquoi les éviter
+> - Configurer la résolution de modules (`node`, `node16`, `bundler`)
 > - Utiliser les alias de chemins dans `tsconfig.json`
 > - Travailler avec les declarations ambiantes (`declare module`)
 > - Typer les imports dynamiques et les side-effect imports
@@ -22,7 +22,7 @@
 
 Dans un projet TypeScript moderne, le code est organise en **modules**. Chaque fichier TypeScript peut etre un module qui exporte des types, des fonctions, des classes et des constantes, et qui importe ceux d'autres modules.
 
-La gestion des modules est l'un des aspects les plus concrets du developpement TypeScript au quotidien : elle determine comment vous structurez votre projet, comment vous partagez du code entre fichiers et comment TypeScript trouve les definitions de types.
+La gestion des modules est l'un des aspects les plus concrets du développement TypeScript au quotidien : elle déterminé comment vous structurez votre projet, comment vous partagez du code entre fichiers et comment TypeScript trouve les définitions de types.
 
 ### Analogie : les modules comme des briques LEGO
 
@@ -30,9 +30,9 @@ Imaginez chaque module comme une **brique LEGO** avec des tenons (exports) et de
 
 ---
 
-## ESM : le systeme de modules ECMAScript
+## ESM : le système de modules ECMAScript
 
-TypeScript utilise la syntaxe ESM (ECMAScript Modules) comme standard. C'est le systeme de modules officiel de JavaScript.
+TypeScript utilise la syntaxe ESM (ECMAScript Modules) comme standard. C'est le système de modules officiel de JavaScript.
 
 ### Exports nommes
 
@@ -186,7 +186,7 @@ console.log(formaterDate(new Date()));     // "samedi 8 mars 2026"
 
 ### Import de types uniquement (`import type`)
 
-Depuis TypeScript 3.8, on peut importer **uniquement des types**, ce qui garantit que l'import sera completement efface a la compilation (aucun code JavaScript genere).
+Depuis TypeScript 3.8, on peut importer **uniquement des types**, ce qui garantit que l'import sera complètement efface à la compilation (aucun code JavaScript généré).
 
 ```typescript
 // fichier: types/modeles.ts
@@ -247,7 +247,7 @@ const p: Point2D = { x: 1, y: 2 };
 
 Beaucoup de packages npm utilisent encore le format CommonJS (`module.exports` / `require`). TypeScript offre des options pour faciliter l'interoperabilite.
 
-### Le probleme
+### Le problème
 
 ```typescript
 // Un module CommonJS typique (JavaScript)
@@ -265,7 +265,7 @@ Beaucoup de packages npm utilisent encore le format CommonJS (`module.exports` /
 
 ### La solution : `esModuleInterop`
 
-L'option `esModuleInterop` dans `tsconfig.json` permet d'utiliser la syntaxe ESM standard meme avec des modules CommonJS.
+L'option `esModuleInterop` dans `tsconfig.json` permet d'utiliser la syntaxe ESM standard même avec des modules CommonJS.
 
 ```jsonc
 // tsconfig.json
@@ -292,7 +292,7 @@ const chemin = path.join(__dirname, "data");
 
 ### `allowSyntheticDefaultImports`
 
-Cette option permet la syntaxe `import X from "module"` meme quand le module n'a pas d'export par defaut. Elle ne modifie pas le code genere (contrairement a `esModuleInterop` qui ajoute un helper).
+Cette option permet la syntaxe `import X from "module"` même quand le module n'a pas d'export par defaut. Elle ne modifie pas le code généré (contrairement a `esModuleInterop` qui ajoute un helper).
 
 ```typescript
 // Avec allowSyntheticDefaultImports :
@@ -306,7 +306,7 @@ import * as React from "react";
 
 ## Re-exports
 
-Les re-exports permettent de re-exporter des elements d'un module a travers un autre module. C'est essentiel pour organiser les APIs publiques.
+Les re-exports permettent de re-exporter des éléments d'un module a travers un autre module. C'est essentiel pour organiser les APIs publiques.
 
 ### Syntaxes de re-export
 
@@ -378,7 +378,7 @@ const article = creerArticle("Mon article", "Contenu...");
 
 ## Barrel files (`index.ts`)
 
-Un **barrel file** est un fichier `index.ts` qui re-exporte les elements de tout un dossier. C'est un pattern d'organisation tres courant.
+Un **barrel file** est un fichier `index.ts` qui re-exporte les éléments de tout un dossier. C'est un pattern d'organisation très courant.
 
 ### Structure d'un projet avec barrels
 
@@ -508,13 +508,13 @@ const api = new ServiceAPI("https://api.example.com");
 | Facilite le refactoring interne             | Augmente le temps de compilation                |
 | Cache la structure interne du dossier       | Un module modifie = tout le barrel recharge     |
 
-> **Recommandation** : Utilisez les barrel files avec moderation. Ils sont excellents pour les bibliotheques et les dossiers avec une API publique claire. Evitez-les pour les dossiers tres larges ou les imports circulaires sont probables.
+> **Recommandation** : Utilisez les barrel files avec moderation. Ils sont excellents pour les bibliotheques et les dossiers avec une API publique claire. Evitez-les pour les dossiers très larges ou les imports circulaires sont probables.
 
 ---
 
-## Namespaces (heritage)
+## Namespaces (héritage)
 
-Les **namespaces** (anciennement "modules internes") sont une fonctionnalite historique de TypeScript qui date d'avant l'adoption generalisee des modules ES. Ils sont encore utilises dans certains contextes specifiques.
+Les **namespaces** (anciennement "modules internes") sont une fonctionnalite historique de TypeScript qui date d'avant l'adoption generalisee des modules ES. Ils sont encore utilises dans certains contextes spécifiques.
 
 ### Syntaxe des namespaces
 
@@ -591,13 +591,13 @@ const service = new App.Services.ServiceUtilisateurs();
 service.ajouter(user);
 ```
 
-### Pourquoi eviter les namespaces ?
+### Pourquoi éviter les namespaces ?
 
 | Raison                          | Explication                                              |
 |---------------------------------|----------------------------------------------------------|
 | Modules ES sont le standard     | L'ecosysteme JavaScript est base sur ESM                 |
-| Pas de tree-shaking             | Tout le namespace est inclus meme si on n'utilise qu'une partie |
-| Complexite inutile              | Les modules ES font la meme chose plus simplement         |
+| Pas de tree-shaking             | Tout le namespace est inclus même si on n'utilise qu'une partie |
+| Complexite inutile              | Les modules ES font la même chose plus simplement         |
 | Incompatible avec certains outils | ESBuild, Vite et autres bundlers modernes ne les supportent pas bien |
 
 > **Recommandation** : N'utilisez **pas** les namespaces dans du code nouveau. Preferez toujours les modules ES (`import`/`export`). Les namespaces restent utiles uniquement dans les fichiers de declarations (`.d.ts`) pour les bibliotheques globales.
@@ -606,15 +606,15 @@ service.ajouter(user);
 
 ## Resolution de modules
 
-La **resolution de modules** est le processus par lequel TypeScript determine quel fichier correspond a un chemin d'import. C'est un aspect crucial de la configuration.
+La **résolution de modules** est le processus par lequel TypeScript déterminé quel fichier correspond à un chemin d'import. C'est un aspect crucial de la configuration.
 
-### Les strategies de resolution
+### Les stratégies de résolution
 
-TypeScript propose plusieurs strategies configurables via `moduleResolution` dans `tsconfig.json`.
+TypeScript propose plusieurs stratégies configurables via `moduleResolution` dans `tsconfig.json`.
 
 #### `node` (historique)
 
-Imite la resolution de Node.js pour CommonJS :
+Imite la résolution de Node.js pour CommonJS :
 
 ```
 import { foo } from "./bar"
@@ -686,13 +686,13 @@ import styles from "./styles.module.css";
 import logo from "./logo.png";
 ```
 
-### Tableau comparatif des strategies
+### Tableau comparatif des stratégies
 
-| Strategie    | Extensions requises | `exports` pkg.json | Cas d'usage                    |
+| Stratégie    | Extensions requises | `exports` pkg.json | Cas d'usage                    |
 |--------------|--------------------|--------------------|--------------------------------|
 | `node`       | Non                | Non                | Projets anciens, CommonJS       |
 | `node16`     | Oui (`.js`)        | Oui                | Node.js avec ESM natif          |
-| `nodenext`   | Oui (`.js`)        | Oui                | Node.js derniere version        |
+| `nodenext`   | Oui (`.js`)        | Oui                | Node.js dernière version        |
 | `bundler`    | Non                | Oui                | Apps front-end, Vite, webpack   |
 
 ---
@@ -726,7 +726,7 @@ Les alias de chemins permettent de remplacer les chemins relatifs longs par des 
 }
 ```
 
-### Avant et apres les alias
+### Avant et après les alias
 
 ```typescript
 // AVANT — chemins relatifs difficiles a lire et a maintenir
@@ -782,13 +782,13 @@ module.exports = {
 };
 ```
 
-> **Astuce** : Le package `tsconfig-paths` permet a Node.js de comprendre les alias directement en developpement : `ts-node -r tsconfig-paths/register index.ts`.
+> **Astuce** : Le package `tsconfig-paths` permet a Node.js de comprendre les alias directement en développement : `ts-node -r tsconfig-paths/register index.ts`.
 
 ---
 
 ## Declarations ambiantes (`declare module`)
 
-Les declarations ambiantes permettent de decrire des types pour des modules qui n'ont pas de definitions TypeScript.
+Les declarations ambiantes permettent de decrire des types pour des modules qui n'ont pas de définitions TypeScript.
 
 ### Modules sans types
 
@@ -819,7 +819,7 @@ const options: Options = { format: "json", verbose: true };
 const client = new Client(options);
 ```
 
-### Modules generiques (wildcard)
+### Modules génériques (wildcard)
 
 ```typescript
 // fichier: declarations.d.ts
@@ -953,7 +953,7 @@ Pour aider les bundlers avec le tree-shaking, le champ `sideEffects` dans `packa
 
 ## Import dynamique (`import()`)
 
-L'import dynamique permet de charger des modules **a la demande**, au runtime. TypeScript type correctement le resultat.
+L'import dynamique permet de charger des modules **à la demandé**, au runtime. TypeScript type correctement le résultat.
 
 ### Syntaxe de base
 
@@ -1026,7 +1026,7 @@ async function charger<T>(chargeur: ChargeurModule<T>): Promise<T> {
 
 ## Augmentation de modules
 
-L'**augmentation de modules** permet d'ajouter des types a un module existant sans le modifier. C'est utile pour les plugins, les extensions et les patches de type.
+L'**augmentation de modules** permet d'ajouter des types à un module existant sans le modifier. C'est utile pour les plugins, les extensions et les patches de type.
 
 ### Augmenter un module externe
 
@@ -1163,7 +1163,7 @@ console.log(parVille);
 
 ## Pratique
 
-### Exercice 1 : Creer un barrel file pour une application
+### Exercice 1 : Créer un barrel file pour une application
 
 Organisez le code suivant en modules avec un barrel file propre.
 
@@ -1264,7 +1264,7 @@ export * from "./services";
 
 </details>
 
-### Exercice 2 : Configuration de resolution de modules
+### Exercice 2 : Configuration de résolution de modules
 
 Ecrivez un fichier `tsconfig.json` complet pour un projet Vite avec React, incluant les alias de chemins.
 
@@ -1494,7 +1494,7 @@ async function effectuerPaiement(): Promise<Paiement> {
 
 ### Exercice 4 : Augmentation de module pour un plugin
 
-Creez une augmentation de module pour ajouter une fonctionnalite de cache a un service API existant.
+Creez une augmentation de module pour ajouter une fonctionnalite de cache à un service API existant.
 
 <details>
 <summary>Solution</summary>
@@ -1615,29 +1615,40 @@ async function demo() {
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept                     | Description                                                        |
 |-----------------------------|--------------------------------------------------------------------|
 | `export` / `import`         | Syntaxe ESM standard pour partager du code entre fichiers          |
 | `export default`            | Export principal unique d'un module                                 |
-| `import type`               | Import de types uniquement, efface a la compilation                |
+| `import type`               | Import de types uniquement, efface à la compilation                |
 | `esModuleInterop`           | Permet d'importer des modules CJS avec la syntaxe ESM             |
-| Re-exports                  | Re-exporter des elements d'un module via un autre                  |
+| Re-exports                  | Re-exporter des éléments d'un module via un autre                  |
 | Barrel files                | Fichiers `index.ts` qui centralisent les exports d'un dossier     |
-| Namespaces                  | Heritage — eviter dans le code nouveau                             |
-| Resolution `bundler`        | Strategie recommandee pour les apps front-end                      |
-| Resolution `node16`         | Strategie pour Node.js avec ESM natif                              |
+| Namespaces                  | Héritage — éviter dans le code nouveau                             |
+| Resolution `bundler`        | Stratégie recommandee pour les apps front-end                      |
+| Resolution `node16`         | Stratégie pour Node.js avec ESM natif                              |
 | `paths`                     | Alias de chemins dans `tsconfig.json`                              |
 | `declare module`            | Declarations de types pour des modules sans types                  |
-| Side-effect imports         | `import "./module"` — execute le module sans importer de valeurs  |
-| `import()`                  | Import dynamique — charge un module a la demande                   |
-| Augmentation de modules     | Ajouter des types a un module existant                             |
+| Side-effect imports         | `import "./module"` — exécuté le module sans importer de valeurs  |
+| `import()`                  | Import dynamique — charge un module à la demandé                   |
+| Augmentation de modules     | Ajouter des types à un module existant                             |
 
 ---
 
 ## Pour aller plus loin
 
-Les modules que nous avons vus dans ce Module 09 forment les fondations de l'organisation du code TypeScript. Dans les modules suivants, nous aborderons les **types utilitaires avances** (`Partial`, `Required`, `Pick`, `Omit`, `Record`, etc.), les **types conditionnels** et les **template literal types** qui enrichissent encore la puissance du systeme de types.
+Les modules que nous avons vus dans ce Module 09 forment les fondations de l'organisation du code TypeScript. Dans les modules suivants, nous aborderons les **types utilitaires avances** (`Partial`, `Required`, `Pick`, `Omit`, `Record`, etc.), les **types conditionnels** et les **template literal types** qui enrichissent encore la puissance du système de types.
 
 [Continuer vers le Module 10 : Types utilitaires & Mapped Types →](./10-types-utilitaires-mapped.md)
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 09 modules](../screencasts/screencast-09-modules.md)
+2. **Lab** : [lab-09-modules](../labs/lab-09-modules/README)
+3. **Visualisation** : [Module Resolution](../visualizations/module-resolution.html)
+4. **Quiz** : [quiz 09 modules](../quizzes/quiz-09-modules.html)
+:::

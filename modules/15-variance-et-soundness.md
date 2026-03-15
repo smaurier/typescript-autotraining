@@ -4,26 +4,26 @@
 |-------------|------------------------------------------------------------------------|
 | **Duree**       | 4 heures                                                              |
 | **Difficulte**  | 5/5                                                                    |
-| **Prerequis**   | Modules 1-14, generics avances, types conditionnels, mapped types     |
-| **Objectifs**   | Comprendre la variance, identifier les trous de soundness, ecrire du code type-safe |
+| **Prérequis**   | Modules 1-14, generics avances, types conditionnels, mapped types     |
+| **Objectifs**   | Comprendre la variance, identifier les trous de soundness, écrire du code type-safe |
 
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la theorie du module precedent. Si apres 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
 ## Introduction
 
 Bienvenue dans l'un des modules les plus profonds de ce cours. Ici, nous allons
-plonger dans les **fondements theoriques** du systeme de types de TypeScript.
+plonger dans les **fondements théoriques** du système de types de TypeScript.
 Comprendre la variance, c'est comprendre *pourquoi* certaines assignations de types
-sont autorisees et d'autres non. C'est la cle pour ecrire du code veritablement
+sont autorisees et d'autres non. C'est la clé pour écrire du code veritablement
 type-safe.
 
-> **Analogie du zoo** : Imaginez un zoo ou chaque enclos a une etiquette.
+> **Analogie du zoo** : Imaginez un zoo ou chaque enclos à une etiquette.
 > L'enclos "Animal" peut-il accueillir un "Chat" ? Oui, car un Chat *est* un Animal.
 > Mais un enclos "Chat" peut-il accueillir n'importe quel Animal ? Non, car un Chien
 > n'est pas un Chat. La variance, c'est exactement cette logique appliquee aux types
-> generiques.
+> génériques.
 
 ---
 
@@ -93,7 +93,7 @@ afficherVehicule(maFerrari); // OK
 
 ### Definition
 
-Un type generique `F<T>` est **covariant** en `T` si :
+Un type générique `F<T>` est **covariant** en `T` si :
 - Quand `A extends B`, alors `F<A> extends F<B>`
 - La direction du sous-typage est **preservee**
 
@@ -158,14 +158,14 @@ const animauxReadonly: readonly Animal[] = chatsReadonly; // OK et SUR
 
 ### Definition
 
-Un type generique `F<T>` est **contravariant** en `T` si :
+Un type générique `F<T>` est **contravariant** en `T` si :
 - Quand `A extends B`, alors `F<B> extends F<A>`
 - La direction du sous-typage est **inversee**
 
 > **Analogie du veterinaire** : Un veterinaire qui soigne tous les Animaux peut
 > certainement soigner un Chat. Mais un specialiste des Chats ne peut pas
 > necessairement soigner un Chien. La contravariance s'applique aux **positions
-> d'entree** (ce qu'on consomme/accepte en parametre).
+> d'entree** (ce qu'on consomme/accepte en paramètre).
 
 ```typescript
 // Contravariance : les types en position d'ENTREE (parametres)
@@ -196,8 +196,8 @@ const brosseChat: ConsommateurChat = (c: Chat) => {
 
 ### strictFunctionTypes
 
-Le flag `strictFunctionTypes` (inclus dans `strict: true`) active la verification
-de contravariance pour les parametres de fonctions.
+Le flag `strictFunctionTypes` (inclus dans `strict: true`) active la vérification
+de contravariance pour les paramètres de fonctions.
 
 ```typescript
 // SANS strictFunctionTypes : bivariance (permissif, dangereux)
@@ -216,7 +216,7 @@ interface Chien extends Animal {
 // Puis : gererAnimal({ nom: "Minou", age: 3 }); // Runtime error ! pas de aboie()
 ```
 
-### Exception : les methodes
+### Exception : les méthodes
 
 ```typescript
 // ATTENTION : les methodes d'interface restent BIVARIANTES meme avec strict
@@ -238,11 +238,11 @@ interface MonTableau<T> {
 
 ### Definition
 
-Un type generique `F<T>` est **invariant** en `T` si :
+Un type générique `F<T>` est **invariant** en `T` si :
 - `F<A>` n'est assignable a `F<B>` QUE si `A` est identique a `B`
 - Ni covariance, ni contravariance
 
-> **Analogie de la cle USB** : Un port USB-C n'accepte que des cables USB-C.
+> **Analogie de la clé USB** : Un port USB-C n'accepte que des cables USB-C.
 > Pas de USB-A, pas de micro-USB. C'est une relation stricte dans les deux sens.
 
 ```typescript
@@ -288,9 +288,9 @@ type StrictConteneur<in out T> = {
 
 ## Annotations de variance explicites (TypeScript 4.7+)
 
-### Les mots-cles `in` et `out`
+### Les mots-clés `in` et `out`
 
-Depuis TypeScript 4.7, on peut annoter explicitement la variance des parametres
+Depuis TypeScript 4.7, on peut annoter explicitement la variance des paramètres
 de type :
 
 ```typescript
@@ -346,7 +346,7 @@ type GestionnaireEvenement<in T> = {
 
 ## Variance dans les generics
 
-### Types generiques et variance
+### Types génériques et variance
 
 ```typescript
 // Promise<T> est covariant en T (T est en position de sortie via then/await)
@@ -375,7 +375,7 @@ const readonlyMapChats: ReadonlyMap<string, Chat> = mapChats;
 const readonlyMapAnimaux: ReadonlyMap<string, Animal> = readonlyMapChats; // OK
 ```
 
-### Fonctions generiques et variance
+### Fonctions génériques et variance
 
 ```typescript
 // La variance affecte les fonctions d'ordre superieur
@@ -594,9 +594,9 @@ function assertEstChaine(val: unknown): asserts val is string {
 
 ---
 
-## Excess Property Checking (Verification des proprietes excedentaires)
+## Excess Property Checking (Vérification des propriétés excedentaires)
 
-### Le mecanisme interne
+### Le mécanisme interne
 
 ```typescript
 // TypeScript a une verification SPECIALE pour les objets litteraux
@@ -653,7 +653,7 @@ type SansVerifExcedentaire<T> = T & Record<string, unknown>;
 
 ## Structural vs Nominal Typing
 
-### Le probleme du typage structurel
+### Le problème du typage structurel
 
 ```typescript
 // En TypeScript, les types sont structurels
@@ -757,9 +757,9 @@ const alice: Utilisateur = {
 
 ## Les trous de soundness en TypeScript
 
-TypeScript n'est **pas** un systeme de types *sound*. Cela signifie qu'il existe
+TypeScript n'est **pas** un système de types *sound*. Cela signifie qu'il existe
 des situations ou le compilateur dit "OK" alors que le code peut planter au
-runtime. C'est un choix delibere pour equilibrer securite et productivite.
+runtime. C'est un choix delibere pour equilibrer sécurité et productivite.
 
 ### Trou 1 : Covariance des tableaux mutables
 
@@ -809,7 +809,7 @@ const tableau: number[] = dangereux(); // Pas d'erreur
 tableau.map((n) => n * 2); // Crash : "pas un tableau".map is not a function
 ```
 
-### Trou 5 : Bivariance des methodes
+### Trou 5 : Bivariance des méthodes
 
 ```typescript
 // Comme vu precedemment, les methodes restent bivariantes
@@ -914,7 +914,7 @@ const o2: Options = {};                     // OK
 
 ### Exercice 1 : Identifier la variance
 
-Determinez si chaque type generique est covariant, contravariant ou invariant en `T` :
+Determinez si chaque type générique est covariant, contravariant ou invariant en `T` :
 
 ```typescript
 // Quel est la variance de T dans chacun de ces types ?
@@ -959,9 +959,9 @@ type G<T> = (cb: (item: T) => void) => void;
 
 </details>
 
-### Exercice 2 : Creer des branded types
+### Exercice 2 : Créer des branded types
 
-Creez un systeme de types branded pour gerer des temperatures en Celsius et Fahrenheit
+Creez un système de types branded pour gérer des temperatures en Celsius et Fahrenheit
 sans risque de confusion :
 
 ```typescript
@@ -1148,17 +1148,17 @@ type Depot<in out T> = {
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept                  | Description                                                  |
 |--------------------------|--------------------------------------------------------------|
-| **Covariance** (`out`)   | Meme direction : `A <: B => F<A> <: F<B>` (sortie)         |
+| **Covariance** (`out`)   | Même direction : `A <: B => F<A> <: F<B>` (sortie)         |
 | **Contravariance** (`in`)| Direction inversee : `A <: B => F<B> <: F<A>` (entree)     |
 | **Invariance** (`in out`)| Aucune relation : `F<A>` et `F<B>` incompatibles           |
-| **Bivariance**           | Les deux directions (methodes d'interface, historique)        |
+| **Bivariance**           | Les deux directions (méthodes d'interface, historique)        |
 | **Widening**             | Elargissement automatique des types literaux                 |
 | **Narrowing**            | Affinement des types via le flux de controle                 |
-| **Excess check**         | Verification speciale sur les objets litteraux               |
+| **Excess check**         | Vérification speciale sur les objets litteraux               |
 | **Branded types**        | Simulent le typage nominal via une marque invisible          |
 | **Soundness holes**      | Compromis deliberes de TypeScript (any, covariance, etc.)    |
 
@@ -1167,9 +1167,21 @@ type Depot<in out T> = {
 ## Pour aller plus loin
 
 Dans le prochain module, **Module 16 — Declaration Files & Module Augmentation**,
-nous verrons comment creer et manipuler les fichiers `.d.ts` pour typer des
+nous verrons comment créer et manipuler les fichiers `.d.ts` pour typer des
 bibliotheques JavaScript existantes et etendre les types de modules tiers.
 
-La maitrise de la variance vous sera indispensable pour comprendre pourquoi
+La maîtrise de la variance vous sera indispensable pour comprendre pourquoi
 certaines declarations de types fonctionnent et d'autres non, notamment quand vous
 travaillerez avec `declare module` et le merging de declarations.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 15 variance](../screencasts/screencast-15-variance.md)
+2. **Lab** : [lab-15-variance](../labs/lab-15-variance/README)
+3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
+4. **Visualisation** : [Type Narrowing](../visualizations/type-narrowing.html)
+5. **Quiz** : [quiz 15 variance](../quizzes/quiz-15-variance.html)
+:::

@@ -4,21 +4,21 @@
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/03-objets-interfaces.md`
 - **Lab associe** : Lab 03
-- **Prerequis** : Screencast 02 (fonctions)
+- **Prérequis** : Screencast 02 (fonctions)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/03-objets.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/03-objets.ts` pret a etre créé
 - [ ] Parametres strict actifs dans `tsconfig.json`
 
 ## Script
 
 ### [00:00-03:30] Types objets et interfaces de base
 
-> Dans ce screencast, nous allons explorer la facon dont TypeScript gere les objets. Nous verrons la difference entre `interface` et `type`, le typage structurel, l'extension et le declaration merging.
+> Dans ce screencast, nous allons explorer la façon dont TypeScript géré les objets. Nous verrons la différence entre `interface` et `type`, le typage structurel, l'extension et le declaration merging.
 
-**Action** : Creer le fichier `src/03-objets.ts`.
+**Action** : Créer le fichier `src/03-objets.ts`.
 
 ```typescript
 // Type objet inline
@@ -59,11 +59,11 @@ const laptop: Product = {
 
 **Action** : Montrer l'erreur sur la tentative de modification de `readonly id`.
 
-> Les interfaces et les type alias permettent tous deux de definir des formes d'objets. La propriete optionnelle `?` indique qu'elle peut etre absente, et `readonly` empeche la modification apres creation.
+> Les interfaces et les type alias permettent tous deux de définir des formes d'objets. La propriété optionnelle `?` indique qu'elle peut etre absente, et `readonly` empeche la modification après création.
 
-### [03:30-07:30] Interface vs type : differences cles
+### [03:30-07:30] Interface vs type : différences clés
 
-> Alors, quand utiliser `interface` et quand utiliser `type` ? Voyons les differences concretes.
+> Alors, quand utiliser `interface` et quand utiliser `type` ? Voyons les différences concretes.
 
 **Action** : Ajouter le code suivant.
 
@@ -113,7 +113,7 @@ type Callback = () => void;               // fonction
 // et sont plus performantes pour la verification de types
 ```
 
-**Action** : Montrer le declaration merging en survolant `Config` pour voir les deux proprietes fusionnees.
+**Action** : Montrer le declaration merging en survolant `Config` pour voir les deux propriétés fusionnees.
 
 > Regle pratique : utilisez `interface` pour les formes d'objets et l'API publique. Utilisez `type` pour les unions, les tuples, et les types composes. Le declaration merging est une fonctionnalite unique aux interfaces, utile pour augmenter des types existants.
 
@@ -161,13 +161,13 @@ printPoint({ x: 5, y: 10 }); // OK
 // printPoint({ x: 5, y: 10, z: 15 }); // Erreur sur un litteral !
 ```
 
-**Action** : Decommenter `badPoint` pour montrer l'erreur d'exces de proprietes, puis montrer que ca passe via une variable.
+**Action** : Decommenter `badPoint` pour montrer l'erreur d'exces de propriétés, puis montrer que ça passe via une variable.
 
-> Le typage structurel est fondamentalement different du typage nominal (comme en Java ou C#). Deux types avec la meme forme sont compatibles, meme s'ils ont des noms differents. L'exces de proprietes n'est verifie que sur les litteraux d'objets directs.
+> Le typage structurel est fondamentalement différent du typage nominal (comme en Java ou C#). Deux types avec la même forme sont compatibles, même s'ils ont des noms différents. L'exces de propriétés n'est vérifié que sur les litteraux d'objets directs.
 
 ### [11:30-15:00] Index signatures et types utilitaires de base
 
-> Parfois on ne connait pas toutes les cles a l'avance. Les index signatures resolvent ce probleme.
+> Parfois on ne connait pas toutes les clés a l'avance. Les index signatures resolvent ce problème.
 
 **Action** : Ajouter le code suivant.
 
@@ -222,9 +222,9 @@ const acme: Company = {
 };
 ```
 
-**Action** : Montrer l'autocompletion sur `acme.address.` pour afficher les proprietes imbriquees.
+**Action** : Montrer l'autocompletion sur `acme.address.` pour afficher les propriétés imbriquees.
 
-### [15:00-17:30] Extension avancee et recapitulatif
+### [15:00-17:30] Extension avancee et récapitulatif
 
 > Terminons avec quelques patterns d'extension avances.
 
@@ -256,11 +256,11 @@ interface Repository<T> {
 }
 ```
 
-> En resume : les interfaces definissent des contrats pour les objets, le typage structurel compare les formes et non les noms, et `interface` est prefere pour les API publiques tandis que `type` excelle pour les compositions complexes. Dans le prochain screencast, nous verrons comment le narrowing permet de travailler en securite avec les types union.
+> En résumé : les interfaces definissent des contrats pour les objets, le typage structurel compare les formes et non les noms, et `interface` est préféré pour les API publiques tandis que `type` excelle pour les compositions complexes. Dans le prochain screencast, nous verrons comment le narrowing permet de travailler en sécurité avec les types union.
 
 ## Points d'attention pour l'enregistrement
-- Insister sur le typage structurel — c'est souvent une surprise pour les developpeurs venant de Java/C#
+- Insister sur le typage structurel — c'est souvent une surprise pour les développeurs venant de Java/C#
 - Bien montrer le declaration merging visuellement dans VS Code
-- L'exces de proprietes sur les litteraux est un piege frequent : prendre le temps de l'expliquer
-- Montrer l'autocompletion VS Code pour illustrer l'interet du typage
-- Executer au moins un exemple complet avec `npx tsx` pour ancrer la theorie
+- L'exces de propriétés sur les litteraux est un piege frequent : prendre le temps de l'expliquer
+- Montrer l'autocompletion VS Code pour illustrer l'intérêt du typage
+- Exécuter au moins un exemple complet avec `npx tsx` pour ancrer la théorie

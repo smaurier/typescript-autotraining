@@ -3,16 +3,16 @@
 ## Objectifs
 
 - Comprendre la syntaxe Stage 3 des decorateurs
-- Implementer un decorateur `@Log` pour tracer les appels de methodes
-- Creer un decorateur `@Validate` pour valider les parametres
-- Simuler un mini-framework d'injection de dependances avec decorateurs
+- Implementer un decorateur `@Log` pour tracer les appels de méthodes
+- Créer un decorateur `@Validate` pour valider les paramètres
+- Simuler un mini-framework d'injection de dépendances avec decorateurs
 
 ## Exercices
 
-1. **@Log** -- Decorateur qui journalise les appels et retours de methodes
+1. **@Log** -- Decorateur qui journalise les appels et retours de méthodes
 2. **@Validate** -- Decorateur qui valide les arguments selon des regles
-3. **@Memoize** -- Decorateur qui met en cache les resultats
-4. **Mini conteneur DI** -- Conteneur d'injection de dependances simple avec decorateurs
+3. **@Memoize** -- Decorateur qui met en cache les résultats
+4. **Mini conteneur DI** -- Conteneur d'injection de dépendances simple avec decorateurs
 
 ## Lancer les tests
 

@@ -4,13 +4,13 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/10-utility-types.md`
 - **Lab associe** : Lab 10
-- **Prerequis** : Screencast 06 (generics de base)
+- **Prérequis** : Screencast 06 (generics de base)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/10-utility-types.ts` pret a etre cree
-- [ ] Documentation TypeScript ouverte en reference (optionnel)
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/10-utility-types.ts` pret a etre créé
+- [ ] Documentation TypeScript ouverte en référence (optionnel)
 
 ## Script
 
@@ -18,7 +18,7 @@
 
 > TypeScript fournit un ensemble de types utilitaires integres qui transforment des types existants. Dans ce screencast, nous allons les utiliser puis les reimplementer de zero pour comprendre comment ils fonctionnent.
 
-**Action** : Creer le fichier `src/10-utility-types.ts`.
+**Action** : Créer le fichier `src/10-utility-types.ts`.
 
 ```typescript
 // Interface de base pour nos exemples
@@ -71,9 +71,9 @@ type MyReadonly<T> = {
 };
 ```
 
-**Action** : Survoler `PartialUser` et `FullConfig` pour montrer les types resolus. Puis montrer que les reimplementations produisent le meme type.
+**Action** : Survoler `PartialUser` et `FullConfig` pour montrer les types resolus. Puis montrer que les reimplementations produisent le même type.
 
-> La syntaxe `[K in keyof T]` est un mapped type — elle itere sur chaque cle de T. Le `?` ajoute l'optionalite, `-?` la retire, et `readonly` ajoute l'immutabilite. C'est la base de tous les utility types.
+> La syntaxe `[K in keyof T]` est un mapped type — elle itere sur chaque clé de T. Le `?` ajoute l'optionalite, `-?` la retire, et `readonly` ajoute l'immutabilite. C'est la base de tous les utility types.
 
 ### [04:00-08:30] Pick, Omit et Record
 
@@ -127,9 +127,9 @@ type MyRecord<K extends PropertyKey, V> = {
 };
 ```
 
-**Action** : Survoler `UserPreview` et `UserWithoutRole` pour verifier les types. Montrer que `MyPick` et `Pick` sont equivalents.
+**Action** : Survoler `UserPreview` et `UserWithoutRole` pour vérifier les types. Montrer que `MyPick` et `Pick` sont équivalents.
 
-> `Pick` selectionne, `Omit` exclut, `Record` cree. La reimplementation de `Omit` est interessante : elle utilise `as` pour filtrer les cles — c'est un key remapping, un concept que nous approfondirons plus tard.
+> `Pick` selectionne, `Omit` exclut, `Record` créé. La reimplementation de `Omit` est interessante : elle utilise `as` pour filtrer les clés — c'est un key remapping, un concept que nous approfondirons plus tard.
 
 ### [08:30-13:00] Extract, Exclude, NonNullable et ReturnType
 
@@ -184,13 +184,13 @@ type MyParameters<T extends (...args: any[]) => any> =
   T extends (...args: infer P) => any ? P : never;
 ```
 
-**Action** : Survoler chaque type pour montrer le resultat. Puis montrer que les reimplementations fonctionnent identiquement.
+**Action** : Survoler chaque type pour montrer le résultat. Puis montrer que les reimplementations fonctionnent identiquement.
 
-> Le mot-cle `infer` est magique : il permet a TypeScript de "deviner" un type dans un conditional type. `ReturnType` dit : "si T est une fonction qui retourne quelque chose, ce quelque chose est R". Nous approfondirons `infer` dans le screencast sur les conditional types.
+> Le mot-clé `infer` est magique : il permet a TypeScript de "deviner" un type dans un conditional type. `ReturnType` dit : "si T est une fonction qui retourne quelque chose, ce quelque chose est R". Nous approfondirons `infer` dans le screencast sur les conditional types.
 
 ### [13:00-17:00] Awaited, ThisType et types avances
 
-> Voyons quelques utility types moins connus mais tres utiles.
+> Voyons quelques utility types moins connus mais très utiles.
 
 **Action** : Ajouter le code suivant.
 
@@ -231,9 +231,9 @@ draft.name = "Bob"; // OK — readonly a ete enleve
 
 **Action** : Survoler chaque type `A`, `B`, `C` pour montrer le deballage des Promises.
 
-### [17:00-19:30] Recapitulatif et tableau de reference
+### [17:00-19:30] Récapitulatif et tableau de référence
 
-> Faisons un resume visuel de tous les utility types.
+> Faisons un résumé visuel de tous les utility types.
 
 ```typescript
 // Tableau de reference des utility types
@@ -267,11 +267,11 @@ draft.name = "Bob"; // OK — readonly a ete enleve
 //   Uncapitalize<S>     — premiere lettre minuscule
 ```
 
-> En resume : les utility types de TypeScript sont construits avec trois mecanismes — les mapped types, les conditional types et `infer`. En les reimplementant, vous comprenez le systeme de types en profondeur. C'est la base pour creer vos propres utility types adaptes a vos besoins.
+> En résumé : les utility types de TypeScript sont construits avec trois mécanismes — les mapped types, les conditional types et `infer`. En les reimplementant, vous comprenez le système de types en profondeur. C'est la base pour créer vos propres utility types adaptes a vos besoins.
 
 ## Points d'attention pour l'enregistrement
 - Toujours montrer le type "officiel" puis la reimplementation cote a cote
-- Survoler les types resolus dans VS Code pour verifier visuellement
+- Survoler les types resolus dans VS Code pour vérifier visuellement
 - L'explication de `infer` est un apercu — dire qu'on ira plus loin au screencast 11
-- Le tableau final peut etre affiche en split screen comme aide-memoire
+- Le tableau final peut etre affiche en split screen comme aide-mémoire
 - Prendre le temps sur `Omit` avec key remapping — c'est la reimplementation la plus complexe

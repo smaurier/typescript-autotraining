@@ -1,33 +1,33 @@
-# 05 — Classes — Heritage, Abstractions & Visibilite
+# 05 — Classes — Héritage, Abstractions & Visibilite
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 2/5
-> **Prerequis** : Modules 01 a 04 (types de base, fonctions, interfaces, unions)
+> **Prérequis** : Modules 01 a 04 (types de base, fonctions, interfaces, unions)
 > **Objectifs** :
 >
-> - Maitriser la syntaxe des classes TypeScript
+> - Maîtriser la syntaxe des classes TypeScript
 > - Comprendre les modificateurs de visibilite (`public`, `private`, `protected`, `readonly`)
 > - Utiliser les *parameter properties* pour simplifier le code
-> - Implementer l'heritage avec `extends` et les interfaces avec `implements`
-> - Creer des classes abstraites pour definir des contrats
-> - Exploiter les membres statiques, les getters/setters et le mot-cle `override`
+> - Implementer l'héritage avec `extends` et les interfaces avec `implements`
+> - Créer des classes abstraites pour définir des contrats
+> - Exploiter les membres statiques, les getters/setters et le mot-clé `override`
 > - Decouvrir les *class expressions*, les *mixins* et la fusion de declarations
 
 ---
 
 ## Introduction
 
-Les classes sont l'un des piliers de la programmation orientee objet (POO) en TypeScript. Contrairement a JavaScript pur, TypeScript ajoute un systeme de typage statique complet aux classes : modificateurs de visibilite, classes abstraites, implementation d'interfaces et bien plus encore.
+Les classes sont l'un des piliers de la programmation orientee objet (POO) en TypeScript. Contrairement a JavaScript pur, TypeScript ajoute un système de typage statique complet aux classes : modificateurs de visibilite, classes abstraites, implementation d'interfaces et bien plus encore.
 
 ### Analogie : la classe comme un plan d'architecte
 
-Imaginez qu'une **classe** est un **plan d'architecte** pour une maison. Le plan definit :
+Imaginez qu'une **classe** est un **plan d'architecte** pour une maison. Le plan définit :
 
-- Les **pieces** (les proprietes)
-- Les **fonctions** de chaque piece (les methodes)
+- Les **pieces** (les propriétés)
+- Les **fonctions** de chaque piece (les méthodes)
 - Les **acces** — certaines pieces sont publiques (le salon), d'autres privees (la chambre)
 
-A partir d'un seul plan, on peut construire **plusieurs maisons** (les instances). Chaque maison suit le meme plan, mais possede ses propres meubles (valeurs).
+A partir d'un seul plan, on peut construire **plusieurs maisons** (les instances). Chaque maison suit le même plan, mais possede ses propres meubles (valeurs).
 
 ---
 
@@ -63,7 +63,7 @@ console.log(maVoiture.description()); // "Renault Clio (2023)"
 
 ### Le constructeur
 
-Le constructeur est une methode speciale appelee automatiquement lorsque l'on cree une nouvelle instance avec `new`. Il sert a initialiser les proprietes de l'objet.
+Le constructeur est une méthode speciale appelee automatiquement lorsque l'on créé une nouvelle instance avec `new`. Il sert a initialiser les propriétés de l'objet.
 
 ```typescript
 class Utilisateur {
@@ -83,17 +83,17 @@ const user = new Utilisateur("Alice", "alice@example.com");
 console.log(user.dateInscription); // Date actuelle
 ```
 
-> **Remarque** : En TypeScript, toutes les proprietes declarees dans la classe doivent etre initialisees soit dans leur declaration, soit dans le constructeur (sauf si elles sont optionnelles avec `?`).
+> **Remarque** : En TypeScript, toutes les propriétés declarees dans la classe doivent etre initialisees soit dans leur declaration, soit dans le constructeur (sauf si elles sont optionnelles avec `?`).
 
 ---
 
 ## Modificateurs de visibilite
 
-TypeScript propose trois modificateurs de visibilite pour controler l'acces aux proprietes et methodes d'une classe.
+TypeScript propose trois modificateurs de visibilite pour controler l'acces aux propriétés et méthodes d'une classe.
 
 ### `public` (par defaut)
 
-Par defaut, toutes les proprietes et methodes sont publiques. Elles sont accessibles depuis n'importe ou.
+Par defaut, toutes les propriétés et méthodes sont publiques. Elles sont accessibles depuis n'importe ou.
 
 ```typescript
 class Animal {
@@ -115,7 +115,7 @@ console.log(chat.parler()); // OK
 
 ### `private`
 
-Les membres `private` ne sont accessibles que depuis l'interieur de la classe elle-meme. Meme les classes enfants ne peuvent pas y acceder.
+Les membres `private` ne sont accessibles que depuis l'interieur de la classe elle-même. Même les classes enfants ne peuvent pas y acceder.
 
 ```typescript
 class CompteBancaire {
@@ -155,11 +155,11 @@ console.log(compte.consulterSolde()); // 1500
 
 ### Analogie : `private` comme un coffre-fort
 
-Pensez a `private` comme un **coffre-fort** dans une maison. Le proprietaire (la classe) peut y acceder, mais les visiteurs (le code exterieur) et meme les enfants (les sous-classes) ne possedent pas la combinaison.
+Pensez a `private` comme un **coffre-fort** dans une maison. Le proprietaire (la classe) peut y acceder, mais les visiteurs (le code exterieur) et même les enfants (les sous-classes) ne possedent pas la combinaison.
 
 ### `protected`
 
-Les membres `protected` sont accessibles depuis la classe elle-meme **et** depuis les classes qui en heritent, mais pas depuis l'exterieur.
+Les membres `protected` sont accessibles depuis la classe elle-même **et** depuis les classes qui en heritent, mais pas depuis l'exterieur.
 
 ```typescript
 class Employe {
@@ -200,7 +200,7 @@ console.log(mgr.afficherDetails());
 
 ### `readonly`
 
-Le modificateur `readonly` empeche la modification d'une propriete apres son initialisation (dans le constructeur ou lors de la declaration).
+Le modificateur `readonly` empeche la modification d'une propriété après son initialisation (dans le constructeur ou lors de la declaration).
 
 ```typescript
 class Configuration {
@@ -243,20 +243,20 @@ class Produit {
 }
 ```
 
-### Tableau recapitulatif
+### Tableau récapitulatif
 
 | Modificateur  | Classe | Sous-classe | Exterieur |
 |---------------|--------|-------------|-----------|
 | `public`      | Oui    | Oui         | Oui       |
 | `protected`   | Oui    | Oui         | Non       |
 | `private`     | Oui    | Non         | Non       |
-| `readonly`    | Lecture seule apres initialisation          |
+| `readonly`    | Lecture seule après initialisation          |
 
 ---
 
 ## Parameter Properties
 
-TypeScript offre un raccourci tres pratique : les **parameter properties**. En ajoutant un modificateur de visibilite directement dans les parametres du constructeur, TypeScript declare et initialise automatiquement la propriete.
+TypeScript offre un raccourci très pratique : les **parameter properties**. En ajoutant un modificateur de visibilite directement dans les paramètres du constructeur, TypeScript declare et initialise automatiquement la propriété.
 
 ### Avant (syntaxe classique)
 
@@ -274,7 +274,7 @@ class Personne {
 }
 ```
 
-### Apres (parameter properties)
+### Après (parameter properties)
 
 ```typescript
 class Personne {
@@ -300,15 +300,15 @@ console.log(alice.email); // "alice@mail.com"
 
 ### Analogie : le raccourci postal
 
-Les parameter properties sont comme une **adresse simplifiee** sur une enveloppe. Au lieu d'ecrire l'adresse complete (declaration + affectation), vous ecrivez tout en une seule ligne et le facteur (TypeScript) comprend automatiquement.
+Les parameter properties sont comme une **adresse simplifiee** sur une enveloppe. Au lieu d'écrire l'adresse complete (declaration + affectation), vous ecrivez tout en une seule ligne et le facteur (TypeScript) comprend automatiquement.
 
 ---
 
-## Heritage avec `extends`
+## Héritage avec `extends`
 
-L'heritage permet a une classe enfant de recuperer les proprietes et methodes d'une classe parent, puis de les specialiser.
+L'héritage permet à une classe enfant de récupérer les propriétés et méthodes d'une classe parent, puis de les specialiser.
 
-### Heritage simple
+### Héritage simple
 
 ```typescript
 class Forme {
@@ -379,12 +379,12 @@ cercle.deplacer(3, 4);         // Methode heritee de Forme
 console.log(cercle.decrire()); // "Cercle rouge de rayon 5 en (3, 4)"
 ```
 
-### Le mot-cle `super`
+### Le mot-clé `super`
 
 `super` sert a deux choses :
 
-1. **`super()`** dans le constructeur : appelle le constructeur du parent. C'est **obligatoire** si la classe enfant a un constructeur.
-2. **`super.methode()`** dans une methode : appelle la version de la methode definie dans le parent.
+1. **`super()`** dans le constructeur : appelle le constructeur du parent. C'est **obligatoire** si la classe enfant à un constructeur.
+2. **`super.methode()`** dans une méthode : appelle la version de la méthode definie dans le parent.
 
 ```typescript
 class Journal {
@@ -421,9 +421,9 @@ log.avertissement("Memoire bientot saturee");
 log.afficher();
 ```
 
-### Le mot-cle `override`
+### Le mot-clé `override`
 
-Depuis TypeScript 4.3, le mot-cle `override` permet de signaler explicitement qu'une methode redefinit une methode du parent. Cela aide a detecter les erreurs.
+Depuis TypeScript 4.3, le mot-clé `override` permet de signaler explicitement qu'une méthode redefinit une méthode du parent. Cela aide a détecter les erreurs.
 
 ```typescript
 // Activer dans tsconfig.json : "noImplicitOverride": true
@@ -447,13 +447,13 @@ class Chien extends Animal {
 }
 ```
 
-> **Bonne pratique** : activez `"noImplicitOverride": true` dans votre `tsconfig.json`. Cela vous oblige a utiliser `override` a chaque redefinition, ce qui rend le code plus explicite et detecte les erreurs de frappe.
+> **Bonne pratique** : activez `"noImplicitOverride": true` dans votre `tsconfig.json`. Cela vous oblige à utiliser `override` à chaque redefinition, ce qui rend le code plus explicite et détecté les erreurs de frappe.
 
 ---
 
 ## Implementation d'interfaces avec `implements`
 
-Une classe peut **implementer** une ou plusieurs interfaces. Cela signifie qu'elle s'engage a fournir toutes les proprietes et methodes definies par l'interface.
+Une classe peut **implementer** une ou plusieurs interfaces. Cela signifie qu'elle s'engage a fournir toutes les propriétés et méthodes definies par l'interface.
 
 ```typescript
 // Definition des interfaces
@@ -499,7 +499,7 @@ console.log(article.serialiser());
 
 ### Analogie : `implements` comme un contrat de travail
 
-`implements` est comme un **contrat de travail** : l'interface definit les taches a accomplir, et la classe s'engage a les realiser. Si elle ne remplit pas toutes ses obligations, TypeScript signale une erreur.
+`implements` est comme un **contrat de travail** : l'interface définit les taches a accomplir, et la classe s'engage a les realiser. Si elle ne remplit pas toutes ses obligations, TypeScript signale une erreur.
 
 ### Combiner `extends` et `implements`
 
@@ -536,7 +536,7 @@ class ServiceUtilisateurs extends ServiceBase implements Loggable {
 
 ## Classes abstraites
 
-Une classe abstraite est une classe qui **ne peut pas etre instanciee directement**. Elle sert de modele pour d'autres classes. Elle peut contenir des methodes abstraites (sans implementation) et des methodes concretes (avec implementation).
+Une classe abstraite est une classe qui **ne peut pas etre instanciee directement**. Elle sert de modèle pour d'autres classes. Elle peut contenir des méthodes abstraites (sans implementation) et des méthodes concretes (avec implementation).
 
 ```typescript
 abstract class FormeGeometrique {
@@ -632,13 +632,13 @@ console.log(formes[0].estPlusGrandQue(formes[1])); // true (cercle r=5 vs rectan
 
 ### Analogie : la classe abstraite comme un formulaire a trous
 
-Une classe abstraite est comme un **formulaire pre-rempli avec des champs vides**. Le formulaire fournit la structure commune (les methodes concretes), mais certains champs (les methodes abstraites) doivent etre remplis par chaque utilisateur (les sous-classes).
+Une classe abstraite est comme un **formulaire pre-rempli avec des champs vides**. Le formulaire fournit la structure commune (les méthodes concretes), mais certains champs (les méthodes abstraites) doivent etre remplis par chaque utilisateur (les sous-classes).
 
 ---
 
 ## Membres statiques
 
-Les membres `static` appartiennent a la **classe elle-meme**, pas aux instances. On y accede avec le nom de la classe, pas avec `this`.
+Les membres `static` appartiennent à la **classe elle-même**, pas aux instances. On y accede avec le nom de la classe, pas avec `this`.
 
 ```typescript
 class Compteur {
@@ -674,7 +674,7 @@ console.log(b.id); // 2
 console.log(c.id); // 3
 ```
 
-### Exemple concret : classe utilitaire avec methodes statiques
+### Exemple concret : classe utilitaire avec méthodes statiques
 
 ```typescript
 class MathUtils {
@@ -710,7 +710,7 @@ console.log(MathUtils.lerp(0, 100, 0.5)); // 50
 
 ## Getters et Setters
 
-Les **accesseurs** (`get` et `set`) permettent de definir des proprietes calculees ou d'ajouter de la logique lors de la lecture/ecriture d'une propriete.
+Les **accesseurs** (`get` et `set`) permettent de définir des propriétés calculees ou d'ajouter de la logique lors de la lecture/écriture d'une propriété.
 
 ```typescript
 class Temperature {
@@ -804,7 +804,7 @@ console.log(p.age);        // (depend de la date actuelle)
 
 ## Le type `this`
 
-Dans une classe, le type `this` fait reference au type de l'instance actuelle. C'est particulierement utile pour le **chainage de methodes** (fluent API) et l'heritage.
+Dans une classe, le type `this` fait référence au type de l'instance actuelle. C'est particulierement utile pour le **chainage de méthodes** (fluent API) et l'héritage.
 
 ```typescript
 class RequeteBuilder {
@@ -891,7 +891,7 @@ const obj = new Fabrique(42);
 // const obj2 = new MonObjet(42); // ERREUR : MonObjet n'est pas defini dans ce scope
 ```
 
-### Utilisation avec des fonctions generiques
+### Utilisation avec des fonctions génériques
 
 ```typescript
 // Une fonction qui retourne une classe
@@ -916,7 +916,7 @@ svc.log("Operation terminee"); // "[ServiceBase] Operation terminee"
 
 ## Le pattern Mixin
 
-Les mixins permettent de composer des comportements a partir de plusieurs sources, contournant la limitation de l'heritage simple (une seule classe parent).
+Les mixins permettent de composer des comportements à partir de plusieurs sources, contournant la limitation de l'héritage simple (une seule classe parent).
 
 ```typescript
 // Type utilitaire pour representer un constructeur
@@ -995,7 +995,7 @@ console.log(`${heros.nom} est en ${heros.position()} avec ${heros.pv} PV`);
 
 ## Fusion de declarations (Declaration Merging)
 
-En TypeScript, on peut fusionner une interface et une classe du meme nom. Cela permet d'ajouter des proprietes a une classe depuis l'exterieur.
+En TypeScript, on peut fusionner une interface et une classe du même nom. Cela permet d'ajouter des propriétés à une classe depuis l'exterieur.
 
 ```typescript
 class Evenement {
@@ -1021,20 +1021,20 @@ evt.emettre();
 console.log(evt.timestamp);
 ```
 
-> **Attention** : la fusion de declarations est une fonctionnalite avancee. L'interface ne force pas la classe a implementer les proprietes fusionnees au moment de la compilation du constructeur. Utilisez-la avec precaution.
+> **Attention** : la fusion de declarations est une fonctionnalite avancee. L'interface ne force pas la classe a implementer les propriétés fusionnees au moment de la compilation du constructeur. Utilisez-la avec precaution.
 
 ---
 
 ## Pratique
 
-### Exercice 1 : Systeme de gestion de bibliotheque
+### Exercice 1 : Système de gestion de bibliotheque
 
-Creez un systeme de gestion de bibliotheque avec les classes suivantes :
+Creez un système de gestion de bibliotheque avec les classes suivantes :
 
-1. Une classe abstraite `Media` avec les proprietes `titre`, `annee`, un `id` readonly, et des methodes abstraites `description()` et `type()`.
+1. Une classe abstraite `Media` avec les propriétés `titre`, `annee`, un `id` readonly, et des méthodes abstraites `description()` et `type()`.
 2. Une classe `Livre` qui etend `Media` et ajoute `auteur` et `nbPages`.
 3. Une classe `DVD` qui etend `Media` et ajoute `realisateur` et `dureeMinutes`.
-4. Une classe `Bibliotheque` qui gere une collection de `Media` avec les methodes `ajouter()`, `rechercher(titre)`, `listerParType()`.
+4. Une classe `Bibliotheque` qui géré une collection de `Media` avec les méthodes `ajouter()`, `rechercher(titre)`, `listerParType()`.
 
 <details>
 <summary>Solution</summary>
@@ -1148,7 +1148,7 @@ console.log("Par type :", biblio.listerParType());
 
 ### Exercice 2 : Builder pattern avec chainage
 
-Creez une classe `EmailBuilder` qui permet de construire un email avec un pattern builder. Chaque methode doit retourner `this` pour permettre le chainage.
+Creez une classe `EmailBuilder` qui permet de construire un email avec un pattern builder. Chaque méthode doit retourner `this` pour permettre le chainage.
 
 <details>
 <summary>Solution</summary>
@@ -1233,9 +1233,9 @@ console.log(email);
 
 </details>
 
-### Exercice 3 : Mixins — systeme de competences
+### Exercice 3 : Mixins — système de compétences
 
-Creez un systeme de personnages de jeu en utilisant des mixins pour composer les capacites (combattant, magicien, voleur).
+Creez un système de personnages de jeu en utilisant des mixins pour composer les capacites (combattant, magicien, voleur).
 
 <details>
 <summary>Solution</summary>
@@ -1322,23 +1322,23 @@ console.log(assassin.voler("Marchand"));
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept              | Description                                                        |
 |----------------------|--------------------------------------------------------------------|
-| `class`              | Plan pour creer des objets avec proprietes et methodes             |
-| `constructor`        | Methode speciale pour initialiser les instances                    |
+| `class`              | Plan pour créer des objets avec propriétés et méthodes             |
+| `constructor`        | Méthode speciale pour initialiser les instances                    |
 | `public`             | Accessible partout (defaut)                                        |
 | `private`            | Accessible uniquement dans la classe                               |
 | `protected`          | Accessible dans la classe et ses sous-classes                      |
-| `readonly`           | Non modifiable apres initialisation                                |
+| `readonly`           | Non modifiable après initialisation                                |
 | Parameter properties | Raccourci pour declarer et initialiser dans le constructeur        |
-| `extends`            | Heritage — la sous-classe herite du parent                         |
+| `extends`            | Héritage — la sous-classe hérité du parent                         |
 | `implements`         | La classe s'engage a respecter le contrat d'une interface          |
-| `abstract`           | Classe non instanciable servant de modele                          |
-| `static`             | Membre appartenant a la classe, pas aux instances                  |
-| `get` / `set`        | Accesseurs pour proprietes calculees ou validees                   |
-| `override`           | Signale explicitement la redefinition d'une methode parente        |
+| `abstract`           | Classe non instanciable servant de modèle                          |
+| `static`             | Membre appartenant à la classe, pas aux instances                  |
+| `get` / `set`        | Accesseurs pour propriétés calculees ou validees                   |
+| `override`           | Signale explicitement la redefinition d'une méthode parente        |
 | `this` type          | Type dynamique de l'instance actuelle (utile pour le chainage)     |
 | Mixins               | Composition de comportements via des fonctions qui etendent une classe |
 
@@ -1346,6 +1346,16 @@ console.log(assassin.voler("Marchand"));
 
 ## Pour aller plus loin
 
-Dans le **Module 06**, nous aborderons les **Generics** — une fonctionnalite essentielle de TypeScript qui permet de creer des fonctions, classes et interfaces reutilisables tout en conservant la securite du typage. Vous verrez comment les generics transforment votre code en le rendant a la fois flexible et type-safe.
+Dans le **Module 06**, nous aborderons les **Generics** — une fonctionnalite essentielle de TypeScript qui permet de créer des fonctions, classes et interfaces réutilisables tout en conservant la sécurité du typage. Vous verrez comment les generics transforment votre code en le rendant à la fois flexible et type-safe.
 
 [Continuer vers le Module 06 : Generics — Fondamentaux & Contraintes →](./06-generics-fondamentaux.md)
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 05 classes](../screencasts/screencast-05-classes.md)
+2. **Lab** : [lab-05-classes](../labs/lab-05-classes/README)
+3. **Quiz** : [quiz 05 classes](../quizzes/quiz-05-classes.html)
+:::

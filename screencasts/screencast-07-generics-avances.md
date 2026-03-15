@@ -4,21 +4,21 @@
 - **Duree estimee** : 18-20 min
 - **Module** : `modules/07-generics-avances.md`
 - **Lab associe** : Lab 07
-- **Prerequis** : Screencast 06 (generics de base)
+- **Prérequis** : Screencast 06 (generics de base)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/07-generics-avances.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/07-generics-avances.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
 ### [00:00-04:00] Variadic tuple types
 
-> Dans ce screencast, nous allons explorer des patterns generiques avances. Commencons par les variadic tuples, introduits en TypeScript 4.0, qui permettent de manipuler des tuples de taille variable.
+> Dans ce screencast, nous allons explorer des patterns génériques avances. Commencons par les variadic tuples, introduits en TypeScript 4.0, qui permettent de manipuler des tuples de taille variable.
 
-**Action** : Creer le fichier `src/07-generics-avances.ts`.
+**Action** : Créer le fichier `src/07-generics-avances.ts`.
 
 ```typescript
 // Variadic tuple types
@@ -61,11 +61,11 @@ console.log(t); // ["hello", true]
 
 **Action** : Survoler les types `A`, `B`, `C` pour montrer les types resolus.
 
-> Les variadic tuples permettent de decrire des operations sur des tuples sans connaitre leur taille a l'avance. C'est la base de patterns comme le typage de `pipe` ou `compose`.
+> Les variadic tuples permettent de decrire des operations sur des tuples sans connaître leur taille a l'avance. C'est la base de patterns comme le typage de `pipe` ou `compose`.
 
 ### [04:00-09:00] Branded types (types nominaux)
 
-> TypeScript est structurel, mais parfois on veut distinguer des types qui ont la meme forme. Les branded types resolvent ce probleme.
+> TypeScript est structurel, mais parfois on veut distinguer des types qui ont la même forme. Les branded types resolvent ce problème.
 
 **Action** : Ajouter le code suivant.
 
@@ -123,13 +123,13 @@ getOrderById(orderIdSafe);  // OK
 // getUserById("u-001");     // Erreur ! string n'est pas UserId
 ```
 
-**Action** : Decommenter les deux dernieres lignes pour montrer les erreurs.
+**Action** : Decommenter les deux dernières lignes pour montrer les erreurs.
 
-> Le champ `__brand` n'existe pas a l'execution — c'est purement une astuce au niveau des types. Mais elle force a passer par les fonctions de creation, ce qui ajoute une couche de securite et de validation.
+> Le champ `__brand` n'existe pas a l'exécution — c'est purement une astuce au niveau des types. Mais elle force a passer par les fonctions de création, ce qui ajoute une couche de sécurité et de validation.
 
 ### [09:00-14:00] Builder pattern type-safe
 
-> Le builder pattern est un cas d'usage parfait pour les generics avances. Voyons comment rendre un builder entierement type-safe.
+> Le builder pattern est un cas d'usage parfait pour les generics avances. Voyons comment rendre un builder entièrement type-safe.
 
 **Action** : Ajouter le code suivant.
 
@@ -197,9 +197,9 @@ console.log(query);
 // Erreur : Property 'build' does not exist...
 ```
 
-**Action** : Montrer l'erreur quand on appelle `.build()` sans `.from()`. Montrer l'autocompletion a chaque etape de la chaine.
+**Action** : Montrer l'erreur quand on appelle `.build()` sans `.from()`. Montrer l'autocompletion à chaque étape de la chaine.
 
-> Le type `State` accumule les champs remplis a chaque etape. La methode `build()` verifie a la compilation que les champs obligatoires sont presents. C'est un pattern puissant pour les API fluent.
+> Le type `State` accumule les champs remplis à chaque étape. La méthode `build()` vérifié à la compilation que les champs obligatoires sont presents. C'est un pattern puissant pour les API fluent.
 
 ### [14:00-17:30] Generics conditionnels et inference
 
@@ -248,7 +248,7 @@ const serverOpts: ServerOptions = {
 
 **Action** : Survoler `ServerOptions` pour montrer le type resolu.
 
-### [17:30-19:30] Recapitulatif
+### [17:30-19:30] Récapitulatif
 
 > Faisons le point sur ce que nous avons couvert.
 
@@ -263,11 +263,11 @@ const serverOpts: ServerOptions = {
 // qui offrent une experience developpeur exceptionnelle grace aux generics.
 ```
 
-> En resume : les generics avances transforment TypeScript d'un simple langage type en un veritable systeme de programmation au niveau des types. Les branded types ajoutent une securite nominale, le builder pattern valide les API a la compilation, et les types conditionnels ouvrent la voie a la meta-programmation. Les prochains screencasts approfondiront ces concepts.
+> En résumé : les generics avances transforment TypeScript d'un simple langage type en un veritable système de programmation au niveau des types. Les branded types ajoutent une sécurité nominale, le builder pattern valide les API à la compilation, et les types conditionnels ouvrent la voie à la meta-programmation. Les prochains screencasts approfondiront ces concepts.
 
 ## Points d'attention pour l'enregistrement
 - Les variadic tuples sont abstraits — utiliser `as const` et montrer les types resolus
-- Pour les branded types, bien expliquer le probleme avant la solution
+- Pour les branded types, bien expliquer le problème avant la solution
 - Le builder pattern est l'exemple le plus concret — prendre le temps de montrer l'erreur de compilation
 - Mentionner Zod, Prisma et tRPC comme exemples concrets de ces patterns en production
-- Avertir que certains `as any` dans le builder sont necessaires pour l'implementation interne
+- Avertir que certains `as any` dans le builder sont nécessaires pour l'implementation interne

@@ -4,21 +4,21 @@
 - **Duree estimee** : 20-25 min
 - **Module** : `modules/18-patterns.md`
 - **Lab associe** : Lab 18
-- **Prerequis** : Screencast 07 (generics avances), Screencast 11 (conditional types)
+- **Prérequis** : Screencast 07 (generics avances), Screencast 11 (conditional types)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/18-patterns.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/18-patterns.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
 ### [00:00-05:00] Pattern Result : gestion d'erreurs sans exceptions
 
-> Les exceptions sont le mecanisme classique de gestion d'erreurs, mais elles ont un defaut : elles ne sont pas visibles dans le systeme de types. Le pattern Result rend les erreurs explicites et typees. C'est le pattern le plus important de ce screencast.
+> Les exceptions sont le mécanisme classique de gestion d'erreurs, mais elles ont un defaut : elles ne sont pas visibles dans le système de types. Le pattern Result rend les erreurs explicites et typees. C'est le pattern le plus important de ce screencast.
 
-**Action** : Creer le fichier `src/18-patterns.ts`.
+**Action** : Créer le fichier `src/18-patterns.ts`.
 
 ```typescript
 // Pattern Result : Success ou Failure, jamais d'exception
@@ -95,13 +95,13 @@ const greeting = map(validated, (user) => `Bienvenue, ${user.name} !`);
 console.log(greeting);
 ```
 
-**Action** : Montrer que le compilateur force a verifier `ok` avant d'acceder a `value` ou `error`. Executer le code.
+**Action** : Montrer que le compilateur force a vérifier `ok` avant d'acceder a `value` ou `error`. Exécuter le code.
 
-> Le pattern Result force l'appelant a gerer les deux cas — succes et echec. Contrairement aux exceptions, les erreurs sont visibles dans la signature de la fonction. C'est le standard dans des langages comme Rust et Go.
+> Le pattern Result force l'appelant a gérer les deux cas — succes et echec. Contrairement aux exceptions, les erreurs sont visibles dans la signature de la fonction. C'est le standard dans des langages comme Rust et Go.
 
 ### [05:00-10:30] Pattern Builder type-safe
 
-> Le pattern Builder guide la construction d'un objet complexe etape par etape, avec une validation a la compilation.
+> Le pattern Builder guide la construction d'un objet complexe étape par étape, avec une validation à la compilation.
 
 **Action** : Ajouter le code suivant.
 
@@ -175,11 +175,11 @@ console.log(request);
 
 **Action** : Tenter d'appeler `.build()` sans `.method()` et montrer l'erreur.
 
-> Le type `Filled` accumule les noms des champs remplis a chaque etape. La methode `build()` exige que `Filled` contienne tous les `RequiredFields`. Le compilateur garantit a la construction que toutes les etapes obligatoires ont ete franchies.
+> Le type `Filled` accumule les noms des champs remplis à chaque étape. La méthode `build()` exige que `Filled` contienne tous les `RequiredFields`. Le compilateur garantit à la construction que toutes les étapes obligatoires ont ete franchies.
 
 ### [10:30-16:00] Pattern pipe : composition de fonctions
 
-> Le pattern pipe permet de composer des fonctions de maniere lisible et type-safe.
+> Le pattern pipe permet de composer des fonctions de manière lisible et type-safe.
 
 **Action** : Ajouter le code suivant.
 
@@ -233,13 +233,13 @@ console.log(titleCase("  hello world example  ")); // "Hello World Example"
 // "  Hello World  " |> trim |> toLowerCase |> split(" ") |> join("-")
 ```
 
-**Action** : Survoler chaque etape intermediaire dans le pipe pour montrer la propagation des types.
+**Action** : Survoler chaque étape intermédiaire dans le pipe pour montrer la propagation des types.
 
-> Chaque fonction dans le pipe recoit le type de retour de la precedente. Les surcharges garantissent que le type est correct a chaque etape. En attendant le pipeline operator (`|>`), cette approche est la plus propre pour la composition fonctionnelle.
+> Chaque fonction dans le pipe recoit le type de retour de la précédente. Les surcharges garantissent que le type est correct à chaque étape. En attendant le pipeline operator (`|>`), cette approche est la plus propre pour la composition fonctionnelle.
 
 ### [16:00-21:00] Pattern EventEmitter type-safe
 
-> Construisons un EventEmitter entierement type-safe.
+> Construisons un EventEmitter entièrement type-safe.
 
 **Action** : Ajouter le code suivant.
 
@@ -322,9 +322,9 @@ bus.emit("user:login", { userId: "u-1", timestamp: new Date() });
 bus.emit("cart:add", { productId: "p-1", quantity: 2 });
 ```
 
-**Action** : Montrer l'autocompletion du nom d'evenement, puis l'autocompletion du payload dans le callback.
+**Action** : Montrer l'autocompletion du nom d'événement, puis l'autocompletion du payload dans le callback.
 
-### [21:00-24:00] Recapitulatif
+### [21:00-24:00] Récapitulatif
 
 > Resumons les quatre patterns.
 
@@ -352,11 +352,11 @@ bus.emit("cart:add", { productId: "p-1", quantity: 2 });
 //    - Desinscription type-safe
 ```
 
-> Ces quatre patterns exploitent les generics, les conditional types et les discriminated unions pour offrir une experience developpeur exceptionnelle. Ils sont utilises dans les librairies modernes comme Zod (Result), Prisma (Builder), fp-ts (pipe) et mitt (EventEmitter). Dans le prochain screencast, nous les assemblerons dans un projet complet.
+> Ces quatre patterns exploitent les generics, les conditional types et les discriminated unions pour offrir une experience développeur exceptionnelle. Ils sont utilises dans les librairies modernes comme Zod (Result), Prisma (Builder), fp-ts (pipe) et mitt (EventEmitter). Dans le prochain screencast, nous les assemblerons dans un projet complet.
 
 ## Points d'attention pour l'enregistrement
 - Le pattern Result est le plus important — prendre le temps sur le chainage
 - Le Builder doit montrer l'erreur quand on oublie un champ obligatoire
-- Le pipe necessite de montrer la propagation des types etape par etape
+- Le pipe nécessité de montrer la propagation des types étape par étape
 - L'EventEmitter doit montrer l'autocompletion en action (screencast = visuel)
-- Executer chaque pattern pour montrer qu'il fonctionne aussi a l'execution
+- Exécuter chaque pattern pour montrer qu'il fonctionne aussi a l'exécution

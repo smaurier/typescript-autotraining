@@ -4,21 +4,21 @@
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/01-types-primitifs.md`
 - **Lab associe** : Lab 01
-- **Prerequis** : Screencast 00 (environnement installe)
+- **Prérequis** : Screencast 00 (environnement installe)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/01-primitifs.ts` pret a etre cree
-- [ ] Extension TypeScript VS Code active (verifier IntelliSense)
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/01-primitifs.ts` pret a etre créé
+- [ ] Extension TypeScript VS Code active (vérifier IntelliSense)
 
 ## Script
 
 ### [00:00-03:00] Introduction aux types primitifs
 
-> Dans ce screencast, nous allons explorer en profondeur les types primitifs de TypeScript. Nous verrons comment l'inference fonctionne, ce que sont les literal types, et la difference cruciale entre `any` et `unknown`.
+> Dans ce screencast, nous allons explorer en profondeur les types primitifs de TypeScript. Nous verrons comment l'inference fonctionne, ce que sont les literal types, et la différence cruciale entre `any` et `unknown`.
 
-**Action** : Creer le fichier `src/01-primitifs.ts`.
+**Action** : Créer le fichier `src/01-primitifs.ts`.
 
 ```typescript
 // Les types primitifs de TypeScript
@@ -48,7 +48,7 @@ const uniqueKey: symbol = Symbol("cle");
 
 ### [03:00-07:00] Inference de type
 
-> TypeScript est intelligent : il n'est pas toujours necessaire d'annoter les types explicitement. L'inference de type fait le travail pour nous.
+> TypeScript est intelligent : il n'est pas toujours nécessaire d'annoter les types explicitement. L'inference de type fait le travail pour nous.
 
 **Action** : Ajouter du code au fichier.
 
@@ -65,15 +65,15 @@ let flexCity = "Paris";      // infere comme string
 
 **Action** : Survoler `fixedCity` pour montrer le type literal `"Paris"`, puis survoler `flexCity` pour montrer le type `string`.
 
-> C'est un point fondamental : avec `const`, TypeScript infere un type literal car la valeur ne changera jamais. Avec `let`, il infere le type general car la variable peut etre reassignee.
+> C'est un point fondamental : avec `const`, TypeScript infere un type literal car la valeur ne changera jamais. Avec `let`, il infere le type général car la variable peut etre reassignee.
 
 > En pratique, la regle est simple : annotez les types quand l'inference ne suffit pas, ou quand vous voulez documenter une intention. Sinon, laissez TypeScript inferer.
 
 ### [07:00-11:00] Literal types et unions
 
-> Les literal types sont des types qui representent une seule valeur precise.
+> Les literal types sont des types qui representent une seule valeur précisé.
 
-**Action** : Creer un nouveau bloc de code.
+**Action** : Créer un nouveau bloc de code.
 
 ```typescript
 // Literal types explicites
@@ -98,7 +98,7 @@ userId = 42;            // OK — number est accepte
 
 **Action** : Decommenter les lignes d'erreur une par une pour montrer les messages d'erreur.
 
-> Les literal types combines avec les unions (`|`) forment un outil tres puissant. On peut definir exactement quelles valeurs sont acceptees. C'est comme un enum, mais plus flexible.
+> Les literal types combines avec les unions (`|`) forment un outil très puissant. On peut définir exactement quelles valeurs sont acceptees. C'est comme un enum, mais plus flexible.
 
 ### [11:00-14:30] null, undefined, any et unknown
 
@@ -136,11 +136,11 @@ if (typeof mystery === "string") {
 }
 ```
 
-**Action** : Montrer que `any` ne genere aucune erreur meme avec du code invalide, tandis que `unknown` oblige a verifier le type.
+**Action** : Montrer que `any` ne généré aucune erreur même avec du code invalide, tandis que `unknown` oblige a vérifier le type.
 
-> La regle d'or : n'utilisez jamais `any` sauf en dernier recours. Preferez `unknown` quand vous ne connaissez pas le type — cela vous force a verifier avant d'utiliser la valeur, ce qui evite les bugs.
+> La regle d'or : n'utilisez jamais `any` sauf en dernier recours. Preferez `unknown` quand vous ne connaissez pas le type — cela vous force a vérifier avant d'utiliser la valeur, ce qui evite les bugs.
 
-### [14:30-17:00] void, never et recapitulatif
+### [14:30-17:00] void, never et récapitulatif
 
 > Terminons avec deux types de retour de fonction : `void` et `never`.
 
@@ -165,13 +165,13 @@ function infiniteLoop(): never {
 
 > `void` signifie que la fonction ne retourne pas de valeur utile. `never` signifie que la fonction ne retourne jamais — soit elle lance une exception, soit elle boucle indefiniment. Nous reverrons `never` en detail quand nous parlerons du narrowing exhaustif.
 
-**Action** : Recapituler en survolant les differents types dans le fichier.
+**Action** : Recapituler en survolant les différents types dans le fichier.
 
-> En resume : TypeScript offre des types primitifs riches, une inference intelligente, des literal types pour la precision, et la distinction `any` vs `unknown` pour la securite. Maitrisez ces bases et le reste du cours sera beaucoup plus fluide.
+> En résumé : TypeScript offre des types primitifs riches, une inference intelligente, des literal types pour la précision, et la distinction `any` vs `unknown` pour la sécurité. Maitrisez ces bases et le reste du cours sera beaucoup plus fluide.
 
 ## Points d'attention pour l'enregistrement
 - Bien montrer l'inference en survolant chaque variable dans VS Code
-- Prendre le temps sur la difference `const` vs `let` pour l'inference des literal types
-- Insister visuellement sur la difference entre `any` (dangereux) et `unknown` (sur)
+- Prendre le temps sur la différence `const` vs `let` pour l'inference des literal types
+- Insister visuellement sur la différence entre `any` (dangereux) et `unknown` (sur)
 - Decommenter les erreurs progressivement pour montrer les messages un par un
 - Garder un rythme calme sur les unions de literal types — c'est un concept nouveau pour beaucoup

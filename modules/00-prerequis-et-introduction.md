@@ -1,22 +1,22 @@
-# 00 — Prerequis & Introduction a TypeScript
+# 00 — Prérequis & Introduction a TypeScript
 
 > **Duree estimee** : 3h00
 > **Difficulte** : 1/5
-> **Prerequis** : Connaitre les bases de JavaScript (variables, fonctions, objets, tableaux)
+> **Prérequis** : Connaître les bases de JavaScript (variables, fonctions, objets, tableaux)
 > **Objectifs** :
-> - Comprendre **pourquoi** TypeScript existe et quels problemes il resout
+> - Comprendre **pourquoi** TypeScript existe et quels problèmes il resout
 > - Installer TypeScript et configurer un projet
-> - Ecrire et compiler un premier fichier `.ts`
+> - Écrire et compiler un premier fichier `.ts`
 > - Comprendre le concept de **type erasure**
-> - Maitriser les bases de `tsconfig.json` et le mode strict
+> - Maîtriser les bases de `tsconfig.json` et le mode strict
 
 ---
 
 ## Pourquoi TypeScript ?
 
-### Le probleme avec JavaScript
+### Le problème avec JavaScript
 
-JavaScript est un langage **dynamiquement type**. Cela signifie que les types des variables ne sont pas verifies avant l'execution du programme. Cela mene a des bugs silencieux :
+JavaScript est un langage **dynamiquement type**. Cela signifie que les types des variables ne sont pas verifies avant l'exécution du programme. Cela mene a des bugs silencieux :
 
 ```javascript
 // JavaScript — Ce code ne produit aucune erreur... jusqu'a l'execution
@@ -32,7 +32,7 @@ const total2 = calculerPrix("cinq", 10);
 console.log(total2); // NaN — bug silencieux !
 ```
 
-Avec TypeScript, ce bug est **detecte avant meme d'executer le code** :
+Avec TypeScript, ce bug est **détecté avant même d'exécuter le code** :
 
 ```typescript
 // TypeScript — Erreur detectee immediatement
@@ -52,7 +52,7 @@ Pense a TypeScript comme un **correcteur orthographique** pour ton code.
 - **Sans correcteur** (JavaScript) : tu ecris un email de 500 mots. Tu ne vois les fautes que quand ton patron te repond "je n'ai rien compris".
 - **Avec correcteur** (TypeScript) : les fautes sont soulignees en rouge **pendant que tu ecris**. Tu les corriges avant d'envoyer.
 
-TypeScript ne change pas le langage fondamentalement — il ajoute une couche de **verification** qui t'alerte des problemes **avant** qu'ils n'arrivent en production.
+TypeScript ne change pas le langage fondamentalement — il ajoute une couche de **vérification** qui t'alerte des problèmes **avant** qu'ils n'arrivent en production.
 
 ### Les 3 super-pouvoirs de TypeScript
 
@@ -70,7 +70,7 @@ TypeScript ne change pas le langage fondamentalement — il ajoute une couche de
 └────────────────────┴────────────────────┴────────────────────┘
 ```
 
-#### 1. Detection de bugs a la compilation
+#### 1. Detection de bugs à la compilation
 
 ```typescript
 // TypeScript detecte les erreurs classiques :
@@ -139,7 +139,7 @@ function calculerTTC(montantHT: number, tauxTVA: number = 0.2): number {
 
 ### Origines
 
-TypeScript a ete cree par **Anders Hejlsberg** (le createur de C# et Delphi) chez **Microsoft**. La premiere version publique est sortie en **octobre 2012**.
+TypeScript a ete créé par **Anders Hejlsberg** (le createur de C# et Delphi) chez **Microsoft**. La première version publique est sortie en **octobre 2012**.
 
 ```
 Chronologie des versions majeures :
@@ -159,12 +159,12 @@ Chronologie des versions majeures :
 
 TypeScript est devenu un **standard de l'industrie** :
 
-- **Angular** est ecrit en TypeScript depuis Angular 2
-- **React** a un support TypeScript natif via `npm create vite@latest -- --template react-ts`
+- **Angular** est écrit en TypeScript depuis Angular 2
+- **React** à un support TypeScript natif via `npm create vite@latest -- --template react-ts`
 
 > **Note** : `create-react-app` est deprecie depuis fevrier 2025. Utilisez Vite, Next.js, ou Remix pour les nouveaux projets React + TypeScript.
 
-- **Vue 3** est ecrit en TypeScript
+- **Vue 3** est écrit en TypeScript
 - **Node.js** supporte TypeScript nativement depuis la v22.6+ (flag `--experimental-strip-types`)
 - **Deno** et **Bun** supportent TypeScript nativement
 - Plus de **40 millions** de telechargements npm par semaine
@@ -173,7 +173,7 @@ TypeScript est devenu un **standard de l'industrie** :
 
 ## Installation
 
-### Prerequis
+### Prérequis
 
 Avant d'installer TypeScript, tu as besoin de :
 
@@ -204,7 +204,7 @@ tsc --version
 
 ### Installer tsx (TypeScript Execute)
 
-`tsx` est un outil qui permet d'**executer directement** des fichiers TypeScript sans etape de compilation manuelle. Tres pratique pour le developpement :
+`tsx` est un outil qui permet d'**exécuter directement** des fichiers TypeScript sans étape de compilation manuelle. Très pratique pour le développement :
 
 ```bash
 # Installation globale de tsx
@@ -214,7 +214,7 @@ npm install -g tsx
 tsx --version
 ```
 
-### Difference entre tsc et tsx
+### Différence entre tsc et tsx
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -243,7 +243,7 @@ tsx mon-fichier.ts         # compile et execute en une etape
 
 ## Premier fichier TypeScript
 
-### Creer le fichier
+### Créer le fichier
 
 Cree un fichier `bonjour.ts` :
 
@@ -267,7 +267,7 @@ console.log(resultat);
 // saluer(42, "Alice"); // Erreur ! Les arguments sont dans le mauvais ordre
 ```
 
-### Compiler et executer
+### Compiler et exécuter
 
 ```bash
 # Methode 1 : Compilation explicite avec tsc
@@ -284,9 +284,9 @@ tsx bonjour.ts
 # Salut Alice, tu as 30 ans.
 ```
 
-### Observer le JavaScript genere
+### Observer le JavaScript généré
 
-Apres la compilation avec `tsc`, regarde le fichier `bonjour.js` genere :
+Après la compilation avec `tsc`, regarde le fichier `bonjour.js` généré :
 
 ```javascript
 // bonjour.js — Le resultat de la compilation
@@ -314,10 +314,10 @@ C'est le concept fondamental de **type erasure** que nous allons explorer en det
 
 Imagine la construction d'un batiment :
 
-- Les **echafaudages** sont necessaires pendant la construction. Ils permettent aux ouvriers de travailler en hauteur, de verifier l'alignement des murs, etc.
+- Les **echafaudages** sont nécessaires pendant la construction. Ils permettent aux ouvriers de travailler en hauteur, de vérifier l'alignement des murs, etc.
 - Une fois le batiment termine, **on retire les echafaudages**. Le batiment tient debout tout seul.
 
-TypeScript fonctionne exactement de la meme maniere :
+TypeScript fonctionne exactement de la même manière :
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -390,7 +390,7 @@ function estChat(animal: Chat | Chien): animal is Chat {
 
 ## Initialiser un projet — tsc --init
 
-### Creer un tsconfig.json
+### Créer un tsconfig.json
 
 Plutot que de compiler fichier par fichier, on configure un **projet** TypeScript :
 
@@ -406,7 +406,7 @@ npm init -y
 tsc --init
 ```
 
-La commande `tsc --init` cree un fichier `tsconfig.json` avec beaucoup d'options commentees.
+La commande `tsc --init` créé un fichier `tsconfig.json` avec beaucoup d'options commentees.
 
 ### tsconfig.json — Les options essentielles
 
@@ -448,7 +448,7 @@ Voici un `tsconfig.json` minimal et bien configure :
 
 ### Comprendre "target"
 
-L'option `target` determine la version de JavaScript generee :
+L'option `target` déterminé la version de JavaScript générée :
 
 ```typescript
 // Code TypeScript source
@@ -542,16 +542,16 @@ function longueur(texte: string | null): number {
 }
 ```
 
-### Analogie — La ceinture de securite
+### Analogie — La ceinture de sécurité
 
-Le mode strict, c'est comme la **ceinture de securite** en voiture :
+Le mode strict, c'est comme la **ceinture de sécurité** en voiture :
 
-- Ca te contraint un peu (tu dois l'attacher)
-- Ca peut sembler inutile quand tout va bien
-- Mais le jour ou il y a un probleme, **ca te sauve la vie**
+- Ça te contraint un peu (tu dois l'attacher)
+- Ça peut sembler inutile quand tout va bien
+- Mais le jour ou il y à un problème, **ça te sauve la vie**
 
 > **Regle d'or** : TOUJOURS activer `"strict": true` dans un nouveau projet.
-> Desactiver le mode strict, c'est comme desactiver l'alarme incendie parce qu'elle fait du bruit.
+> Desactiver le mode strict, c'est comme désactiver l'alarme incendie parce qu'elle fait du bruit.
 
 ---
 
@@ -563,8 +563,8 @@ Le **TypeScript Playground** est un editeur en ligne officiel qui permet d'exper
 
 - URL : [https://www.typescriptlang.org/play](https://www.typescriptlang.org/play)
 - Tu ecris du TypeScript a gauche
-- Tu vois le JavaScript genere a droite
-- Les erreurs s'affichent en temps reel
+- Tu vois le JavaScript généré a droite
+- Les erreurs s'affichent en temps réel
 
 ```
 ┌───────────────────────────┬──────────────────────────────┐
@@ -589,7 +589,7 @@ Le **TypeScript Playground** est un editeur en ligne officiel qui permet d'exper
 1. **Partager du code** : Clique sur "Share" pour obtenir un lien unique
 2. **Changer les options** : Clique sur "TS Config" pour modifier les options du compilateur
 3. **Voir les erreurs** : Clique sur "Errors" pour voir les erreurs de compilation
-4. **Executer le code** : Clique sur "Run" pour executer dans la console du navigateur
+4. **Exécuter le code** : Clique sur "Run" pour exécuter dans la console du navigateur
 
 ---
 
@@ -615,7 +615,7 @@ tsx
 
 ### Mode watch (rechargement automatique)
 
-Pour le developpement, `tsx` offre un mode **watch** qui recompile automatiquement quand tu modifies un fichier :
+Pour le développement, `tsx` offre un mode **watch** qui recompile automatiquement quand tu modifies un fichier :
 
 ```bash
 # Lancer en mode watch
@@ -704,8 +704,8 @@ console.log(`2 + 3 = ${additionner(2, 3)}`);
 
 - `npm run build` — Compile le projet
 - `npm start` — Execute directement avec tsx
-- `npm run dev` — Mode developpement avec rechargement automatique
-- `npm run typecheck` — Verifie les types sans generer de fichiers
+- `npm run dev` — Mode développement avec rechargement automatique
+- `npm run typecheck` — Verifie les types sans générer de fichiers
 
 ---
 
@@ -720,8 +720,8 @@ Cree un projet TypeScript from scratch :
 3. Cree un fichier `src/premier.ts` qui :
    - Declare une variable `prenom` de type `string`
    - Declare une variable `age` de type `number`
-   - Declare une fonction `sePresenter` qui prend un `prenom` et un `age` et retourne une phrase de presentation
-   - Appelle la fonction et affiche le resultat
+   - Declare une fonction `sePresenter` qui prend un `prenom` et un `age` et retourne une phrase de présentation
+   - Appelle la fonction et affiche le résultat
 
 <details>
 <summary>Solution</summary>
@@ -762,7 +762,7 @@ tsx src/premier.ts
 
 ### Exercice 2 — Comprendre le type erasure
 
-Ecris le fichier TypeScript suivant, compile-le avec `tsc`, puis compare le fichier `.ts` et le fichier `.js` genere. Note toutes les differences.
+Ecris le fichier TypeScript suivant, compile-le avec `tsc`, puis compare le fichier `.ts` et le fichier `.js` généré. Note toutes les différences.
 
 ```typescript
 // src/erasure.ts
@@ -789,7 +789,7 @@ console.log(decrireAnimal(monChat));
 <details>
 <summary>Solution</summary>
 
-Apres compilation avec `tsc`, le fichier JavaScript genere est :
+Après compilation avec `tsc`, le fichier JavaScript généré est :
 
 ```javascript
 // src/erasure.js
@@ -807,7 +807,7 @@ console.log(decrireAnimal(monChat));
 ```
 
 **Differences observees** :
-1. L'`interface Animal` a **completement disparu** (type erasure)
+1. L'`interface Animal` a **complètement disparu** (type erasure)
 2. Les annotations de type (`: string`, `: number`, `: Animal`) ont disparu
 3. Le type union `"chat" | "chien"` a disparu
 4. Le type de retour `: string` a disparu
@@ -887,7 +887,7 @@ Les 5 erreurs :
 1. **`function calculer(a, b)`** — Parametres `a` et `b` n'ont pas de type (`noImplicitAny` en mode strict)
 2. **`calculer(10, 20, 30)`** — La fonction attend 2 arguments mais en recoit 3
 3. **`let nom: string = null`** — En mode strict (`strictNullChecks`), `null` n'est pas assignable a `string`. Il faudrait `string | null`
-4. **`utilisateur.email`** — La propriete `email` n'existe pas sur l'objet `utilisateur`
+4. **`utilisateur.email`** — La propriété `email` n'existe pas sur l'objet `utilisateur`
 5. **La fonction `traiter`** — Ne retourne pas toujours une valeur (pas de `return` dans le `else`). Avec `noImplicitReturns`, c'est une erreur
 
 Version corrigee :
@@ -922,8 +922,8 @@ function traiter(donnees: string): string {
 
 Cree un mini-projet TypeScript complet avec :
 - Une interface `Tache` avec `id`, `titre`, `terminee`
-- Une fonction `creerTache` pour creer une tache
-- Une fonction `terminerTache` qui change l'etat d'une tache
+- Une fonction `creerTache` pour créer une tache
+- Une fonction `terminerTache` qui change l'état d'une tache
 - Une fonction `afficherTaches` qui affiche la liste des taches
 
 <details>
@@ -996,7 +996,7 @@ afficherTaches(taches);
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -1049,12 +1049,21 @@ tsc --noEmit
 
 ## Pour aller plus loin
 
-Dans le prochain module, **01 — Types primitifs, Inference & Strict Mode**, nous allons decouvrir en detail :
+Dans le prochain module, **01 — Types primitifs, Inference & Strict Mode**, nous allons découvrir en detail :
 
 - Les types de base de TypeScript (`string`, `number`, `boolean`, etc.)
 - Comment TypeScript **infere** les types automatiquement
-- La difference entre `let` et `const` pour l'inference
-- Pourquoi `any` est dangereux et comment utiliser `unknown` a la place
+- La différence entre `let` et `const` pour l'inference
+- Pourquoi `any` est dangereux et comment utiliser `unknown` à la place
 - L'operateur `satisfies` (nouveaute TypeScript 4.9+)
 
-> **Conseil** : Avant de passer au module suivant, assure-toi d'avoir installe TypeScript et d'avoir reussi a compiler et executer ton premier fichier `.ts`. La pratique est essentielle !
+> **Conseil** : Avant de passer au module suivant, assure-toi d'avoir installe TypeScript et d'avoir reussi a compiler et exécuter ton premier fichier `.ts`. La pratique est essentielle !
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 00 prérequis](../screencasts/screencast-00-prerequis.md)
+2. **Quiz** : [quiz 00 prérequis](../quizzes/quiz-00-prerequis.html)
+:::

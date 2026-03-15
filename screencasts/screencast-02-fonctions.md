@@ -4,21 +4,21 @@
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/02-fonctions.md`
 - **Lab associe** : Lab 02
-- **Prerequis** : Screencast 01 (types primitifs)
+- **Prérequis** : Screencast 01 (types primitifs)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/02-fonctions.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/02-fonctions.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
 ### [00:00-03:30] Signatures de fonctions
 
-> Les fonctions sont au coeur de tout programme TypeScript. Dans ce screencast, nous allons voir comment typer les parametres, les retours, et gerer les cas avances comme les surcharges et les predicats de type.
+> Les fonctions sont au coeur de tout programme TypeScript. Dans ce screencast, nous allons voir comment typer les paramètres, les retours, et gérer les cas avances comme les surcharges et les predicats de type.
 
-**Action** : Creer le fichier `src/02-fonctions.ts`.
+**Action** : Créer le fichier `src/02-fonctions.ts`.
 
 ```typescript
 // Signature de base : parametres types et retour type
@@ -98,13 +98,13 @@ fetchData(
 );
 ```
 
-**Action** : Montrer que dans les callbacks, les types des parametres sont inferes grace au contexte.
+**Action** : Montrer que dans les callbacks, les types des paramètres sont inferes grace au contexte.
 
-> Quand on passe une fonction en argument, TypeScript infere les types des parametres depuis la signature attendue. C'est ce qu'on appelle l'inference contextuelle.
+> Quand on passe une fonction en argument, TypeScript infere les types des paramètres depuis la signature attendue. C'est ce qu'on appelle l'inference contextuelle.
 
 ### [07:30-11:30] Surcharges de fonctions
 
-> TypeScript permet les surcharges de fonctions — plusieurs signatures pour une meme implementation.
+> TypeScript permet les surcharges de fonctions — plusieurs signatures pour une même implementation.
 
 **Action** : Ajouter le code suivant.
 
@@ -143,11 +143,11 @@ const s = parse(" hi ", false); // type: string
 
 **Action** : Survoler `n` et `s` pour montrer que TypeScript choisit le bon type de retour selon la surcharge.
 
-> Les surcharges sont utiles quand le type de retour depend des arguments. La derniere signature (l'implementation) n'est pas visible par l'appelant — seules les surcharges declarees au-dessus comptent.
+> Les surcharges sont utiles quand le type de retour depend des arguments. La dernière signature (l'implementation) n'est pas visible par l'appelant — seules les surcharges declarees au-dessus comptent.
 
 ### [11:30-15:00] Predicats de type (type predicates)
 
-> Les predicats de type permettent de creer des fonctions de verification qui affinent le type pour TypeScript.
+> Les predicats de type permettent de créer des fonctions de vérification qui affinent le type pour TypeScript.
 
 **Action** : Ajouter le code suivant.
 
@@ -202,9 +202,9 @@ if (isUser(data)) {
 
 **Action** : Montrer que sans le predicat `is`, TypeScript ne restreindrait pas le type dans le bloc `if`.
 
-> Les predicats de type sont essentiels pour la validation de donnees externes — API, JSON, formulaires. Ils connectent la logique de verification au systeme de types.
+> Les predicats de type sont essentiels pour la validation de donnees externes — API, JSON, formulaires. Ils connectent la logique de vérification au système de types.
 
-### [15:00-17:30] Assertion functions et recapitulatif
+### [15:00-17:30] Assertion functions et récapitulatif
 
 > Terminons avec les assertion functions, proches des predicats mais qui lancent une erreur au lieu de retourner un boolean.
 
@@ -226,11 +226,11 @@ processInput("hello"); // "HELLO"
 // processInput(42);   // Lancerait une erreur
 ```
 
-> En resume, TypeScript offre un systeme riche pour typer les fonctions : signatures simples, surcharges pour les cas complexes, predicats pour le narrowing, et assertion functions pour les validations strictes. Maitrisez ces outils et vous pourrez typer n'importe quel callback ou API.
+> En résumé, TypeScript offre un système riche pour typer les fonctions : signatures simples, surcharges pour les cas complexes, predicats pour le narrowing, et assertion functions pour les validations strictes. Maitrisez ces outils et vous pourrez typer n'importe quel callback ou API.
 
 ## Points d'attention pour l'enregistrement
-- Bien expliquer la difference entre signature de surcharge et signature d'implementation
-- Montrer l'inference contextuelle des callbacks en survolant les parametres
+- Bien expliquer la différence entre signature de surcharge et signature d'implementation
+- Montrer l'inference contextuelle des callbacks en survolant les paramètres
 - Prendre le temps sur les predicats de type — c'est souvent un concept nouveau
-- Executer les exemples avec `npx tsx src/02-fonctions.ts` pour montrer les resultats
+- Exécuter les exemples avec `npx tsx src/02-fonctions.ts` pour montrer les résultats
 - Commenter la raison pour laquelle `any` n'apparait nulle part dans ces exemples

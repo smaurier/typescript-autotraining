@@ -2,11 +2,11 @@
 
 > **Duree estimee** : 4h00
 > **Difficulte** : 2/5
-> **Prerequis** : Module 02 (fonctions, callbacks, type predicates)
+> **Prérequis** : Module 02 (fonctions, callbacks, type predicates)
 > **Objectifs** :
-> - Definir la **forme** des objets avec des types inline, des interfaces et des type aliases
-> - Comprendre la difference entre `interface` et `type` et **quand utiliser quoi**
-> - Maitriser `readonly`, les proprietes optionnelles, et les index signatures
+> - Définir la **forme** des objets avec des types inline, des interfaces et des type aliases
+> - Comprendre la différence entre `interface` et `type` et **quand utiliser quoi**
+> - Maîtriser `readonly`, les propriétés optionnelles, et les index signatures
 > - Comprendre le **structural typing** (duck typing) de TypeScript
 > - Utiliser les **intersections** (`&`) pour composer des types
 > - Comprendre l'excess property checking
@@ -17,7 +17,7 @@
 
 ### Syntaxe de base
 
-On peut definir la forme d'un objet directement dans l'annotation de type :
+On peut définir la forme d'un objet directement dans l'annotation de type :
 
 ```typescript
 // Type d'objet inline — on decrit la "forme" de l'objet
@@ -64,7 +64,7 @@ function traiterCommande(
 
 ### Declaration
 
-Une **interface** definit un contrat : la forme que doit avoir un objet.
+Une **interface** définit un contrat : la forme que doit avoir un objet.
 
 ```typescript
 // Declaration d'une interface
@@ -123,7 +123,7 @@ const maVilla: Maison = {
 
 ### Proprietes optionnelles
 
-Certaines proprietes peuvent etre optionnelles avec `?` :
+Certaines propriétés peuvent etre optionnelles avec `?` :
 
 ```typescript
 interface ProfilUtilisateur {
@@ -162,7 +162,7 @@ function afficherTelephone(profil: ProfilUtilisateur): void {
 
 ### Proprietes readonly
 
-`readonly` empeche la modification d'une propriete apres la creation :
+`readonly` empeche la modification d'une propriété après la création :
 
 ```typescript
 interface Configuration {
@@ -207,7 +207,7 @@ const dataImmut: DonneesImmutables = { valeurs: [1, 2, 3] };
 
 - Tu peux le **regarder** (lire la valeur)
 - Tu ne peux pas le **toucher** (modifier la valeur)
-- Mais si l'objet est un **sac ouvert** contenant des billes, tu peux quand meme ajouter des billes dans le sac (mutation du contenu)
+- Mais si l'objet est un **sac ouvert** contenant des billes, tu peux quand même ajouter des billes dans le sac (mutation du contenu)
 
 ---
 
@@ -215,7 +215,7 @@ const dataImmut: DonneesImmutables = { valeurs: [1, 2, 3] };
 
 ### Syntaxe extends
 
-Les interfaces peuvent **heriter** d'autres interfaces :
+Les interfaces peuvent **hériter** d'autres interfaces :
 
 ```typescript
 // Interface de base
@@ -256,7 +256,7 @@ interface ProduitAvecAvis extends Produit {
 }
 ```
 
-### Heritage multiple
+### Héritage multiple
 
 ```typescript
 // Une interface peut etendre PLUSIEURS interfaces
@@ -295,7 +295,7 @@ const doc: Document = {
 
 ### Concept
 
-Une particularite des interfaces : si on declare **deux fois la meme interface**, TypeScript les **fusionne** automatiquement :
+Une particularite des interfaces : si on declare **deux fois la même interface**, TypeScript les **fusionne** automatiquement :
 
 ```typescript
 // Premiere declaration
@@ -348,7 +348,7 @@ window.maConfigApp = {
 };
 ```
 
-> **Important** : Les `type` aliases ne supportent PAS la declaration merging. C'est l'une des differences cles avec les interfaces.
+> **Important** : Les `type` aliases ne supportent PAS la declaration merging. C'est l'une des différences clés avec les interfaces.
 
 ---
 
@@ -356,7 +356,7 @@ window.maConfigApp = {
 
 ### Declaration
 
-Un **type alias** cree un nouveau nom pour un type existant :
+Un **type alias** créé un nouveau nom pour un type existant :
 
 ```typescript
 // Type alias pour un objet
@@ -553,7 +553,7 @@ type Resultat<T> = { success: true; data: T } | { success: false; erreur: string
 
 ### Concept fondamental
 
-TypeScript utilise un systeme de types **structurel** : deux types sont compatibles si leurs **structures** (proprietes) sont compatibles. Peu importe le nom du type.
+TypeScript utilise un système de types **structurel** : deux types sont compatibles si leurs **structures** (propriétés) sont compatibles. Peu importe le nom du type.
 
 ```typescript
 // Deux interfaces avec des noms differents mais la meme structure
@@ -578,15 +578,15 @@ function afficherAnimal(animal: Chat): void {
 afficherAnimal(medor); // OK — Chien a la meme structure que Chat
 ```
 
-### Analogie — "Si ca marche comme un canard..."
+### Analogie — "Si ça marche comme un canard..."
 
 Le structural typing suit le principe du **duck typing** :
 
-> "Si ca marche comme un canard, si ca nage comme un canard, et si ca cancane comme un canard, alors c'est probablement un canard."
+> "Si ça marche comme un canard, si ça nage comme un canard, et si ça cancane comme un canard, alors c'est probablement un canard."
 
 En TypeScript :
 
-> "Si un objet a les proprietes `nom: string` et `age: number`, alors il est compatible avec tout type qui exige `nom: string` et `age: number`."
+> "Si un objet a les propriétés `nom: string` et `age: number`, alors il est compatible avec tout type qui exige `nom: string` et `age: number`."
 
 ```typescript
 // Peu importe le "nom" du type — seule la STRUCTURE compte
@@ -649,7 +649,7 @@ const point2d: Point2D = point3d; // OK !
 
 ### Le comportement particulier
 
-TypeScript a un comportement **special** quand on assigne un **objet literal** directement :
+TypeScript à un comportement **special** quand on assigne un **objet literal** directement :
 
 ```typescript
 interface Config {
@@ -680,7 +680,7 @@ const config2 = {
 } as Config; // OK (mais on perd la verification)
 ```
 
-### Pourquoi cette difference ?
+### Pourquoi cette différence ?
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -739,7 +739,7 @@ const options3 = {
 
 ### Syntaxe
 
-Les index signatures permettent de definir des objets avec des **cles dynamiques** :
+Les index signatures permettent de définir des objets avec des **clés dynamiques** :
 
 ```typescript
 // Objet avec des cles string et des valeurs number
@@ -762,7 +762,7 @@ const scoreAlice: number = scores["Alice"]; // 150
 const scoreInconnu: number = scores["Inconnu"]; // undefined au runtime, mais type number !
 ```
 
-### Types de cles possibles
+### Types de clés possibles
 
 ```typescript
 // Cle string — la plus courante
@@ -897,7 +897,7 @@ const entreprise: Entreprise = {
 };
 ```
 
-### Acceder aux proprietes imbriquees
+### Acceder aux propriétés imbriquees
 
 ```typescript
 // Acces direct
@@ -923,7 +923,7 @@ console.log(ville ?? "Ville inconnue");
 
 ### Concept
 
-L'intersection `&` combine plusieurs types en un seul. L'objet resultant doit avoir **toutes** les proprietes de chaque type :
+L'intersection `&` combine plusieurs types en un seul. L'objet resultant doit avoir **toutes** les propriétés de chaque type :
 
 ```typescript
 // Deux types de base
@@ -1045,7 +1045,7 @@ const formulaire: Formulaire = {
 
 ### Les regles
 
-TypeScript verifie la compatibilite structurelle. Voici les regles principales :
+TypeScript vérifié la compatibilite structurelle. Voici les regles principales :
 
 ```typescript
 // Regle 1 : Un type avec PLUS de proprietes est assignable a un type avec MOINS
@@ -1095,7 +1095,7 @@ La compatibilite de types, c'est comme les **prises electriques** :
 
 ### Exercice 1 — Modeliser un blog
 
-Cree les interfaces pour un systeme de blog avec :
+Cree les interfaces pour un système de blog avec :
 - `Auteur` (id, nom, email, bio optionnelle)
 - `Article` (id, titre, contenu, auteur, datePublication, tags, commentaires)
 - `Commentaire` (id, auteur, contenu, date, likes)
@@ -1160,7 +1160,7 @@ const article: Article = {
 
 ### Exercice 2 — Structural typing
 
-Sans executer le code, determine si chaque assignation est valide ou provoque une erreur :
+Sans exécuter le code, déterminé si chaque assignation est valide ou provoque une erreur :
 
 ```typescript
 interface Vehicule {
@@ -1264,12 +1264,12 @@ type CreerUtilisateur = Omit<Utilisateur, "id">;
 
 ### Exercice 4 — Composition avec intersections
 
-Cree un systeme de types pour des entites de base de donnees en utilisant la composition :
+Cree un système de types pour des entites de base de donnees en utilisant la composition :
 
 1. Un type `Timestamps` avec `createdAt` et `updatedAt`
 2. Un type `SoftDeletable` avec `deletedAt` optionnel et `isDeleted`
 3. Un type `Versionnable` avec `version` (number)
-4. Compose ces types pour creer `Article` et `Commentaire`
+4. Compose ces types pour créer `Article` et `Commentaire`
 
 <details>
 <summary>Solution</summary>
@@ -1344,8 +1344,8 @@ console.log(commentaire.contenu);
 
 ### Exercice 5 — Index signatures et readonly
 
-Cree un type `Dictionnaire` pour un dictionnaire francais-anglais :
-- Les cles sont des mots francais (string)
+Cree un type `Dictionnaire` pour un dictionnaire français-anglais :
+- Les clés sont des mots français (string)
 - Les valeurs sont des objets avec la traduction anglaise et une phrase d'exemple optionnelle
 - Le dictionnaire est readonly (on ne peut pas modifier les entrees existantes)
 - Cree une fonction `chercher` qui retourne la traduction ou "Mot inconnu"
@@ -1415,7 +1415,7 @@ console.log(chercher(dictionnaire, "ordinateur"));
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -1463,7 +1463,17 @@ Dans le prochain module, **04 — Union, Intersection & Narrowing**, nous allons
 - Les **union types** et les **discriminated unions** (unions discriminees)
 - Le **type narrowing** avec `typeof`, `instanceof`, `in`, et les comparaisons
 - Les **type guards custom** (predicates `is`)
-- La verification **exhaustive** avec `never`
+- La vérification **exhaustive** avec `never`
 - L'analyse du **control flow** par TypeScript
 
-> **Conseil** : Entraine-toi a creer des interfaces et des type aliases pour des structures de donnees reelles (API, bases de donnees, formulaires). La modelisation des types est une competence cle en TypeScript.
+> **Conseil** : Entraine-toi a créer des interfaces et des type aliases pour des structures de donnees reelles (API, bases de donnees, formulaires). La modelisation des types est une compétence clé en TypeScript.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 03 objets interfaces](../screencasts/screencast-03-objets-interfaces.md)
+2. **Lab** : [lab-03-objets-interfaces](../labs/lab-03-objets-interfaces/README)
+3. **Quiz** : [quiz 03 objets interfaces](../quizzes/quiz-03-objets-interfaces.html)
+:::

@@ -2,13 +2,13 @@
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 2/5
-> **Prerequis** : Modules 01 a 07 (types de base, fonctions, interfaces, unions, classes, generics)
+> **Prérequis** : Modules 01 a 07 (types de base, fonctions, interfaces, unions, classes, generics)
 > **Objectifs** :
 >
-> - Maitriser les enums numeriques, string et const
+> - Maîtriser les enums numériques, string et const
 > - Savoir quand utiliser les enums vs les unions de litteraux
 > - Comprendre les tuples, tuples readonly et tuples nommes
-> - Maitriser le type `never` et son role dans l'exhaustivite
+> - Maîtriser le type `never` et son role dans l'exhaustivite
 > - Utiliser `unknown` comme alternative securisee a `any`
 > - Distinguer `void`, `undefined` et `null`
 > - Decouvrir `symbol` et `unique symbol`
@@ -18,25 +18,25 @@
 
 ## Introduction
 
-TypeScript possede plusieurs types "speciaux" qui jouent des roles fondamentaux dans le systeme de types. Ce module explore ces types en profondeur : les **enums** pour les ensembles de constantes, les **tuples** pour les tableaux a structure fixe, et les types `never`, `unknown` et `void` qui forment la colonne vertebrale du systeme de types.
+TypeScript possede plusieurs types "speciaux" qui jouent des roles fondamentaux dans le système de types. Ce module explore ces types en profondeur : les **enums** pour les ensembles de constantes, les **tuples** pour les tableaux a structure fixe, et les types `never`, `unknown` et `void` qui forment la colonne vertebrale du système de types.
 
 ### Analogie : les roles dans un theatre
 
-Chaque type special joue un **role precis** dans la piece qu'est votre programme :
+Chaque type special joue un **role précis** dans la piece qu'est votre programme :
 - **`never`** : l'acteur qui ne monte jamais sur scene (le type impossible)
 - **`unknown`** : l'acteur masque dont on ne connait pas l'identite (il faut le devoiler)
 - **`void`** : l'acteur silencieux qui joue mais ne dit rien (aucune valeur retournee)
-- **`any`** : l'acteur qui accepte tous les roles (dangereux, pas de verification)
+- **`any`** : l'acteur qui accepte tous les roles (dangereux, pas de vérification)
 
 ---
 
 ## Les Enums
 
-Les **enums** (enumerations) permettent de definir un ensemble de constantes nommees. Ils existent a la fois au niveau des types ET au niveau des valeurs (ils generent du code JavaScript).
+Les **enums** (enumerations) permettent de définir un ensemble de constantes nommees. Ils existent à la fois au niveau des types ET au niveau des valeurs (ils generent du code JavaScript).
 
-### Enums numeriques
+### Enums numériques
 
-Par defaut, les enums sont numeriques. Les valeurs commencent a 0 et s'incrementent automatiquement.
+Par defaut, les enums sont numériques. Les valeurs commencent a 0 et s'incrementent automatiquement.
 
 ```typescript
 // Enum numerique basique
@@ -134,7 +134,7 @@ enum Melange {
 
 ### `const enum`
 
-Les `const enum` sont **completement effaces** a la compilation. Ils sont remplaces par leurs valeurs litterales, ce qui elimine le surpoids a l'execution.
+Les `const enum` sont **complètement effaces** à la compilation. Ils sont remplaces par leurs valeurs litterales, ce qui elimine le surpoids a l'exécution.
 
 ```typescript
 const enum Priorite {
@@ -161,7 +161,7 @@ console.log(estUrgent(Priorite.Basse));    // false
 
 ### Enums ambiants (declare enum)
 
-Les enums ambiants sont utilises pour decrire des enums qui existent deja dans le runtime (par exemple, venant d'une bibliotheque externe).
+Les enums ambiants sont utilises pour decrire des enums qui existent déjà dans le runtime (par exemple, venant d'une bibliotheque externe).
 
 ```typescript
 // Fichier .d.ts ou ambient declaration
@@ -215,18 +215,18 @@ type StatutCommandeConst = typeof STATUT_COMMANDE[keyof typeof STATUT_COMMANDE];
 |-----------------------------|---------------------|-----------------------|-----------------------|
 | Existe au runtime           | Oui                 | Non                   | Oui                   |
 | Taille du bundle            | Plus grand          | Zero                  | Petit                 |
-| Reverse mapping             | Oui (numerique)     | Non                   | Non                   |
+| Reverse mapping             | Oui (numérique)     | Non                   | Non                   |
 | Tree-shakable               | Non (sauf const)    | Oui                   | Oui                   |
 | Iteration sur les valeurs   | Oui                 | Non (au runtime)      | Oui                   |
 | Compatible isolatedModules  | Partiel             | Oui                   | Oui                   |
 
-> **Recommandation** : Pour les nouveaux projets, preferez les **unions de litteraux** ou les **objets `as const`**. N'utilisez les enums que si vous avez besoin du reverse mapping ou de la valeur au runtime de maniere specifique.
+> **Recommandation** : Pour les nouveaux projets, preferez les **unions de litteraux** ou les **objets `as const`**. N'utilisez les enums que si vous avez besoin du reverse mapping ou de la valeur au runtime de manière spécifique.
 
 ---
 
 ## Les Tuples
 
-Les **tuples** sont des tableaux a **longueur fixe** dont chaque position a un **type specifique**. Contrairement aux tableaux classiques (`string[]`), les tuples declarent le type exact de chaque element.
+Les **tuples** sont des tableaux a **longueur fixe** dont chaque position à un **type spécifique**. Contrairement aux tableaux classiques (`string[]`), les tuples declarent le type exact de chaque élément.
 
 ### Tuples basiques
 
@@ -248,7 +248,7 @@ const [nomU, ageU, actifU] = utilisateur;
 // nomU: string, ageU: number, actifU: boolean
 ```
 
-### Tuples avec elements optionnels
+### Tuples avec éléments optionnels
 
 ```typescript
 // Le troisieme element est optionnel
@@ -264,7 +264,7 @@ const valeurs: StringEtNombres = ["total", 1, 2, 3, 4, 5]; // OK
 
 ### Tuples readonly
 
-Les tuples `readonly` empechent toute modification apres creation.
+Les tuples `readonly` empechent toute modification après création.
 
 ```typescript
 // Tuple readonly
@@ -287,7 +287,7 @@ const p = creerPoint(5, 10);
 
 ### Tuples nommes (labeled tuples)
 
-Depuis TypeScript 4.0, les tuples peuvent avoir des **noms** pour chaque element, ameliorant la lisibilite.
+Depuis TypeScript 4.0, les tuples peuvent avoir des **noms** pour chaque élément, ameliorant la lisibilite.
 
 ```typescript
 // Tuples nommes — les noms apparaissent dans l'IDE et les messages d'erreur
@@ -335,7 +335,7 @@ const s: Sandwich = ["debut", 1, 2, 3, "fin"]; // OK
 
 ## Le type `never`
 
-`never` est le **type du bas** (bottom type) dans la hierarchie des types TypeScript. Il represente quelque chose qui **ne peut jamais se produire**. Aucune valeur n'est de type `never`.
+`never` est le **type du bas** (bottom type) dans la hiérarchie des types TypeScript. Il represente quelque chose qui **ne peut jamais se produire**. Aucune valeur n'est de type `never`.
 
 ### Fonctions qui ne retournent jamais
 
@@ -364,7 +364,7 @@ function validerAge(age: number): number {
 
 ### `never` et l'exhaustivite
 
-L'utilisation la plus puissante de `never` est la **verification d'exhaustivite** dans les switch/if.
+L'utilisation la plus puissante de `never` est la **vérification d'exhaustivite** dans les switch/if.
 
 ```typescript
 type Forme =
@@ -460,7 +460,7 @@ type SousObjetString = Pick<Utilisateur, ProprietesDeType<Utilisateur, string>>;
 - `T | never` = `T` (union avec `never` ne change rien, comme `n + 0 = n`)
 - `T & never` = `never` (intersection avec `never` donne `never`, comme `n * 0 = 0`)
 
-C'est l'element **absorbant** de l'intersection et l'element **neutre** de l'union.
+C'est l'élément **absorbant** de l'intersection et l'élément **neutre** de l'union.
 
 ---
 
@@ -629,7 +629,7 @@ function traiterReponseAPI(donnees: unknown): Utilisateur[] {
 
 ## `void` vs `undefined` vs `null`
 
-Ces trois types sont souvent confondus. Voici leurs differences.
+Ces trois types sont souvent confondus. Voici leurs différences.
 
 ### `void`
 
@@ -714,9 +714,9 @@ console.log(resultat?.nom ?? "Inconnu"); // "Inconnu" si null
 
 | Situation                            | Recommandation       |
 |--------------------------------------|----------------------|
-| Propriete optionnelle                | `undefined` (`?`)    |
-| Absence de resultat intentionnelle   | `null`               |
-| Parametre non fourni                 | `undefined`          |
+| Propriété optionnelle                | `undefined` (`?`)    |
+| Absence de résultat intentionnelle   | `null`               |
+| Paramètre non fourni                 | `undefined`          |
 | Valeur pas encore initialisee        | `undefined`          |
 | Valeur volontairement vide           | `null`               |
 
@@ -724,7 +724,7 @@ console.log(resultat?.nom ?? "Inconnu"); // "Inconnu" si null
 
 ## `symbol` et `unique symbol`
 
-Le type `symbol` represente des valeurs uniques et immuables, souvent utilisees comme cles de proprietes.
+Le type `symbol` represente des valeurs uniques et immuables, souvent utilisees comme clés de propriétés.
 
 ### `symbol` basique
 
@@ -759,7 +759,7 @@ svc.traiter(); // OK
 
 ### `unique symbol`
 
-`unique symbol` est un sous-type de `symbol` qui represente un symbole specifique. Il ne peut etre utilise qu'avec `const` ou `readonly static`.
+`unique symbol` est un sous-type de `symbol` qui represente un symbole spécifique. Il ne peut etre utilise qu'avec `const` ou `readonly static`.
 
 ```typescript
 // `unique symbol` — chaque declaration est un type unique
@@ -806,9 +806,9 @@ bouton.disabled = true;
 const element = document.querySelector(".classe")!; // Assert que ce n'est pas null
 ```
 
-### Double assertion (a eviter si possible)
+### Double assertion (a éviter si possible)
 
-Quand TypeScript refuse une assertion directe parce que les types sont trop differents, on peut passer par `unknown`.
+Quand TypeScript refuse une assertion directe parce que les types sont trop différents, on peut passer par `unknown`.
 
 ```typescript
 // TypeScript refuse ceci :
@@ -836,7 +836,7 @@ function traiter(reponse: ReponseServeur): DonneesUtilisateur {
 
 ### `satisfies` (TypeScript 4.9+)
 
-L'operateur `satisfies` verifie qu'une valeur correspond a un type **sans elargir** le type de la variable.
+L'operateur `satisfies` vérifié qu'une valeur correspond à un type **sans elargir** le type de la variable.
 
 ```typescript
 type Couleurs = "rouge" | "vert" | "bleu";
@@ -895,7 +895,7 @@ type Mode = typeof CONFIG.MODES[number]; // "dev" | "staging" | "prod"
 
 ### Exercice 1 : Exhaustivite avec `never`
 
-Creez un systeme de gestion de formes geometriques avec verification d'exhaustivite. Commencez avec 3 formes, puis ajoutez une 4e et observez l'erreur.
+Creez un système de gestion de formes geometriques avec vérification d'exhaustivite. Commencez avec 3 formes, puis ajoutez une 4e et observez l'erreur.
 
 <details>
 <summary>Solution</summary>
@@ -957,7 +957,7 @@ formes.forEach((f) => {
 
 ### Exercice 2 : Parseur JSON type-safe avec `unknown`
 
-Creez une fonction qui parse du JSON en toute securite et valide la structure attendue.
+Creez une fonction qui parse du JSON en toute sécurité et valide la structure attendue.
 
 <details>
 <summary>Solution</summary>
@@ -1033,9 +1033,9 @@ console.log(parserJSON(jsonTableau, estTableauDeProduits));
 
 </details>
 
-### Exercice 3 : Systeme de configuration avec tuples et enums
+### Exercice 3 : Système de configuration avec tuples et enums
 
-Creez un systeme de configuration d'application utilisant des enums, tuples et `as const`.
+Creez un système de configuration d'application utilisant des enums, tuples et `as const`.
 
 <details>
 <summary>Solution</summary>
@@ -1137,7 +1137,7 @@ log(configProd, NiveauLog.Error, "Erreur en prod");    // Affiche
 
 ### Exercice 4 : Convertisseur de types avec `unknown` et narrowing
 
-Creez un convertisseur universel qui transforme une valeur `unknown` en differents types cibles.
+Creez un convertisseur universel qui transforme une valeur `unknown` en différents types cibles.
 
 <details>
 <summary>Solution</summary>
@@ -1223,30 +1223,41 @@ console.log(a); // [1, 2, 3]
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Type / Concept      | Description                                                     |
 |----------------------|-----------------------------------------------------------------|
-| `enum` numerique     | Ensemble de constantes numeriques auto-incrementees              |
+| `enum` numérique     | Ensemble de constantes numériques auto-incrementees              |
 | `enum` string        | Ensemble de constantes string explicites                        |
-| `const enum`         | Enum efface a la compilation (inline)                            |
+| `const enum`         | Enum efface à la compilation (inline)                            |
 | Union de litteraux   | Alternative legere aux enums (`"a" \| "b" \| "c"`)             |
 | `as const`           | Fige les valeurs comme litterales et readonly                    |
 | Tuple                | Tableau a longueur et types fixes par position                   |
 | Tuple readonly       | Tuple immutable                                                  |
 | Tuple nomme          | Tuple avec des labels pour chaque position                       |
 | `never`              | Type du bas — aucune valeur possible                             |
-| Exhaustivite         | Utiliser `never` pour verifier que tous les cas sont geres      |
-| `unknown`            | Type du haut securise — necessite du narrowing                   |
+| Exhaustivite         | Utiliser `never` pour vérifier que tous les cas sont geres      |
+| `unknown`            | Type du haut sécurisé — nécessité du narrowing                   |
 | `void`               | Absence de valeur de retour                                      |
 | `symbol`             | Valeur unique et immuable                                        |
-| `unique symbol`      | Symbole specifique lie a une declaration `const`                |
-| `satisfies`          | Verification de type sans elargissement                          |
+| `unique symbol`      | Symbole spécifique lie à une declaration `const`                |
+| `satisfies`          | Vérification de type sans elargissement                          |
 
 ---
 
 ## Pour aller plus loin
 
-Dans le **Module 09**, nous aborderons les **Modules, Namespaces et Resolution** — comment organiser votre code TypeScript en modules, gerer les imports/exports, configurer la resolution de modules dans tsconfig, et travailler avec des declarations ambiantes.
+Dans le **Module 09**, nous aborderons les **Modules, Namespaces et Resolution** — comment organiser votre code TypeScript en modules, gérer les imports/exports, configurer la résolution de modules dans tsconfig, et travailler avec des declarations ambiantes.
 
 [Continuer vers le Module 09 : Modules, Namespaces & Resolution →](./09-modules-et-resolution.md)
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 08 enums tuples](../screencasts/screencast-08-enums-tuples.md)
+2. **Lab** : [lab-08-enums-tuples](../labs/lab-08-enums-tuples/README)
+3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
+4. **Quiz** : [quiz 08 enums tuples](../quizzes/quiz-08-enums-tuples.html)
+:::

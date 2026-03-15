@@ -4,8 +4,8 @@
 |-------------|------------------------------------------------------------------------|
 | **Duree**       | 6 heures                                                              |
 | **Difficulte**  | 5/5                                                                    |
-| **Prerequis**   | Modules 1-18, tous les concepts du cours                              |
-| **Objectifs**   | Creer une bibliotheque TypeScript complete, testee, documentee et publiable |
+| **Prérequis**   | Modules 1-18, tous les concepts du cours                              |
+| **Objectifs**   | Créer une bibliotheque TypeScript complete, testee, documentee et publiable |
 
 ---
 
@@ -17,18 +17,18 @@ appris tout au long du cours.
 
 > **Analogie de la boite a outils** : Imaginez un artisan qui fabrique sa propre
 > boite a outils. Chaque outil est soigneusement concu, teste, et documente.
-> A la fin, il a un kit complet qu'il peut reutiliser dans tous ses projets.
+> A la fin, il à un kit complet qu'il peut réutiliser dans tous ses projets.
 > C'est exactement ce que nous allons faire avec TypeScript.
 
 ### Ce que nous allons construire
 
-1. **EventEmitter type-safe** — systeme d'evenements avec types generiques
+1. **EventEmitter type-safe** — système d'événements avec types génériques
 2. **Result<T, E> monad** — gestion d'erreurs fonctionnelle
-3. **Conteneur DI type-safe** — injection de dependances
+3. **Conteneur DI type-safe** — injection de dépendances
 4. **pipe/compose** — composition de fonctions
 5. **Schema validation** — un mini-Zod
 6. **Deep merge type-safe** — fusion profonde d'objets
-7. **Path-typed object access** — acces type par chemin de proprietes
+7. **Path-typed object access** — acces type par chemin de propriétés
 8. **Tests** avec Vitest
 9. **Documentation** avec TSDoc
 10. **Build** avec tsup et publication simulee
@@ -706,7 +706,7 @@ export class Container<Services extends Record<string, unknown>> {
  *
  * @example
  * ```typescript
- * const resultat = pipe(
+ * const résultat = pipe(
  *   "  bonjour  ",
  *   s => s.trim(),
  *   s => s.toUpperCase(),
@@ -1128,7 +1128,7 @@ class SchemaArray<T> implements SchemaBase<T[]> {
  *   age: s.number().int().min(0),
  * });
  *
- * const resultat = schemaUtilisateur.parse({ nom: "Alice", email: "a@b.c", age: 30 });
+ * const résultat = schemaUtilisateur.parse({ nom: "Alice", email: "a@b.c", age: 30 });
  * ```
  */
 export const s = {
@@ -1781,7 +1781,7 @@ npx tsup
 du -sh dist/
 ```
 
-### Verification pre-publication
+### Vérification pre-publication
 
 ```bash
 # Verifier les types
@@ -1902,7 +1902,7 @@ const schema = sExtended.object({
 
 ### Exercice 2 : Ajouter un middleware au Container
 
-Ajoutez un systeme de middleware au conteneur DI pour intercepter les appels :
+Ajoutez un système de middleware au conteneur DI pour intercepter les appels :
 
 <details>
 <summary>Solution</summary>
@@ -1984,7 +1984,7 @@ calc.additionner(2, 3); // Log: [calculatrice] additionner appele avec [2, 3]
 
 </details>
 
-### Exercice 3 : Creer un test d'integration complet
+### Exercice 3 : Créer un test d'intégration complet
 
 Ecrivez un test qui utilise TOUS les modules ensemble :
 
@@ -2075,7 +2075,7 @@ describe("Integration complete", () => {
 
 ---
 
-## Recapitulatif du projet
+## Récapitulatif du projet
 
 | Module            | Fichier              | Lignes | Concepts utilises                       |
 |-------------------|----------------------|--------|------------------------------------------|
@@ -2102,13 +2102,34 @@ pour continuer a progresser :
 2. **Lire le code source de Zod** — Comprendre comment une vraie bibliotheque
    de validation type-safe est construite
 
-3. **Etudier le compilateur TypeScript** — Le code source de `tsc` est lui-meme
-   ecrit en TypeScript et est une mine d'or d'apprentissage
+3. **Etudier le compilateur TypeScript** — Le code source de `tsc` est lui-même
+   écrit en TypeScript et est une mine d'or d'apprentissage
 
-4. **Creer un framework type-safe** — Appliquez les patterns appris pour creer
+4. **Créer un framework type-safe** — Appliquez les patterns appris pour créer
    un petit framework web ou un ORM type-safe
 
 5. **Suivre le TypeScript Blog** — Les annonces de nouvelles versions expliquent
-   les nouvelles fonctionnalites du systeme de types
+   les nouvelles fonctionnalites du système de types
 
 Bonne continuation dans votre parcours TypeScript !
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 19 projet final](../screencasts/screencast-19-projet-final.md)
+2. **Lab** : [lab-19-projet-final](../labs/lab-19-projet-final/README)
+3. **Quiz** : [quiz 19 projet final](../quizzes/quiz-19-projet-final.html)
+:::
+
+---
+
+<!-- navigation-inter-cours -->
+
+::: info Cours suivant
+Bravo, tu as termine le cours **TypeScript** ! 
+Le prochain cours du curriculum est **JS Runtime**.
+
+[Commencer JS Runtime →](../../02-js-runtime/modules/00-prerequis-et-vue-ensemble.md)
+:::

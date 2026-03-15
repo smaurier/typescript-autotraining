@@ -4,8 +4,8 @@
 |-------------|------------------------------------------------------------------------|
 | **Duree**       | 3h30                                                                  |
 | **Difficulte**  | 4/5                                                                    |
-| **Prerequis**   | Modules 1-15, systeme de modules, generics, variance                  |
-| **Objectifs**   | Maitriser les fichiers .d.ts, l'augmentation de modules, le merging   |
+| **Prérequis**   | Modules 1-15, système de modules, generics, variance                  |
+| **Objectifs**   | Maîtriser les fichiers .d.ts, l'augmentation de modules, le merging   |
 
 ---
 
@@ -19,7 +19,7 @@ sait-il quels types ces bibliotheques exposent ? Grace aux **fichiers de declara
 > **Analogie du dictionnaire** : Un fichier `.d.ts` est comme un dictionnaire
 > bilingue. Le code JavaScript est la "langue etrangere", et le fichier `.d.ts`
 > est la traduction en "TypeScript". Il ne contient aucune logique, juste les
-> definitions de types qui permettent a TypeScript de comprendre la forme du code JS.
+> définitions de types qui permettent a TypeScript de comprendre la forme du code JS.
 
 ---
 
@@ -28,7 +28,7 @@ sait-il quels types ces bibliotheques exposent ? Grace aux **fichiers de declara
 ### Qu'est-ce qu'un fichier .d.ts ?
 
 Un fichier `.d.ts` (declaration file) contient uniquement des **declarations de type**.
-Il ne produit aucun code JavaScript a la compilation — c'est une description pure
+Il ne produit aucun code JavaScript à la compilation — c'est une description pure
 des types.
 
 ```typescript
@@ -122,11 +122,11 @@ declare namespace MathUtils {
 
 ---
 
-## Generation automatique de declarations
+## Génération automatique de declarations
 
 ### tsc --declaration
 
-TypeScript peut generer automatiquement les fichiers `.d.ts` a partir de votre code :
+TypeScript peut générer automatiquement les fichiers `.d.ts` à partir de votre code :
 
 ```json
 // tsconfig.json
@@ -204,12 +204,12 @@ export type Operation = "addition" | "soustraction" | "multiplication" | "divisi
 
 ---
 
-## Triple-slash references
+## Triple-slash références
 
 ### Syntaxe et usage
 
 Les directives triple-slash sont des commentaires speciaux qui indiquent des
-dependances entre fichiers de declaration :
+dépendances entre fichiers de declaration :
 
 ```typescript
 // types/global.d.ts
@@ -224,7 +224,7 @@ dependances entre fichiers de declaration :
 // Inclut une bibliotheque standard (lib.dom.d.ts)
 ```
 
-### Quand utiliser les triple-slash references
+### Quand utiliser les triple-slash références
 
 ```typescript
 // CAS 1 : Fichiers .d.ts qui dependent d'autres declarations
@@ -720,7 +720,7 @@ console.log(Statut.description(Statut.Suspendu)); // "Le compte est..."
 
 ---
 
-## Creer un package de types
+## Créer un package de types
 
 ### Structure d'un package @types
 
@@ -827,9 +827,9 @@ export declare function creerInstance(
 
 ---
 
-## Ecrire des .d.ts pour des bibliotheques JS existantes
+## Écrire des .d.ts pour des bibliotheques JS existantes
 
-### Strategie generale
+### Stratégie générale
 
 ```typescript
 // Etape 1 : Analyser l'API de la bibliotheque JS
@@ -994,7 +994,7 @@ import { creerUtilisateur, type Utilisateur } from "./services";
 
 ## Pratique
 
-### Exercice 1 : Ecrire un fichier .d.ts
+### Exercice 1 : Écrire un fichier .d.ts
 
 Ecrivez les declarations de type pour cette bibliotheque JavaScript imaginaire :
 
@@ -1147,7 +1147,7 @@ export { JournalRequete };
 
 ### Exercice 3 : Declaration merging
 
-Utilisez la fusion de declarations pour creer un module complet avec types,
+Utilisez la fusion de declarations pour créer un module complet avec types,
 fonctions factory, et constantes :
 
 ```typescript
@@ -1292,7 +1292,7 @@ export {};
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept                    | Description                                              |
 |----------------------------|----------------------------------------------------------|
@@ -1300,10 +1300,10 @@ export {};
 | **declare**                | Indique qu'une implementation existe ailleurs            |
 | **declare module**         | Declare les types d'un module JS ou augmente un existant |
 | **declare global**         | Ajoute des types a l'espace global                       |
-| **Triple-slash**           | References entre fichiers de declaration                 |
+| **Triple-slash**           | Références entre fichiers de declaration                 |
 | **Declaration merging**    | Fusion automatique d'interfaces, namespaces, etc.        |
 | **@types/**                | Packages de types de DefinitelyTyped                     |
-| **tsc --declaration**      | Generation automatique de .d.ts depuis le code TS        |
+| **tsc --declaration**      | Génération automatique de .d.ts depuis le code TS        |
 | **declarationMap**         | Source maps pour naviguer vers les sources depuis .d.ts  |
 | **verbatimModuleSyntax**   | Force `import type` pour les types purs                  |
 
@@ -1312,10 +1312,21 @@ export {};
 ## Pour aller plus loin
 
 Dans le prochain module, **Module 17 — Configuration avancee & Performance du
-compilateur**, nous verrons comment configurer TypeScript de maniere optimale
-avec `tsconfig.json`, gerer les project references, et optimiser les performances
+compilateur**, nous verrons comment configurer TypeScript de manière optimale
+avec `tsconfig.json`, gérer les project références, et optimiser les performances
 de compilation dans les grands projets et monorepos.
 
-La maitrise des fichiers de declaration est essentielle pour comprendre comment
+La maîtrise des fichiers de declaration est essentielle pour comprendre comment
 TypeScript resout les types et comment configurer correctement les chemins et
-references dans `tsconfig.json`.
+références dans `tsconfig.json`.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 16 declaration files](../screencasts/screencast-16-declaration-files.md)
+2. **Lab** : [lab-16-declaration-files](../labs/lab-16-declaration-files/README)
+3. **Visualisation** : [Module Resolution](../visualizations/module-resolution.html)
+4. **Quiz** : [quiz 16 declaration files](../quizzes/quiz-16-declaration-files.html)
+:::

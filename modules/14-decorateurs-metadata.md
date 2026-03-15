@@ -2,24 +2,24 @@
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 3/5
-> **Prerequis** : Classes TypeScript, generics, bases du systeme de types
+> **Prérequis** : Classes TypeScript, generics, bases du système de types
 > **Objectifs** :
-> - Comprendre la difference entre les decorateurs experimentaux et Stage 3
-> - Maitriser la syntaxe des decorateurs Stage 3
-> - Creer des decorateurs pour classes, methodes, proprietes et accesseurs
+> - Comprendre la différence entre les decorateurs experimentaux et Stage 3
+> - Maîtriser la syntaxe des decorateurs Stage 3
+> - Créer des decorateurs pour classes, méthodes, propriétés et accesseurs
 > - Utiliser les decorateur factories et la composition
 > - Decouvrir reflect-metadata et ses applications
-> - Voir des cas d'usage reels : logging, validation, DI, serialisation
+> - Voir des cas d'usage réels : logging, validation, DI, serialisation
 
 ---
 
 ## Introduction
 
-Les **decorateurs** sont un mecanisme de **metaprogrammation** qui permet de modifier ou d'enrichir le comportement de classes, methodes, proprietes et accesseurs a l'aide d'une syntaxe declarative `@decorator`.
+Les **decorateurs** sont un mécanisme de **metaprogrammation** qui permet de modifier ou d'enrichir le comportement de classes, méthodes, propriétés et accesseurs a l'aide d'une syntaxe declarative `@decorator`.
 
 ### Analogie
 
-Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration** que vous ajoutez par-dessus : du glaçage, des bougies, des fruits. Le gateau reste le meme en dessous, mais son apparence et parfois son gout changent. De la meme facon, un decorateur enrichit une classe sans modifier son code source interne.
+Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration** que vous ajoutez par-dessus : du glaçage, des bougies, des fruits. Le gateau reste le même en dessous, mais son apparence et parfois son gout changent. De la même façon, un decorateur enrichit une classe sans modifier son code source interne.
 
 ### Historique : experimentaux vs Stage 3
 
@@ -69,7 +69,7 @@ Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration**
 }
 ```
 
-> **Important** : Les deux systemes sont **incompatibles**. Un projet utilise l'un ou l'autre, jamais les deux.
+> **Important** : Les deux systèmes sont **incompatibles**. Un projet utilise l'un ou l'autre, jamais les deux.
 
 ---
 
@@ -78,7 +78,7 @@ Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration**
 ### Syntaxe d'un decorateur
 
 Un decorateur Stage 3 est simplement une **fonction** qui recoit deux arguments :
-1. La **valeur** decoree (la classe, la methode, etc.)
+1. La **valeur** decoree (la classe, la méthode, etc.)
 2. Un objet **contexte** avec des metadonnees
 
 ```typescript
@@ -192,7 +192,7 @@ if (ClasseService) {
 
 ---
 
-## Method Decorators (Decorateurs de methode)
+## Method Decorators (Decorateurs de méthode)
 
 ### Decorateur de logging
 
@@ -274,7 +274,7 @@ traitement.trier([5, 3, 8, 1, 9, 2]);
 // [PERF] trier : 0.05ms
 ```
 
-### Decorateur pour les methodes async
+### Decorateur pour les méthodes async
 
 ```typescript
 // Gerer les erreurs automatiquement dans les methodes async
@@ -328,11 +328,11 @@ class ApiClient {
 
 ---
 
-## Property Decorators (Decorateurs de propriete)
+## Property Decorators (Decorateurs de propriété)
 
 ### Decorateur avec auto-accessor
 
-En Stage 3, les decorateurs de propriete necessitent le mot-cle `accessor` pour pouvoir intercepter les lectures et ecritures.
+En Stage 3, les decorateurs de propriété necessitent le mot-clé `accessor` pour pouvoir intercepter les lectures et ecritures.
 
 ```typescript
 // Validation automatique d'une propriete
@@ -643,7 +643,7 @@ ex.saluer();
 
 ### Analogie de la composition
 
-La composition de decorateurs fonctionne comme des **poupees russes** (matriochkas) : chaque decorateur enveloppe le precedent. L'appel traverse les couches de l'exterieur vers l'interieur, puis revient de l'interieur vers l'exterieur.
+La composition de decorateurs fonctionne comme des **poupees russes** (matriochkas) : chaque decorateur enveloppe le précédent. L'appel traverse les couches de l'exterieur vers l'interieur, puis revient de l'interieur vers l'exterieur.
 
 ```
 Appel -> [Premier] -> [Deuxieme] -> [Methode originale]
@@ -656,7 +656,7 @@ Retour <- [Premier] <- [Deuxieme] <- [Methode originale]
 
 ### Qu'est-ce que reflect-metadata ?
 
-`reflect-metadata` est une bibliotheque qui permet d'**attacher des metadonnees** a des classes, methodes et proprietes. Elle fonctionne avec les decorateurs experimentaux.
+`reflect-metadata` est une bibliotheque qui permet d'**attacher des metadonnees** a des classes, méthodes et propriétés. Elle fonctionne avec les decorateurs experimentaux.
 
 ```bash
 npm install reflect-metadata
@@ -703,7 +703,7 @@ console.log(typeNom); // "string"
 
 ### emitDecoratorMetadata
 
-Avec `"emitDecoratorMetadata": true`, TypeScript emet automatiquement des metadonnees sur les types des parametres, du retour et des proprietes.
+Avec `"emitDecoratorMetadata": true`, TypeScript emet automatiquement des metadonnees sur les types des paramètres, du retour et des propriétés.
 
 ```typescript
 // Avec emitDecoratorMetadata: true
@@ -727,9 +727,9 @@ class ServiceExemple {
 
 ---
 
-## Cas d'usage reels
+## Cas d'usage réels
 
-### 1. Systeme de validation
+### 1. Système de validation
 
 ```typescript
 // Decorateurs de validation complets
@@ -827,7 +827,7 @@ console.log(erreurs);
 // ]
 ```
 
-### 2. Injection de dependances (DI) simplifiee
+### 2. Injection de dépendances (DI) simplifiee
 
 ```typescript
 // Un conteneur DI simple utilisant des decorateurs
@@ -1079,7 +1079,7 @@ class CreerUtilisateurDTO {
 
 ### Exercice 1 : Decorateur @Deprecated
 
-Creez un decorateur `@Deprecated` qui affiche un avertissement quand une methode est appelee.
+Creez un decorateur `@Deprecated` qui affiche un avertissement quand une méthode est appelee.
 
 <details>
 <summary>Solution</summary>
@@ -1158,7 +1158,7 @@ api.obtenirDonnees(); // Pas de deuxieme avertissement
 
 ### Exercice 2 : Decorateur @Retry
 
-Creez un decorateur qui relance automatiquement une methode async en cas d'echec.
+Creez un decorateur qui relance automatiquement une méthode async en cas d'echec.
 
 <details>
 <summary>Solution</summary>
@@ -1229,7 +1229,7 @@ const resultat = await service.appelerAPI("/api/donnees");
 
 ### Exercice 3 : Decorateur @Memoize
 
-Creez un decorateur qui met en cache les resultats d'une methode pure.
+Creez un decorateur qui met en cache les résultats d'une méthode pure.
 
 <details>
 <summary>Solution</summary>
@@ -1319,7 +1319,7 @@ console.log(maths.fibonacci(10)); // Retourne directement du cache
 
 ### Exercice 4 : Decorateur @Authorize
 
-Creez un decorateur qui verifie les permissions avant d'executer une methode.
+Creez un decorateur qui vérifié les permissions avant d'exécuter une méthode.
 
 <details>
 <summary>Solution</summary>
@@ -1398,7 +1398,7 @@ try {
 
 ---
 
-## Resume
+## Résumé
 
 ### Decorateurs Stage 3 vs Experimentaux
 
@@ -1406,8 +1406,8 @@ try {
 |--------|---------|---------------|
 | tsconfig | Aucune option speciale | `experimentalDecorators: true` |
 | Parametres de classe | Non supportes | Supportes |
-| `accessor` keyword | Requis pour les proprietes | Non necessaire |
-| reflect-metadata | Non integre | Supporte avec `emitDecoratorMetadata` |
+| `accessor` keyword | Requis pour les propriétés | Non nécessaire |
+| reflect-metadata | Non intégré | Supporte avec `emitDecoratorMetadata` |
 | Frameworks | Nouveaux projets | Angular, NestJS (legacy) |
 | Standard TC39 | Oui | Non |
 
@@ -1415,27 +1415,37 @@ try {
 
 | Type | Cible | Cas d'usage |
 |------|-------|-------------|
-| Classe | La classe entiere | Enregistrement, scellement, mixins |
-| Methode | Une methode | Logging, cache, retry, auth |
+| Classe | La classe entière | Enregistrement, scellement, mixins |
+| Méthode | Une méthode | Logging, cache, retry, auth |
 | Accesseur | Un getter/setter | Validation, observation |
-| Champ | Une propriete (Stage 3 limite) | Metadata |
+| Champ | Une propriété (Stage 3 limite) | Metadata |
 
-### Points cles
+### Points clés
 
 1. **Les decorateurs sont des fonctions** : rien de magique, juste des patterns fonctionnels
 2. **Les factories** permettent de parametrer les decorateurs
-3. **La composition** suit l'ordre interieur vers exterieur a l'execution
+3. **La composition** suit l'ordre interieur vers exterieur a l'exécution
 4. **reflect-metadata** est essentiel pour la DI dans les frameworks experimentaux
 5. **Stage 3 est l'avenir** : privilegiez-le pour les nouveaux projets
-6. Les decorateurs excellent pour les **preoccupations transverses** : logging, cache, securite, validation
+6. Les decorateurs excellent pour les **preoccupations transverses** : logging, cache, sécurité, validation
 
 ---
 
 ## Pour aller plus loin
 
-Vous avez maintenant couvert les aspects les plus avances du systeme de types TypeScript et les decorateurs. Pour continuer votre apprentissage :
+Vous avez maintenant couvert les aspects les plus avances du système de types TypeScript et les decorateurs. Pour continuer votre apprentissage :
 
-- Explorez les **type challenges** sur [type-challenges](https://github.com/type-challenges/type-challenges) pour tester vos competences en type-level programming
+- Explorez les **type challenges** sur [type-challenges](https://github.com/type-challenges/type-challenges) pour tester vos compétences en type-level programming
 - Etudiez le code source de **NestJS** pour voir des decorateurs en production
 - Consultez la proposition TC39 des decorateurs pour suivre les evolutions futures
 - Experimentez avec les **builder patterns** et les **state machines** type-safe dans vos projets
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 14 decorateurs](../screencasts/screencast-14-decorateurs.md)
+2. **Lab** : [lab-14-decorateurs](../labs/lab-14-decorateurs/README)
+3. **Quiz** : [quiz 14 decorateurs](../quizzes/quiz-14-decorateurs.html)
+:::

@@ -3,8 +3,8 @@
 ## Objectifs
 
 - Comprendre les options principales de tsconfig.json
-- Configurer un monorepo TypeScript avec project references
-- Maitriser les options de strictness
+- Configurer un monorepo TypeScript avec project références
+- Maîtriser les options de strictness
 - Comprendre les target, module, moduleResolution
 - Savoir utiliser paths et baseUrl
 
@@ -12,8 +12,8 @@
 
 1. **Quiz tsconfig** -- Repondre a des questions sur les effets des options
 2. **Options de strictness** -- Comprendre strict, strictNullChecks, etc.
-3. **Project references** -- Comprendre la configuration d'un monorepo
-4. **Module resolution** -- Comprendre les differentes strategies
+3. **Project références** -- Comprendre la configuration d'un monorepo
+4. **Module résolution** -- Comprendre les différentes stratégies
 
 ## Lancer les tests
 

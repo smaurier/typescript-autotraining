@@ -1,24 +1,24 @@
-# Screencast 09 — Modules : ESM, CommonJS et resolution
+# Screencast 09 — Modules : ESM, CommonJS et résolution
 
 ## Informations
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/09-modules.md`
 - **Lab associe** : Lab 09
-- **Prerequis** : Screencast 08 (enums et tuples)
+- **Prérequis** : Screencast 08 (enums et tuples)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Dossier `src/09-modules/` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Dossier `src/09-modules/` pret a etre créé
 - [ ] `tsconfig.json` accessible pour les modifications
 
 ## Script
 
 ### [00:00-03:30] ESM : import et export
 
-> Les modules sont la facon d'organiser le code TypeScript en unites reutilisables. Dans ce screencast, nous allons voir les deux systemes de modules — ESM et CommonJS — les barrel files, et le mecanisme de resolution de modules.
+> Les modules sont la façon d'organiser le code TypeScript en unites réutilisables. Dans ce screencast, nous allons voir les deux systèmes de modules — ESM et CommonJS — les barrel files, et le mécanisme de résolution de modules.
 
-**Action** : Creer le dossier `src/09-modules/` et le fichier `src/09-modules/math.ts`.
+**Action** : Créer le dossier `src/09-modules/` et le fichier `src/09-modules/math.ts`.
 
 ```typescript
 // src/09-modules/math.ts
@@ -60,7 +60,7 @@ export default class Calculator {
 }
 ```
 
-**Action** : Creer le fichier `src/09-modules/main.ts`.
+**Action** : Créer le fichier `src/09-modules/main.ts`.
 
 ```typescript
 // src/09-modules/main.ts
@@ -95,13 +95,13 @@ console.log(MathUtils.add(1, 1)); // 2
 
 **Action** : Montrer l'extension `.js` dans les imports et expliquer pourquoi.
 
-> Notez l'extension `.js` dans les imports, meme si le fichier source est `.ts`. Avec `moduleResolution: "Node16"`, TypeScript exige l'extension de fichier de sortie. C'est un point qui surprend souvent.
+> Notez l'extension `.js` dans les imports, même si le fichier source est `.ts`. Avec `moduleResolution: "Node16"`, TypeScript exige l'extension de fichier de sortie. C'est un point qui surprend souvent.
 
 ### [03:30-07:30] Import type et re-export
 
 > L'import `type` est important pour la performance et la clarte.
 
-**Action** : Creer le fichier `src/09-modules/types.ts`.
+**Action** : Créer le fichier `src/09-modules/types.ts`.
 
 ```typescript
 // src/09-modules/types.ts
@@ -126,7 +126,7 @@ export { add, subtract } from "./math.js";
 export type { MathOperation } from "./math.js";
 ```
 
-**Action** : Creer le fichier `src/09-modules/user-service.ts`.
+**Action** : Créer le fichier `src/09-modules/user-service.ts`.
 
 ```typescript
 // src/09-modules/user-service.ts
@@ -152,13 +152,13 @@ import { add, type MathOperation } from "./types.js";
 const op: MathOperation = add;
 ```
 
-> `import type` garantit que l'import est efface a la compilation. Cela evite les imports circulaires au runtime et clarifie l'intention. Depuis TypeScript 4.5, on peut aussi ecrire `import { type X, Y }` pour mixer types et valeurs dans un meme import.
+> `import type` garantit que l'import est efface à la compilation. Cela evite les imports circulaires au runtime et clarifie l'intention. Depuis TypeScript 4.5, on peut aussi écrire `import { type X, Y }` pour mixer types et valeurs dans un même import.
 
 ### [07:30-11:30] Barrel files et structure de projet
 
 > Les barrel files centralisent les exports d'un dossier pour simplifier les imports.
 
-**Action** : Creer la structure suivante.
+**Action** : Créer la structure suivante.
 
 ```typescript
 // src/09-modules/models/user.ts
@@ -203,15 +203,15 @@ console.log(user);
 console.log(product);
 ```
 
-**Action** : Montrer la difference entre importer depuis chaque fichier individuel vs depuis le barrel file.
+**Action** : Montrer la différence entre importer depuis chaque fichier individuel vs depuis le barrel file.
 
-> Les barrel files (`index.ts`) regroupent les exports. L'import depuis `./models/index.js` est equivalent a `./models` dans certaines configurations. Attention cependant : trop de barrel files dans un gros projet peut ralentir la compilation et provoquer des imports circulaires.
+> Les barrel files (`index.ts`) regroupent les exports. L'import depuis `./models/index.js` est équivalent a `./models` dans certaines configurations. Attention cependant : trop de barrel files dans un gros projet peut ralentir la compilation et provoquer des imports circulaires.
 
 ### [11:30-15:00] CommonJS vs ESM et configuration
 
-> TypeScript supporte les deux systemes de modules. Voyons les differences de configuration.
+> TypeScript supporte les deux systèmes de modules. Voyons les différences de configuration.
 
-**Action** : Montrer les differences dans `tsconfig.json`.
+**Action** : Montrer les différences dans `tsconfig.json`.
 
 ```json
 // Configuration ESM (recommandee pour les projets modernes)
@@ -236,7 +236,7 @@ console.log(product);
 }
 ```
 
-**Action** : Creer un exemple CommonJS pour montrer la syntaxe.
+**Action** : Créer un exemple CommonJS pour montrer la syntaxe.
 
 ```typescript
 // Style CommonJS (si module: "CommonJS")
@@ -253,11 +253,11 @@ import express from "express"; // fonctionne meme si express est CommonJS
 
 > En 2026, ESM est le standard. Utilisez `module: "Node16"` ou `"NodeNext"` pour les nouveaux projets. `esModuleInterop` permet d'importer des modules CommonJS avec la syntaxe `import default`.
 
-### [15:00-17:30] Resolution de modules et recapitulatif
+### [15:00-17:30] Resolution de modules et récapitulatif
 
-> Comprendre comment TypeScript resout les imports est essentiel pour debugger les problemes de modules.
+> Comprendre comment TypeScript resout les imports est essentiel pour debugger les problèmes de modules.
 
-**Action** : Montrer le schema de resolution.
+**Action** : Montrer le schema de résolution.
 
 ```typescript
 // Resolution de "import { X } from './math.js'"
@@ -274,13 +274,13 @@ import express from "express"; // fonctionne meme si express est CommonJS
 // npx tsc --traceResolution | head -50
 ```
 
-**Action** : Executer `npx tsc --traceResolution` et montrer la sortie (les premieres lignes).
+**Action** : Exécuter `npx tsc --traceResolution` et montrer la sortie (les premières lignes).
 
-> En resume : ESM est le standard moderne, `import type` separe les types des valeurs, les barrel files centralisent les exports, et la resolution de modules suit un algorithme predictible. Avec `module: "Node16"`, n'oubliez pas les extensions `.js` dans vos imports. Dans le prochain screencast, nous explorerons les utility types.
+> En résumé : ESM est le standard moderne, `import type` separe les types des valeurs, les barrel files centralisent les exports, et la résolution de modules suit un algorithme predictible. Avec `module: "Node16"`, n'oubliez pas les extensions `.js` dans vos imports. Dans le prochain screencast, nous explorerons les utility types.
 
 ## Points d'attention pour l'enregistrement
-- Creer les fichiers dans l'ordre pour que les imports fonctionnent
+- Créer les fichiers dans l'ordre pour que les imports fonctionnent
 - Insister sur l'extension `.js` obligatoire avec `moduleResolution: "Node16"`
 - Montrer `import type` vs `import` pour clarifier la distinction
 - Le barrel file est un pattern courant — montrer l'avantage concret
-- Executer `npx tsc` pour montrer les fichiers generes et les require/import dans le JS
+- Exécuter `npx tsc` pour montrer les fichiers generes et les require/import dans le JS

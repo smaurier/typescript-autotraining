@@ -2,10 +2,10 @@
 
 > **Duree estimee** : 5 heures
 > **Difficulte** : 4/5
-> **Prerequis** : Generics, utility types, unions, intersections
+> **Prérequis** : Generics, utility types, unions, intersections
 > **Objectifs** :
 > - Comprendre le fonctionnement des conditional types
-> - Maitriser le mot-cle `infer` pour extraire des sous-types
+> - Maîtriser le mot-clé `infer` pour extraire des sous-types
 > - Comprendre la distribution des conditional types
 > - Implementer des types utilitaires avances
 
@@ -13,11 +13,11 @@
 
 ## Introduction
 
-Les **conditional types** sont l'equivalent des instructions `if/else` au niveau des types. Ils permettent de choisir un type en fonction d'une condition, ce qui ouvre la porte a une programmation de types extremement puissante.
+Les **conditional types** sont l'équivalent des instructions `if/else` au niveau des types. Ils permettent de choisir un type en fonction d'une condition, ce qui ouvre la porte à une programmation de types extremement puissante.
 
 ### Analogie
 
-Imaginez un **aiguillage de train** : selon les caracteristiques du train (type, destination, poids), l'aiguillage l'oriente sur une voie ou une autre. Les conditional types font la meme chose avec les types : selon qu'un type satisfait une condition, on obtient un type ou un autre.
+Imaginez un **aiguillage de train** : selon les caracteristiques du train (type, destination, poids), l'aiguillage l'oriente sur une voie ou une autre. Les conditional types font la même chose avec les types : selon qu'un type satisfait une condition, on obtient un type ou un autre.
 
 ---
 
@@ -82,7 +82,7 @@ type T6 = TypeDe<{ a: 1 }>;     // "objet"
 
 ### Le comportement par defaut
 
-Quand un conditional type est applique a une **union**, il se **distribue** automatiquement sur chaque membre de l'union. C'est l'un des comportements les plus importants (et parfois deroutants) de TypeScript.
+Quand un conditional type est applique à une **union**, il se **distribue** automatiquement sur chaque membre de l'union. C'est l'un des comportements les plus importants (et parfois deroutants) de TypeScript.
 
 ```typescript
 type EstChaine<T> = T extends string ? true : false;
@@ -95,7 +95,7 @@ type R = EstChaine<string | number>;
 // = boolean  (car true | false = boolean)
 ```
 
-### Comment la distribution fonctionne etape par etape
+### Comment la distribution fonctionne étape par étape
 
 ```typescript
 // Prenons Exclude comme exemple
@@ -118,13 +118,13 @@ type Resultat = Exclude<"a" | "b" | "c" | "d", "a" | "c">;
 
 ### Analogie de la distribution
 
-Imaginez un **tapis roulant dans une usine** : chaque element de l'union passe individuellement devant un capteur (la condition `extends`), et selon le resultat, il est envoye dans un bac ou un autre. A la fin, on reunit tous les elements des bacs pour former la nouvelle union.
+Imaginez un **tapis roulant dans une usine** : chaque élément de l'union passe individuellement devant un capteur (la condition `extends`), et selon le résultat, il est envoye dans un bac ou un autre. A la fin, on reunit tous les éléments des bacs pour former la nouvelle union.
 
 ### Quand la distribution se produit-elle ?
 
 La distribution ne se produit **que** quand :
-1. Le type conditionnel utilise un **parametre de type generique nu** (naked type parameter)
-2. Ce parametre est directement teste avec `extends`
+1. Le type conditionnel utilise un **paramètre de type générique nu** (naked type parameter)
+2. Ce paramètre est directement teste avec `extends`
 
 ```typescript
 // Distribution : T est un parametre generique nu
@@ -157,7 +157,7 @@ type R2 = EstVraimentJamais<never>;    // true
 type R3 = EstVraimentJamais<string>;   // false
 ```
 
-### Exemple pratique : verifier si un type est une union
+### Exemple pratique : vérifier si un type est une union
 
 ```typescript
 // Ce type detecte si T est un type union
@@ -185,15 +185,15 @@ type U3 = EstUnion<1 | 2 | 3>;        // true
 
 ---
 
-## Le mot-cle `infer`
+## Le mot-clé `infer`
 
 ### Principe
 
-Le mot-cle `infer` permet de **capturer** (extraire) un sous-type a l'interieur d'une condition `extends`. C'est comme declarer une variable de type qui sera automatiquement remplie par TypeScript.
+Le mot-clé `infer` permet de **capturer** (extraire) un sous-type a l'interieur d'une condition `extends`. C'est comme declarer une variable de type qui sera automatiquement remplie par TypeScript.
 
 ### Analogie
 
-Pensez a `infer` comme a un **trou dans un puzzle** : vous presentez votre type au puzzle (la condition `extends`), et si la forme correspond, TypeScript remplit le trou avec le type qui manquait.
+Pensez a `infer` comme à un **trou dans un puzzle** : vous presentez votre type au puzzle (la condition `extends`), et si la forme correspond, TypeScript remplit le trou avec le type qui manquait.
 
 ### Syntaxe de base
 
@@ -225,7 +225,7 @@ type Resultat = MonReturnType<typeof calculer>;
 // { somme: number; produit: number }
 ```
 
-### Extraire les parametres d'une fonction
+### Extraire les paramètres d'une fonction
 
 ```typescript
 // Implementation de Parameters<T>
@@ -244,7 +244,7 @@ type PremierParam<T extends (...args: any) => any> =
 type P1 = PremierParam<typeof enregistrer>; // string
 ```
 
-### Extraire le type d'element d'un tableau
+### Extraire le type d'élément d'un tableau
 
 ```typescript
 // Extraire le type des elements d'un tableau
@@ -282,7 +282,7 @@ type P4 = DecompresserPromiseProfond<Promise<Promise<Promise<string>>>>;
 // string
 ```
 
-### Extraire des types a partir de structures complexes
+### Extraire des types à partir de structures complexes
 
 ```typescript
 // Extraire le type de la propriete "data" si elle existe
@@ -413,7 +413,7 @@ type ServiceMethodes = SeulementMethodes<MonService>;
 
 ## Implementations classiques
 
-### IsEqual : verifier si deux types sont identiques
+### IsEqual : vérifier si deux types sont identiques
 
 ```typescript
 // Implementation robuste de IsEqual
@@ -467,7 +467,7 @@ type FT = FlattenTuple<[1, [2, 3], [4, [5, 6]]]>;
 // [1, 2, 3, 4, [5, 6]]  -- un seul niveau
 ```
 
-### UnpackPromise recursif
+### UnpackPromise récursif
 
 ```typescript
 // Version complete qui gere les Promises imbriquees et les unions
@@ -490,7 +490,7 @@ type UnpackPromiseLike<T> =
 
 ---
 
-## Cas d'usage reels
+## Cas d'usage réels
 
 ### Typage d'un event emitter
 
@@ -590,7 +590,7 @@ type SupprimerArticle = OperationBDD<"article", "supprimer">;
 // { id: number }
 ```
 
-### Infer pour un systeme de validation
+### Infer pour un système de validation
 
 ```typescript
 // Definir des schemas de validation
@@ -681,7 +681,7 @@ type BonOrdre<T> =
   "autre";
 ```
 
-### Astuce : infer dans la meme position avec contrainte
+### Astuce : infer dans la même position avec contrainte
 
 ```typescript
 // Depuis TypeScript 4.7, on peut contraindre infer
@@ -740,7 +740,7 @@ type T5 = ExtraireTypePromise<Promise<string[]>>;
 
 ### Exercice 2 : TypeRouteParams
 
-Creez un type qui extrait les parametres d'une route URL (`:param`) a partir d'une chaine.
+Creez un type qui extrait les paramètres d'une route URL (`:param`) à partir d'une chaine.
 
 Par exemple : `"/utilisateurs/:id/articles/:articleId"` doit donner `{ id: string; articleId: string }`.
 
@@ -780,7 +780,7 @@ type P4 = RouteParams<"/api/:version/utilisateurs/:userId/posts/:postId">;
 
 ### Exercice 3 : ConvertirEnAsync
 
-Creez un type qui prend un type objet dont certaines proprietes sont des fonctions, et les transforme en fonctions asynchrones (retournant une Promise).
+Creez un type qui prend un type objet dont certaines propriétés sont des fonctions, et les transforme en fonctions asynchrones (retournant une Promise).
 
 <details>
 <summary>Solution</summary>
@@ -815,7 +815,7 @@ type ServiceAsync = ConvertirEnAsync<ServiceSync>;
 
 ### Exercice 4 : Implementer un type Filter pour les tuples
 
-Creez un type `Filtrer<T, Condition>` qui ne garde que les elements d'un tuple qui satisfont une condition.
+Creez un type `Filtrer<T, Condition>` qui ne garde que les éléments d'un tuple qui satisfont une condition.
 
 <details>
 <summary>Solution</summary>
@@ -857,7 +857,7 @@ type FE1 = FiltrerExclure<[1, "a", 2, "b", 3], string>;
 
 ### Exercice 5 : Implementer IsEqual
 
-Implementez un type `IsEqual<A, B>` qui retourne `true` si et seulement si A et B sont exactement le meme type.
+Implementez un type `IsEqual<A, B>` qui retourne `true` si et seulement si A et B sont exactement le même type.
 
 <details>
 <summary>Solution</summary>
@@ -901,11 +901,11 @@ type Naif2 = IsEqualNaif<1 | 2, 1 | 2>;   // boolean (distribution !)
 
 ---
 
-## Resume
+## Résumé
 
-### Concepts cles
+### Concepts clés
 
-1. **Conditional types** : `T extends U ? X : Y` — le "if/else" du systeme de types
+1. **Conditional types** : `T extends U ? X : Y` — le "if/else" du système de types
 2. **Distribution** : les conditional types se distribuent automatiquement sur les unions
 3. **Anti-distribution** : `[T] extends [U]` empeche la distribution
 4. **`infer`** : permet de capturer un sous-type dans la branche `true`
@@ -927,10 +927,21 @@ type Naif2 = IsEqualNaif<1 | 2, 1 | 2>;   // boolean (distribution !)
 - `never` dans un conditional distributif donne `never`
 - `any` satisfait les deux branches simultanement
 - `infer` ne peut etre utilise que dans la clause `extends` d'un conditional type
-- L'ordre des conditions imbriquees compte : du plus specifique au plus general
+- L'ordre des conditions imbriquees compte : du plus spécifique au plus général
 
 ---
 
 ## Pour aller plus loin
 
-Le prochain module, **[12 — Mapped Types & Template Literal Types](./12-mapped-types-template-literals.md)**, explore les mapped types et les template literal types, deux autres piliers du systeme de types avance de TypeScript qui, combines aux conditional types, permettent des transformations de types quasi illimitees.
+Le prochain module, **[12 — Mapped Types & Template Literal Types](./12-mapped-types-template-literals.md)**, explore les mapped types et les template literal types, deux autres piliers du système de types avance de TypeScript qui, combines aux conditional types, permettent des transformations de types quasi illimitees.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 11 conditional types](../screencasts/screencast-11-conditional-types.md)
+2. **Lab** : [lab-11-conditional-types](../labs/lab-11-conditional-types/README)
+3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
+4. **Quiz** : [quiz 11 conditional types](../quizzes/quiz-11-conditional-types.html)
+:::

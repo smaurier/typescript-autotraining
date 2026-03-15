@@ -93,11 +93,11 @@ export default defineConfig({
           text: 'Visualisations',
           items: [
             { text: 'Toutes les visualisations', link: '/visualizations/' },
-            { text: 'Hierarchie des types', link: '/visualizations/type-hierarchy' },
-            { text: 'Type Narrowing', link: '/visualizations/type-narrowing' },
-            { text: 'Generics Flow', link: '/visualizations/generics-flow' },
-            { text: 'Conditional Types', link: '/visualizations/conditional-types' },
-            { text: 'Module Resolution', link: '/visualizations/module-resolution' }
+            { text: 'Hierarchie des types', link: '/visualizations/type-hierarchy.html' },
+            { text: 'Type Narrowing', link: '/visualizations/type-narrowing.html' },
+            { text: 'Generics Flow', link: '/visualizations/generics-flow.html' },
+            { text: 'Conditional Types', link: '/visualizations/conditional-types.html' },
+            { text: 'Module Resolution', link: '/visualizations/module-resolution.html' }
           ]
         }
       ]

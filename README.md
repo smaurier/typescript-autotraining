@@ -1,8 +1,8 @@
-# TypeScript Course — Formation complete (debutant → expert)
+# TypeScript Course — Formation complete (débutant → expert)
 
 Formation complete TypeScript couvrant les types primitifs, generics, conditional types, mapped types, type-level programming, decorateurs, variance, patterns de conception et bien plus.
 
-## Prerequis
+## Prérequis
 
 - **Node.js 20+** et **npm**
 - **VS Code** avec l'extension TypeScript
@@ -43,7 +43,7 @@ typescript-course/
 
 | Phase | Modules | Niveau |
 |-------|---------|--------|
-| 1 — Fondamentaux | 00-04 | Debutant |
-| 2 — Intermediaire | 05-09 | Intermediaire |
+| 1 — Fondamentaux | 00-04 | Débutant |
+| 2 — Intermédiaire | 05-09 | Intermédiaire |
 | 3 — Avance | 10-14 | Avance |
 | 4 — Expert | 15-19 | Expert |

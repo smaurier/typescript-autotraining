@@ -2,27 +2,27 @@
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 3/5
-> **Prerequis** : Modules 01 a 05 (types de base, fonctions, interfaces, unions, classes)
+> **Prérequis** : Modules 01 a 05 (types de base, fonctions, interfaces, unions, classes)
 > **Objectifs** :
 >
 > - Comprendre le concept de generics et leur utilite
-> - Creer des fonctions, interfaces et classes generiques
-> - Appliquer des contraintes sur les types generiques (`extends`)
+> - Créer des fonctions, interfaces et classes génériques
+> - Appliquer des contraintes sur les types génériques (`extends`)
 > - Utiliser `keyof`, `typeof` et les acces indexes (`T[K]`)
-> - Definir des parametres de type par defaut
-> - Maitriser les patterns multi-parametres et les factories generiques
+> - Définir des paramètres de type par defaut
+> - Maîtriser les patterns multi-paramètres et les factories génériques
 
 ---
 
 ## Introduction
 
-Les **generics** sont l'une des fonctionnalites les plus puissantes de TypeScript. Ils permettent de creer des composants (fonctions, classes, interfaces) qui fonctionnent avec **n'importe quel type** tout en conservant la **securite du typage**.
+Les **generics** sont l'une des fonctionnalites les plus puissantes de TypeScript. Ils permettent de créer des composants (fonctions, classes, interfaces) qui fonctionnent avec **n'importe quel type** tout en conservant la **sécurité du typage**.
 
 Sans les generics, on serait force de choisir entre :
-- Ecrire du code specifique pour chaque type (duplication)
+- Écrire du code spécifique pour chaque type (duplication)
 - Utiliser `any` (perte de typage)
 
-Les generics offrent le meilleur des deux mondes : **flexibilite** et **securite**.
+Les generics offrent le meilleur des deux mondes : **flexibilite** et **sécurité**.
 
 ### Analogie : la boite universelle
 
@@ -51,11 +51,11 @@ const boiteNum = mettreEnBoiteTypee(42);
 
 ---
 
-## Fonctions generiques
+## Fonctions génériques
 
 ### Syntaxe de base
 
-On declare un parametre de type entre chevrons `<T>` avant les parametres de la fonction. Par convention, on utilise souvent `T` (pour "Type"), mais on peut utiliser n'importe quel nom.
+On declare un paramètre de type entre chevrons `<T>` avant les paramètres de la fonction. Par convention, on utilise souvent `T` (pour "Type"), mais on peut utiliser n'importe quel nom.
 
 ```typescript
 // Fonction generique simple
@@ -73,7 +73,7 @@ const d = identite<string>("hello"); // type: string
 const e = identite<number[]>([1, 2, 3]); // type: number[]
 ```
 
-### Fonctions generiques avec tableaux
+### Fonctions génériques avec tableaux
 
 ```typescript
 // Retourne le premier element d'un tableau
@@ -97,7 +97,7 @@ function inverser<T>(tableau: T[]): T[] {
 const inverse = inverser([1, 2, 3]); // [3, 2, 1] — type: number[]
 ```
 
-### Fonctions generiques avec plusieurs parametres de type
+### Fonctions génériques avec plusieurs paramètres de type
 
 ```typescript
 // Fonction avec deux parametres de type
@@ -121,17 +121,17 @@ const majuscule = transformer("hello", (s) => s.toUpperCase()); // type: string
 const double = transformer(21, (n) => n * 2); // type: number
 ```
 
-### Analogie : la fonction generique comme un moule ajustable
+### Analogie : la fonction générique comme un moule ajustable
 
-Une fonction generique est comme un **moule de patisserie ajustable** : il s'adapte a la taille de ce que vous y mettez, mais conserve la forme (le contrat du type). Que vous fassiez un petit gateau ou un grand, le moule s'adapte.
+Une fonction générique est comme un **moule de patisserie ajustable** : il s'adapte à la taille de ce que vous y mettez, mais conserve la forme (le contrat du type). Que vous fassiez un petit gateau ou un grand, le moule s'adapte.
 
 ---
 
-## Interfaces generiques
+## Interfaces génériques
 
-Les interfaces peuvent egalement etre generiques, ce qui les rend extremement reutilisables.
+Les interfaces peuvent egalement etre génériques, ce qui les rend extremement réutilisables.
 
-### Interface generique simple
+### Interface générique simple
 
 ```typescript
 // Interface pour un resultat d'operation
@@ -223,7 +223,7 @@ class DepotUtilisateurs implements Depot<Utilisateur> {
 }
 ```
 
-### Interface avec methodes generiques
+### Interface avec méthodes génériques
 
 ```typescript
 // L'interface elle-meme n'est pas generique,
@@ -257,11 +257,11 @@ class ConvertisseurImpl implements Convertisseur {
 
 ---
 
-## Classes generiques
+## Classes génériques
 
-Les classes generiques permettent de creer des structures de donnees reutilisables et type-safe.
+Les classes génériques permettent de créer des structures de donnees réutilisables et type-safe.
 
-### Pile (Stack) generique
+### Pile (Stack) générique
 
 ```typescript
 class Pile<T> {
@@ -319,7 +319,7 @@ pileMots.empiler("le");
 pileMots.empiler("monde");
 ```
 
-### File d'attente (Queue) generique
+### File d'attente (Queue) générique
 
 ```typescript
 class FileAttente<T> {
@@ -372,7 +372,7 @@ while (!fileTaches.estVide()) {
 }
 ```
 
-### Dictionnaire generique (Map type-safe)
+### Dictionnaire générique (Map type-safe)
 
 ```typescript
 class Dictionnaire<TCle extends string | number, TValeur> {
@@ -427,9 +427,9 @@ codes.definir(500, "Internal Server Error");
 
 ---
 
-## Contraintes generiques avec `extends`
+## Contraintes génériques avec `extends`
 
-Les contraintes permettent de restreindre les types acceptes par un parametre generique. On utilise `extends` pour specifier que le type doit correspondre a un certain contrat.
+Les contraintes permettent de restreindre les types acceptes par un paramètre générique. On utilise `extends` pour spécifier que le type doit correspondre à un certain contrat.
 
 ### Contrainte simple
 
@@ -492,9 +492,9 @@ console.log(resultat.email); // "alice@mail.com"
 // fusionner("hello", { a: 1 }); // ERREUR : string n'est pas un object
 ```
 
-### Analogie : la contrainte comme un filtre de securite
+### Analogie : la contrainte comme un filtre de sécurité
 
-Une contrainte generique est comme un **filtre a l'entree d'un batiment** : seules les personnes avec un badge valide (les types qui satisfont la contrainte) peuvent entrer. Cela empeche les types incompatibles de causer des erreurs a l'interieur.
+Une contrainte générique est comme un **filtre a l'entree d'un batiment** : seules les personnes avec un badge valide (les types qui satisfont la contrainte) peuvent entrer. Cela empeche les types incompatibles de causer des erreurs a l'interieur.
 
 ---
 
@@ -502,7 +502,7 @@ Une contrainte generique est comme un **filtre a l'entree d'un batiment** : seul
 
 ### L'operateur `keyof`
 
-`keyof` produit un type union de toutes les cles d'un type objet.
+`keyof` produit un type union de toutes les clés d'un type objet.
 
 ```typescript
 interface Voiture {
@@ -536,7 +536,7 @@ const estElec = obtenirPropriete(maVoiture, "electrique"); // type: boolean
 
 ### Le pattern `<T extends object, K extends keyof T>`
 
-C'est le pattern le plus utilise avec `keyof`. Il garantit que la cle est valide pour l'objet donne.
+C'est le pattern le plus utilise avec `keyof`. Il garantit que la clé est valide pour l'objet donne.
 
 ```typescript
 // Definir une propriete de maniere type-safe
@@ -562,7 +562,7 @@ definirPropriete(config, "taille", 16);       // OK
 
 ### Acces indexes `T[K]`
 
-L'acces indexe `T[K]` permet d'obtenir le type d'une propriete specifique d'un type.
+L'acces indexe `T[K]` permet d'obtenir le type d'une propriété spécifique d'un type.
 
 ```typescript
 interface Formulaire {
@@ -650,7 +650,7 @@ const timeout = obtenirConfig("timeout"); // type: number
 
 ## Parametres de type par defaut
 
-Comme les parametres de fonction, les parametres de type peuvent avoir des valeurs par defaut.
+Comme les paramètres de fonction, les paramètres de type peuvent avoir des valeurs par defaut.
 
 ```typescript
 // T a une valeur par defaut de `string`
@@ -720,7 +720,7 @@ console.log(mots.versTableau()); // ["abricot", "banane", "cerise"]
 
 ## Generics avec unions
 
-Les generics interagissent de maniere interessante avec les types union.
+Les generics interagissent de manière interessante avec les types union.
 
 ```typescript
 // Fonction qui filtre un tableau par un predicat type-safe
@@ -765,7 +765,7 @@ console.log(traiterResultat(r2)); // "Erreur : Timeout"
 
 ## Multiple type parameters
 
-Il est courant d'avoir deux, trois, voire plus de parametres de type.
+Il est courant d'avoir deux, trois, voire plus de paramètres de type.
 
 ```typescript
 // Deux parametres : cle et valeur
@@ -804,9 +804,9 @@ console.log(prixFormates);
 
 ---
 
-## Factories generiques
+## Factories génériques
 
-Les factories generiques permettent de creer des instances de maniere dynamique tout en conservant le typage.
+Les factories génériques permettent de créer des instances de manière dynamique tout en conservant le typage.
 
 ```typescript
 // Factory simple avec un constructeur
@@ -833,7 +833,7 @@ const chat = creerInstance(Chat);   // type: Chat
 console.log(chat.miauler());       // "Miaou !"
 ```
 
-### Factory avec parametres du constructeur
+### Factory avec paramètres du constructeur
 
 ```typescript
 // Factory qui accepte des parametres pour le constructeur
@@ -907,9 +907,9 @@ sms.envoyer(); // "SMS envoye a 0612345678 : Salut !"
 
 ## Pratique
 
-### Exercice 1 : Fonction generique `grouper`
+### Exercice 1 : Fonction générique `grouper`
 
-Ecrivez une fonction generique `grouper` qui prend un tableau d'objets et le nom d'une propriete, puis regroupe les elements par la valeur de cette propriete.
+Ecrivez une fonction générique `grouper` qui prend un tableau d'objets et le nom d'une propriété, puis regroupe les éléments par la valeur de cette propriété.
 
 ```typescript
 // Signature attendue :
@@ -975,9 +975,9 @@ parAge.forEach((membres, age) => {
 
 </details>
 
-### Exercice 2 : Classe generique `Cache<T>`
+### Exercice 2 : Classe générique `Cache<T>`
 
-Creez une classe generique `Cache<T>` avec une duree de vie (TTL) pour les entrees.
+Creez une classe générique `Cache<T>` avec une duree de vie (TTL) pour les entrees.
 
 - `definir(cle: string, valeur: T): void` — stocke une valeur avec un horodatage
 - `obtenir(cle: string): T | undefined` — retourne la valeur si elle n'a pas expire
@@ -1072,9 +1072,9 @@ console.log(cacheUtilisateurs.taille); // 2
 
 </details>
 
-### Exercice 3 : Fonction generique `pluck`
+### Exercice 3 : Fonction générique `pluck`
 
-Ecrivez une fonction `pluck` qui extrait les valeurs d'une propriete specifique d'un tableau d'objets.
+Ecrivez une fonction `pluck` qui extrait les valeurs d'une propriété spécifique d'un tableau d'objets.
 
 ```typescript
 // Signature attendue :
@@ -1117,9 +1117,9 @@ console.log("Departements (uniques) :", [...new Set(departements)]);
 
 </details>
 
-### Exercice 4 : Depot generique en memoire
+### Exercice 4 : Depot générique en mémoire
 
-Implementez un depot generique `DepotEnMemoire<T>` qui implemente l'interface `Depot<T>` definie plus haut dans ce module. Ajoutez une methode `filtrer(predicat)`.
+Implementez un depot générique `DepotEnMemoire<T>` qui implemente l'interface `Depot<T>` definie plus haut dans ce module. Ajoutez une méthode `filtrer(predicat)`.
 
 <details>
 <summary>Solution</summary>
@@ -1220,20 +1220,20 @@ console.log("Publies apres MAJ :", depotArticles.filtrer((a) => a.publie).length
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept                     | Syntaxe                                         | Description                                          |
 |-----------------------------|--------------------------------------------------|------------------------------------------------------|
-| Fonction generique          | `function f<T>(arg: T): T`                       | Fonction parametree par un type                       |
-| Interface generique         | `interface I<T> { valeur: T }`                    | Interface parametree par un type                      |
-| Classe generique            | `class C<T> { ... }`                              | Classe parametree par un type                         |
+| Fonction générique          | `function f<T>(arg: T): T`                       | Fonction parametree par un type                       |
+| Interface générique         | `interface I<T> { valeur: T }`                    | Interface parametree par un type                      |
+| Classe générique            | `class C<T> { ... }`                              | Classe parametree par un type                         |
 | Contrainte                  | `<T extends SomeType>`                            | Restreint les types acceptes                          |
-| `keyof`                     | `keyof T`                                         | Union des cles d'un type                              |
-| Acces indexe                | `T[K]`                                            | Type de la propriete K dans T                         |
-| `typeof`                    | `typeof variable`                                 | Deduit le type a partir d'une valeur                  |
-| Type par defaut             | `<T = string>`                                    | Valeur par defaut pour un parametre de type           |
-| Multi-parametres            | `<T, U, V>`                                       | Plusieurs parametres de type                          |
-| Factory generique           | `new (...args) => T`                              | Creer des instances dynamiquement                     |
+| `keyof`                     | `keyof T`                                         | Union des clés d'un type                              |
+| Acces indexe                | `T[K]`                                            | Type de la propriété K dans T                         |
+| `typeof`                    | `typeof variable`                                 | Deduit le type à partir d'une valeur                  |
+| Type par defaut             | `<T = string>`                                    | Valeur par defaut pour un paramètre de type           |
+| Multi-paramètres            | `<T, U, V>`                                       | Plusieurs paramètres de type                          |
+| Factory générique           | `new (...args) => T`                              | Créer des instances dynamiquement                     |
 
 ---
 
@@ -1242,3 +1242,14 @@ console.log("Publies apres MAJ :", depotArticles.filtrer((a) => a.publie).length
 Dans le **Module 07**, nous approfondirons les generics avec des **patterns avances** : types conditionnels dans les generics, types variadiques, inference avancee avec `infer`, builder pattern type-safe, branded types et bien plus.
 
 [Continuer vers le Module 07 : Generics — Patterns avances & Variadics →](./07-generics-avances.md)
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 06 generics base](../screencasts/screencast-06-generics-base.md)
+2. **Lab** : [lab-06-generics-base](../labs/lab-06-generics-base/README)
+3. **Visualisation** : [Generics Flow](../visualizations/generics-flow.html)
+4. **Quiz** : [quiz 06 generics base](../quizzes/quiz-06-generics-base.html)
+:::

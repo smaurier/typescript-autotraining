@@ -4,21 +4,21 @@
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/08-enums-tuples.md`
 - **Lab associe** : Lab 08
-- **Prerequis** : Screencast 04 (narrowing)
+- **Prérequis** : Screencast 04 (narrowing)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/08-enums-tuples.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/08-enums-tuples.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
-### [00:00-04:00] Enums numeriques et string
+### [00:00-04:00] Enums numériques et string
 
-> Les enums permettent de definir un ensemble de constantes nommees. TypeScript offre des enums numeriques, string, et meme const enums. Voyons les differences et les bonnes pratiques.
+> Les enums permettent de définir un ensemble de constantes nommees. TypeScript offre des enums numériques, string, et même const enums. Voyons les différences et les bonnes pratiques.
 
-**Action** : Creer le fichier `src/08-enums-tuples.ts`.
+**Action** : Créer le fichier `src/08-enums-tuples.ts`.
 
 ```typescript
 // Enum numerique : chaque membre a une valeur numerique
@@ -70,13 +70,13 @@ log(LogLevel.Info, "Application demarree");
 log(LogLevel.Error, "Connexion echouee");
 ```
 
-**Action** : Compiler le code et montrer le JavaScript genere pour voir la difference entre enum numerique et string.
+**Action** : Compiler le code et montrer le JavaScript généré pour voir la différence entre enum numérique et string.
 
-> Les enums string sont generalement preferees car elles sont plus lisibles dans les logs et ne permettent pas le reverse mapping accidentel. Les enums numeriques sont utiles quand la valeur a une signification (comme les codes HTTP).
+> Les enums string sont généralement preferees car elles sont plus lisibles dans les logs et ne permettent pas le reverse mapping accidentel. Les enums numériques sont utiles quand la valeur à une signification (comme les codes HTTP).
 
 ### [04:00-08:00] Const enums et alternatives
 
-> Les const enums sont une optimisation qui elimine l'objet enum a l'execution.
+> Les const enums sont une optimisation qui elimine l'objet enum a l'exécution.
 
 **Action** : Ajouter le code suivant.
 
@@ -128,13 +128,13 @@ function checkRole(role: Role): boolean {
 // - Compatible avec isolatedModules
 ```
 
-**Action** : Survoler `Role` pour montrer le type union derive de l'objet `as const`.
+**Action** : Survoler `Role` pour montrer le type union dérivé de l'objet `as const`.
 
-> En pratique, beaucoup de developpeurs TypeScript preferent les unions de literal types ou les objets `as const` aux enums. Ils sont plus simples, ne generent pas de code supplementaire, et s'integrent mieux avec le reste du systeme de types.
+> En pratique, beaucoup de développeurs TypeScript preferent les unions de literal types ou les objets `as const` aux enums. Ils sont plus simples, ne generent pas de code supplementaire, et s'integrent mieux avec le reste du système de types.
 
 ### [08:00-12:30] Tuples
 
-> Les tuples sont des tableaux de taille fixe ou chaque element a un type specifique.
+> Les tuples sont des tableaux de taille fixe ou chaque élément à un type spécifique.
 
 **Action** : Ajouter le code suivant.
 
@@ -250,9 +250,9 @@ console.log(processValue(new Date()));     // ISO string
 
 **Action** : Montrer que le callback `cb` peut retourner une valeur malgre le type `void`. Expliquer pourquoi c'est intentionnel.
 
-### [15:30-17:30] Recapitulatif et bonnes pratiques
+### [15:30-17:30] Récapitulatif et bonnes pratiques
 
-> Faisons un resume des bonnes pratiques.
+> Faisons un résumé des bonnes pratiques.
 
 ```typescript
 // Bonnes pratiques :
@@ -272,11 +272,11 @@ console.log(processValue(new Date()));     // ISO string
 //    C'est un choix de design intentionnel de TypeScript
 ```
 
-> En resume : les enums, tuples et types speciaux sont des outils complementaires. Les enums definissent des ensembles de constantes, les tuples structurent des donnees positionnelles, et `never`/`unknown`/`void` forment le trio des types de controle. Maitrisez-les pour ecrire du TypeScript idiomatique.
+> En résumé : les enums, tuples et types speciaux sont des outils complementaires. Les enums definissent des ensembles de constantes, les tuples structurent des donnees positionnelles, et `never`/`unknown`/`void` forment le trio des types de controle. Maitrisez-les pour écrire du TypeScript idiomatique.
 
 ## Points d'attention pour l'enregistrement
-- Montrer le JavaScript genere pour les enums (via `npx tsc`) pour comprendre le cout
+- Montrer le JavaScript généré pour les enums (via `npx tsc`) pour comprendre le cout
 - Bien expliquer le pattern `as const` comme alternative aux enums
 - Le comportement de `void` dans les callbacks est surprenant — bien insister dessus
-- Executer `useState` pour montrer le destructuring de tuple en action
+- Exécuter `useState` pour montrer le destructuring de tuple en action
 - Mentionner que `never` sera revu en detail dans le screencast sur les conditional types

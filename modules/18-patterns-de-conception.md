@@ -4,33 +4,33 @@
 |-------------|------------------------------------------------------------------------|
 | **Duree**       | 4 heures                                                              |
 | **Difficulte**  | 4/5                                                                    |
-| **Prerequis**   | Modules 1-17, generics avances, types conditionnels, variance         |
-| **Objectifs**   | Adapter les patterns GoF et fonctionnels au systeme de types TypeScript |
+| **Prérequis**   | Modules 1-17, generics avances, types conditionnels, variance         |
+| **Objectifs**   | Adapter les patterns GoF et fonctionnels au système de types TypeScript |
 
 ---
 
 ## Introduction
 
 Les patterns de conception (design patterns) sont des solutions eprouvees a des
-problemes recurrents en programmation. Cependant, les patterns classiques du
+problèmes récurrents en programmation. Cependant, les patterns classiques du
 Gang of Four (GoF) ont ete concus pour des langages comme Java et C++. En TypeScript,
-le systeme de types avance et les fonctionnalites fonctionnelles permettent
-d'implementer ces patterns de maniere plus elegante et plus type-safe.
+le système de types avance et les fonctionnalites fonctionnelles permettent
+d'implementer ces patterns de manière plus elegante et plus type-safe.
 
 > **Analogie des recettes de cuisine** : Les patterns sont comme des recettes.
 > La recette originale (GoF) utilise des ingredients de base (classes, interfaces).
 > En TypeScript, on a des ingredients "premium" (generics, types conditionnels,
 > template literals) qui permettent de realiser les memes plats avec plus de
-> finesse et de securite.
+> finesse et de sécurité.
 
 ---
 
 ## Pattern Strategy (avec Generics)
 
-### Le probleme
+### Le problème
 
 Comment permettre de choisir un algorithme parmi plusieurs au runtime, tout en
-gardant la securite des types ?
+gardant la sécurité des types ?
 
 ### Implementation classique
 
@@ -174,10 +174,10 @@ service.changerStrategie(validationPermissive);
 
 ## Pattern Observer (EventEmitter type-safe)
 
-### Le probleme
+### Le problème
 
-Creer un systeme d'evenements ou chaque evenement a un type de payload specifique,
-avec verification complete a la compilation.
+Créer un système d'événements ou chaque événement à un type de payload spécifique,
+avec vérification complete à la compilation.
 
 ```typescript
 // Definir la carte des evenements : chaque cle mappe vers un type de payload
@@ -296,10 +296,10 @@ bus.emettre("utilisateur:connecte", {
 
 ## Pattern Builder (type-safe avec chained generics)
 
-### Le probleme classique
+### Le problème classique
 
 Comment construire un objet complexe pas a pas, tout en garantissant que toutes
-les proprietes requises sont definies ?
+les propriétés requises sont definies ?
 
 ```typescript
 // Le builder classique ne garantit pas que tout est defini :
@@ -400,15 +400,15 @@ const config = new BuilderConfigServeur()
 
 ## Pattern Result<T, E> (Railway Oriented Programming)
 
-### Le probleme
+### Le problème
 
 Les exceptions en JavaScript sont "invisibles" dans les types. Une fonction peut
 lancer une erreur, mais le type de retour ne le dit pas. Le pattern Result rend
-les erreurs EXPLICITES dans le systeme de types.
+les erreurs EXPLICITES dans le système de types.
 
 > **Analogie du chemin de fer** : Imaginez deux rails paralleles — le rail "succes"
 > et le rail "erreur". Une fois que le train passe sur le rail erreur, il y reste.
-> Chaque operation verifie d'abord si on est sur le bon rail avant de s'executer.
+> Chaque operation vérifié d'abord si on est sur le bon rail avant de s'exécuter.
 
 ```typescript
 // Definition du type Result
@@ -810,7 +810,7 @@ const machine = MachineACafe.creer()  // Eteint
 
 ---
 
-## Dependency Injection (Injection de dependances)
+## Dependency Injection (Injection de dépendances)
 
 ```typescript
 // Injection de dependances type-safe sans framework
@@ -1131,9 +1131,9 @@ bus.emettre("post:create", { postId: "456", titre: "Mon post" }); // Ne declench
 
 </details>
 
-### Exercice 2 : Creer un Builder generique
+### Exercice 2 : Créer un Builder générique
 
-Creez un builder generique qui fonctionne avec N'IMPORTE QUEL type :
+Creez un builder générique qui fonctionne avec N'IMPORTE QUEL type :
 
 <details>
 <summary>Solution</summary>
@@ -1304,19 +1304,19 @@ if (resultatInscription.ok) {
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Pattern                | Description                                           | Avantage TypeScript                    |
 |------------------------|-------------------------------------------------------|----------------------------------------|
-| **Strategy**           | Algorithme interchangeable                            | Generics pour typer les strategies      |
-| **Observer**           | Pub/Sub avec evenements types                         | EventMap garantit les types de payload  |
+| **Strategy**           | Algorithme interchangeable                            | Generics pour typer les stratégies      |
+| **Observer**           | Pub/Sub avec événements types                         | EventMap garantit les types de payload  |
 | **Builder**            | Construction pas a pas                                | Phantom types pour les champs requis    |
 | **Result<T, E>**       | Erreurs explicites dans les types                     | Pattern matching avec narrowing         |
 | **Option/Maybe**       | Alternative type-safe a null                          | Monadic chaining avec map/flatMap       |
 | **Branded Types**      | Types nominaux (EUR != USD)                           | Marques invisibles au runtime           |
-| **Phantom Types**      | Etats encodes dans les generics                       | Transitions validees a la compilation   |
-| **Type-State**         | Machine a etats dans les types                        | Methodes conditionelles par etat        |
-| **DI Container**       | Injection de dependances type-safe                    | Registry type avec keyof                |
+| **Phantom Types**      | Etats encodes dans les generics                       | Transitions validees à la compilation   |
+| **Type-State**         | Machine a états dans les types                        | Méthodes conditionelles par état        |
+| **DI Container**       | Injection de dépendances type-safe                    | Registry type avec keyof                |
 | **pipe/compose**       | Chainer des fonctions                                 | Types inferes a travers la chaine       |
 
 ---
@@ -1327,3 +1327,13 @@ Dans le prochain module, **Module 19 — Projet final — Bibliotheque utilitair
 type-safe**, nous allons mettre en pratique TOUS ces patterns dans un projet
 concret : une bibliotheque utilitaire complete avec EventEmitter, Result, DI
 Container, pipe/compose, et bien plus encore.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 18 patterns](../screencasts/screencast-18-patterns.md)
+2. **Lab** : [lab-18-patterns](../labs/lab-18-patterns/README)
+3. **Quiz** : [quiz 18 patterns](../quizzes/quiz-18-patterns.html)
+:::

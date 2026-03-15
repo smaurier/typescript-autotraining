@@ -1,24 +1,24 @@
-# Screencast 05 — Classes : hierarchie, abstract et parameter properties
+# Screencast 05 — Classes : hiérarchie, abstract et parameter properties
 
 ## Informations
 - **Duree estimee** : 15-18 min
 - **Module** : `modules/05-classes.md`
 - **Lab associe** : Lab 05
-- **Prerequis** : Screencast 04 (narrowing)
+- **Prérequis** : Screencast 04 (narrowing)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/05-classes.ts` pret a etre cree
-- [ ] `tsx` installe pour executer les exemples
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/05-classes.ts` pret a etre créé
+- [ ] `tsx` installe pour exécuter les exemples
 
 ## Script
 
 ### [00:00-03:30] Classes de base en TypeScript
 
-> Les classes en TypeScript ajoutent le typage statique aux classes JavaScript. Nous allons voir les modificateurs d'acces, les proprietes de parametre, les classes abstraites et l'implementation d'interfaces.
+> Les classes en TypeScript ajoutent le typage statique aux classes JavaScript. Nous allons voir les modificateurs d'acces, les propriétés de paramètre, les classes abstraites et l'implementation d'interfaces.
 
-**Action** : Creer le fichier `src/05-classes.ts`.
+**Action** : Créer le fichier `src/05-classes.ts`.
 
 ```typescript
 // Classe de base avec modificateurs d'acces
@@ -64,11 +64,11 @@ console.log(alice.name);     // OK — public
 
 **Action** : Montrer les erreurs de compilation pour `private`, `protected` et `readonly`.
 
-> TypeScript ajoute trois modificateurs d'acces : `public` (par defaut), `private` (accessible seulement dans la classe), et `protected` (accessible dans la classe et ses sous-classes). `readonly` empeche la reassignation apres le constructeur.
+> TypeScript ajoute trois modificateurs d'acces : `public` (par defaut), `private` (accessible seulement dans la classe), et `protected` (accessible dans la classe et ses sous-classes). `readonly` empeche la reassignation après le constructeur.
 
-### [03:30-07:00] Parameter properties et heritage
+### [03:30-07:00] Parameter properties et héritage
 
-> TypeScript offre un raccourci elegant pour les proprietes de constructeur.
+> TypeScript offre un raccourci elegant pour les propriétés de constructeur.
 
 **Action** : Ajouter le code suivant.
 
@@ -126,7 +126,7 @@ console.log(bob.greet());
 
 **Action** : Montrer que `email` est accessible dans `Employee` (protected) mais pas depuis l'exterieur.
 
-> Les parameter properties evitent beaucoup de code repetitif. Le mot-cle `override` est optionnel mais recommande — il garantit que la methode existe bien dans la classe parente.
+> Les parameter properties evitent beaucoup de code repetitif. Le mot-clé `override` est optionnel mais recommande — il garantit que la méthode existe bien dans la classe parente.
 
 ### [07:00-11:00] Classes abstraites
 
@@ -197,9 +197,9 @@ for (const shape of shapes) {
 }
 ```
 
-**Action** : Montrer l'erreur quand on tente d'instancier `Shape` directement. Executer le code pour voir les descriptions.
+**Action** : Montrer l'erreur quand on tente d'instancier `Shape` directement. Exécuter le code pour voir les descriptions.
 
-> Une classe abstraite peut contenir un melange de methodes abstraites (a implementer) et de methodes concretes (partagees). C'est un pattern classique de template method.
+> Une classe abstraite peut contenir un melange de méthodes abstraites (a implementer) et de méthodes concretes (partagees). C'est un pattern classique de template method.
 
 ### [11:00-15:00] Implements : interfaces et classes
 
@@ -269,11 +269,11 @@ function setupLogger(emitter: EventEmitter): void {
 }
 ```
 
-**Action** : Montrer que `UserAccount` doit implementer toutes les methodes des deux interfaces.
+**Action** : Montrer que `UserAccount` doit implementer toutes les méthodes des deux interfaces.
 
-> `implements` verifie que la classe respecte le contrat de l'interface. Contrairement a `extends`, une classe peut implementer plusieurs interfaces. Cela favorise la composition sur l'heritage.
+> `implements` vérifié que la classe respecte le contrat de l'interface. Contrairement a `extends`, une classe peut implementer plusieurs interfaces. Cela favorise la composition sur l'héritage.
 
-### [15:00-17:30] Static, this et recapitulatif
+### [15:00-17:30] Static, this et récapitulatif
 
 > Terminons avec les membres statiques et le typage de `this`.
 
@@ -328,13 +328,13 @@ console.log(query);
 // "SELECT * FROM users WHERE age > 18 AND active = true"
 ```
 
-**Action** : Executer le code complet avec `npx tsx src/05-classes.ts`.
+**Action** : Exécuter le code complet avec `npx tsx src/05-classes.ts`.
 
-> En resume : les classes TypeScript combinent la puissance de l'orientee objet avec la securite du typage statique. Les parameter properties reduisent le boilerplate, les classes abstraites definissent des contrats, et `implements` connecte les classes aux interfaces. Dans le prochain screencast, nous aborderons les generics.
+> En résumé : les classes TypeScript combinent la puissance de l'orientee objet avec la sécurité du typage statique. Les parameter properties reduisent le boilerplate, les classes abstraites definissent des contrats, et `implements` connecte les classes aux interfaces. Dans le prochain screencast, nous aborderons les generics.
 
 ## Points d'attention pour l'enregistrement
 - Bien montrer les erreurs de compilation pour chaque modificateur d'acces
-- Prendre le temps sur les parameter properties — c'est specifique a TypeScript
+- Prendre le temps sur les parameter properties — c'est spécifique a TypeScript
 - Le pattern template method avec les classes abstraites merite une explication claire
-- Montrer que `implements` ne genere PAS de code JavaScript — c'est purement compile-time
-- Executer les exemples pour montrer les resultats concrets dans le terminal
+- Montrer que `implements` ne généré PAS de code JavaScript — c'est purement compile-time
+- Exécuter les exemples pour montrer les résultats concrets dans le terminal

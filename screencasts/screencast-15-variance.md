@@ -4,22 +4,22 @@
 - **Duree estimee** : 20-25 min
 - **Module** : `modules/15-variance.md`
 - **Lab associe** : aucun
-- **Prerequis** : Screencast 06 (generics), Screencast 05 (classes)
+- **Prérequis** : Screencast 06 (generics), Screencast 05 (classes)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/15-variance.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/15-variance.ts` pret a etre créé
 - [ ] Mode strict actif dans `tsconfig.json`
 - [ ] `strictFunctionTypes` actif (inclus dans strict)
 
 ## Script
 
-### [00:00-04:30] Introduction a la variance
+### [00:00-04:30] Introduction à la variance
 
-> La variance decrit comment la relation de sous-typage entre des types simples se propage a des types composes (comme les generiques). C'est un sujet theorique, mais comprendre la variance est essentiel pour eviter des bugs subtils et ecrire des API robustes.
+> La variance decrit comment la relation de sous-typage entre des types simples se propage a des types composes (comme les génériques). C'est un sujet théorique, mais comprendre la variance est essentiel pour éviter des bugs subtils et écrire des API robustes.
 
-**Action** : Creer le fichier `src/15-variance.ts`.
+**Action** : Créer le fichier `src/15-variance.ts`.
 
 ```typescript
 // Hierarchie de types pour nos exemples
@@ -54,13 +54,13 @@ const animal: Animal = new Dog("Buddy");      // OK
 // et (Animal) => void <: (Dog) => void ?
 ```
 
-**Action** : Montrer l'assignation reussie et l'erreur pour fixer la hierarchie visuellement.
+**Action** : Montrer l'assignation reussie et l'erreur pour fixer la hiérarchie visuellement.
 
-> La question fondamentale de la variance est : si B est un sous-type de A, comment se comportent les types generiques `G<B>` et `G<A>` ? La reponse depend de la position du parametre de type.
+> La question fondamentale de la variance est : si B est un sous-type de A, comment se comportent les types génériques `G<B>` et `G<A>` ? La réponse depend de la position du paramètre de type.
 
 ### [04:30-10:00] Covariance : position de sortie
 
-> Un type est covariant quand la relation de sous-typage est preservee dans le meme sens.
+> Un type est covariant quand la relation de sous-typage est preservee dans le même sens.
 
 **Action** : Ajouter le code suivant.
 
@@ -96,7 +96,7 @@ const animalBox: ReadonlyBox<Animal> = dogBox; // OK — covariant
 
 **Action** : Montrer le bug runtime avec `animals.push(new Animal("Chat"))`. Souligner que c'est un trou de soundness connu de TypeScript.
 
-> La covariance signifie que si `Dog <: Animal`, alors `Producer<Dog> <: Producer<Animal>`. C'est logique pour les types en position de sortie. Mais pour les tableaux, qui sont a la fois lisibles et modifiables, cela cree un trou de soundness.
+> La covariance signifie que si `Dog <: Animal`, alors `Producer<Dog> <: Producer<Animal>`. C'est logique pour les types en position de sortie. Mais pour les tableaux, qui sont à la fois lisibles et modifiables, cela créé un trou de soundness.
 
 ### [10:00-16:00] Contravariance : position d'entree
 
@@ -157,7 +157,7 @@ interface StrictHandler {
 
 **Action** : Decommenter `const trainAnimal` pour montrer l'erreur. Expliquer pourquoi l'inversion est logique.
 
-> La contravariance est le concept le plus deroutant. Retenez : si vous consommez (recevez en parametre) un type, la relation est inversee. Un consommateur plus general peut toujours etre utilise la ou un consommateur specifique est attendu.
+> La contravariance est le concept le plus deroutant. Retenez : si vous consommez (recevez en paramètre) un type, la relation est inversee. Un consommateur plus général peut toujours etre utilise la ou un consommateur spécifique est attendu.
 
 ### [16:00-20:30] Invariance et trous de soundness
 
@@ -215,9 +215,9 @@ interface SafeConsumer<in T> {
 
 **Action** : Montrer que `MutableBox` est invariant en tentant les assignations.
 
-### [20:30-24:00] Applications pratiques et recapitulatif
+### [20:30-24:00] Applications pratiques et récapitulatif
 
-> Voyons comment la variance s'applique dans du code reel.
+> Voyons comment la variance s'applique dans du code réel.
 
 ```typescript
 // Application : les callbacks de Promise
@@ -251,11 +251,11 @@ sortAnimals(dogs, (a, b) => a.name.localeCompare(b.name));
 // | Aucune        | Bivariant      | (defaut)   | Methodes legacy |
 ```
 
-> En resume : la variance determine quand une substitution de type est sure. Covariant pour les sorties, contravariant pour les entrees, invariant quand c'est les deux. TypeScript fait des compromis de soundness (arrays covariants, methodes bivariantes) pour des raisons pratiques. Utilisez `readonly`, les annotations `in`/`out`, et `strictFunctionTypes` pour maximiser la securite.
+> En résumé : la variance déterminé quand une substitution de type est sure. Covariant pour les sorties, contravariant pour les entrees, invariant quand c'est les deux. TypeScript fait des compromis de soundness (arrays covariants, méthodes bivariantes) pour des raisons pratiques. Utilisez `readonly`, les annotations `in`/`out`, et `strictFunctionTypes` pour maximiser la sécurité.
 
 ## Points d'attention pour l'enregistrement
-- La hierarchie Animal > Dog > GoldenRetriever doit etre claire des le debut
+- La hiérarchie Animal > Dog > GoldenRetriever doit etre claire des le debut
 - Le trou de soundness des arrays est un excellent point de discussion
 - La contravariance des fonctions est le point le plus difficile — utiliser des analogies
-- Le tableau recapitulatif a la fin est essentiel — le montrer en plein ecran
+- Le tableau récapitulatif à la fin est essentiel — le montrer en plein ecran
 - Ne pas se precipiter : chaque concept merite 2-3 minutes d'explication

@@ -4,21 +4,21 @@
 - **Duree estimee** : 20-25 min
 - **Module** : `modules/12-mapped-template.md`
 - **Lab associe** : Lab 12
-- **Prerequis** : Screencast 11 (conditional types)
+- **Prérequis** : Screencast 11 (conditional types)
 
 ## Setup
 - [ ] VS Code ouvert dans `typescript-course/`
-- [ ] Terminal integre ouvert
-- [ ] Fichier `src/12-mapped-template.ts` pret a etre cree
+- [ ] Terminal intégré ouvert
+- [ ] Fichier `src/12-mapped-template.ts` pret a etre créé
 - [ ] Bonne comprehension de `keyof`, generics et conditional types
 
 ## Script
 
 ### [00:00-04:30] Mapped types fondamentaux
 
-> Les mapped types permettent de transformer un type en iterant sur ses cles. C'est le mecanisme derriere `Partial`, `Readonly` et `Required`. Dans ce screencast, nous allons aller bien plus loin.
+> Les mapped types permettent de transformer un type en iterant sur ses clés. C'est le mécanisme derriere `Partial`, `Readonly` et `Required`. Dans ce screencast, nous allons aller bien plus loin.
 
-**Action** : Creer le fichier `src/12-mapped-template.ts`.
+**Action** : Créer le fichier `src/12-mapped-template.ts`.
 
 ```typescript
 // Mapped type de base : iterer sur les cles
@@ -65,13 +65,13 @@ type NullableUser = NullableValues<User>;
 // { id: number | null; name: string | null; active: boolean | null }
 ```
 
-**Action** : Survoler `UserGetters` pour montrer les proprietes renommees avec les prefixes `get`.
+**Action** : Survoler `UserGetters` pour montrer les propriétés renommees avec les prefixes `get`.
 
-> La syntaxe `[K in keyof T]` est le coeur des mapped types. On peut modifier les cles (avec `as`), les valeurs, l'optionalite (`?` / `-?`) et la mutabilite (`readonly` / `-readonly`).
+> La syntaxe `[K in keyof T]` est le coeur des mapped types. On peut modifier les clés (avec `as`), les valeurs, l'optionalite (`?` / `-?`) et la mutabilite (`readonly` / `-readonly`).
 
 ### [04:30-10:00] Key remapping avec as
 
-> TypeScript 4.1 a introduit le key remapping : la possibilite de transformer les noms de cles lors du mapping.
+> TypeScript 4.1 a introduit le key remapping : la possibilite de transformer les noms de clés lors du mapping.
 
 **Action** : Ajouter le code suivant.
 
@@ -136,9 +136,9 @@ type GettersAndSetters<T> = Getters<T> & Setters<T>;
 type UserAccessors = GettersAndSetters<User>;
 ```
 
-**Action** : Survoler `ServiceMethods` pour montrer que seules les methodes restent. Montrer `UserSetters` avec les noms de cles transformes.
+**Action** : Survoler `ServiceMethods` pour montrer que seules les méthodes restent. Montrer `UserSetters` avec les noms de clés transformes.
 
-> Le key remapping avec `as` est extremement flexible. La cle `never` supprime la propriete, un template literal transforme le nom, et un conditional type filtre selon le type de la valeur. C'est ainsi que des librairies comme Prisma generent des types a partir d'un schema.
+> Le key remapping avec `as` est extremement flexible. La clé `never` supprime la propriété, un template literal transforme le nom, et un conditional type filtre selon le type de la valeur. C'est ainsi que des librairies comme Prisma generent des types à partir d'un schema.
 
 ### [10:00-16:00] Template literal types
 
@@ -281,9 +281,9 @@ type FrozenConfig = DeepReadonly<Config>;
 // Toutes les proprietes, meme imbriquees, sont readonly
 ```
 
-**Action** : Survoler `SnakeApiUser` pour montrer les cles converties. Puis survoler `FrozenConfig` pour montrer le readonly profond.
+**Action** : Survoler `SnakeApiUser` pour montrer les clés converties. Puis survoler `FrozenConfig` pour montrer le readonly profond.
 
-### [21:00-24:00] Recapitulatif et limites
+### [21:00-24:00] Récapitulatif et limites
 
 > Resumons et parlons des limites.
 
@@ -308,11 +308,11 @@ type FrozenConfig = DeepReadonly<Config>;
 // - Privilegier la lisibilite a la cleverness
 ```
 
-> En resume : les mapped types et template literal types forment un duo extremement puissant pour la meta-programmation de types. Ils permettent de deriver automatiquement des types a partir d'autres types, d'assurer la coherence entre API et types, et de creer des experiences developpeur exceptionnelles. Mais gardez toujours a l'esprit la lisibilite — un type trop malin est un type inmaintenable.
+> En résumé : les mapped types et template literal types forment un duo extremement puissant pour la meta-programmation de types. Ils permettent de deriver automatiquement des types à partir d'autres types, d'assurer la coherence entre API et types, et de créer des experiences développeur exceptionnelles. Mais gardez toujours a l'esprit la lisibilite — un type trop malin est un type inmaintenable.
 
 ## Points d'attention pour l'enregistrement
 - Le key remapping avec `as` est le concept le plus important — prendre le temps
 - Montrer les 9 combinaisons de `Variant` pour illustrer le produit cartesien
-- Le parsing de routes est un exemple tres motivant — decomposer pas a pas
+- Le parsing de routes est un exemple très motivant — decomposer pas a pas
 - `CamelToSnake` est complexe : l'expliquer caractere par caractere
-- Prevenir que ces patterns sont puissants mais a utiliser avec moderation
+- Prevenir que ces patterns sont puissants mais à utiliser avec moderation

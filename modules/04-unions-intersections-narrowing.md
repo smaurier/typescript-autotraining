@@ -2,13 +2,13 @@
 
 > **Duree estimee** : 4h30
 > **Difficulte** : 2/5
-> **Prerequis** : Module 03 (interfaces, type aliases, structural typing)
+> **Prérequis** : Module 03 (interfaces, type aliases, structural typing)
 > **Objectifs** :
-> - Maitriser les **union types** (`|`) et les **discriminated unions**
+> - Maîtriser les **union types** (`|`) et les **discriminated unions**
 > - Comprendre et appliquer le **type narrowing** avec toutes les techniques
-> - Creer des **type guards custom** avec les predicates `is`
+> - Créer des **type guards custom** avec les predicates `is`
 > - Utiliser les **assertion functions** (`asserts`) pour le narrowing
-> - Implementer la verification **exhaustive** avec `never`
+> - Implementer la vérification **exhaustive** avec `never`
 > - Comprendre l'analyse du **control flow** par TypeScript
 
 ---
@@ -17,7 +17,7 @@
 
 ### Concept
 
-Un **union type** represente une valeur qui peut etre de **plusieurs types differents** :
+Un **union type** represente une valeur qui peut etre de **plusieurs types différents** :
 
 ```typescript
 // Une variable qui peut etre string OU number
@@ -63,7 +63,7 @@ Une union type, c'est comme une **boite mystere** dans un jeu televise :
 
 - Tu sais que la boite contient **soit** un livre, **soit** un DVD, **soit** un CD
 - Tant que tu n'as pas ouvert la boite (narrowing), tu ne peux faire que des choses communes a ces trois objets (les regarder, les peser)
-- Une fois que tu ouvres la boite et que tu vois que c'est un livre, tu peux le **lire** (propriete specifique au livre)
+- Une fois que tu ouvres la boite et que tu vois que c'est un livre, tu peux le **lire** (propriété spécifique au livre)
 
 ```typescript
 type Contenu = Livre | DVD | CD;
@@ -134,7 +134,7 @@ interface Utilisateur {
 
 ### Concept
 
-Une **discriminated union** (ou union discriminee, ou tagged union) est une union ou chaque membre possede un **champ commun** qui permet de les distinguer :
+Une **discriminated union** (où union discriminee, ou tagged union) est une union ou chaque membre possede un **champ commun** qui permet de les distinguer :
 
 ```typescript
 // Le champ 'type' sert de DISCRIMINANT (ou "tag")
@@ -207,7 +207,7 @@ console.log(calculerAire(t)); // 12
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Exemple reel : gestion d'actions (pattern Redux)
+### Exemple réel : gestion d'actions (pattern Redux)
 
 ```typescript
 // Actions d'un panier e-commerce
@@ -264,7 +264,7 @@ function reducerPanier(etat: EtatPanier, action: ActionPanier): EtatPanier {
 }
 ```
 
-### Exemple reel : Resultats d'operations
+### Exemple réel : Resultats d'operations
 
 ```typescript
 // Pattern Result — tres courant en TypeScript
@@ -298,7 +298,7 @@ if (resultat.ok) {
 
 ### Qu'est-ce que le narrowing ?
 
-Le **narrowing** (ou "retrecissement de type") est le processus par lequel TypeScript **reduit** un type large a un type plus precis grace a des verifications :
+Le **narrowing** (où "retrecissement de type") est le processus par lequel TypeScript **reduit** un type large à un type plus précis grâce à des verifications :
 
 ```typescript
 // Type large : string | number
@@ -315,7 +315,7 @@ function traiter(valeur: string | number): string {
 }
 ```
 
-### Les differentes techniques de narrowing
+### Les différentes techniques de narrowing
 
 TypeScript reconnait plusieurs patterns pour narrower les types.
 
@@ -323,7 +323,7 @@ TypeScript reconnait plusieurs patterns pour narrower les types.
 
 ### Narrowing avec typeof
 
-L'operateur `typeof` permet de verifier les types primitifs :
+L'operateur `typeof` permet de vérifier les types primitifs :
 
 ```typescript
 function formater(valeur: string | number | boolean | undefined): string {
@@ -353,7 +353,7 @@ function formater(valeur: string | number | boolean | undefined): string {
 
 ### Narrowing avec instanceof
 
-`instanceof` verifie si un objet est une instance d'une classe :
+`instanceof` vérifié si un objet est une instance d'une classe :
 
 ```typescript
 class Chien {
@@ -410,7 +410,7 @@ function traiterErreur(erreur: Error | string): string {
 
 ### Narrowing avec in
 
-L'operateur `in` verifie si une propriete **existe** dans un objet :
+L'operateur `in` vérifié si une propriété **existe** dans un objet :
 
 ```typescript
 interface Voiture {
@@ -518,7 +518,7 @@ function deplacer(direction: Direction): void {
 
 ### Pattern courant avec discriminated unions
 
-Le `switch` est la maniere la plus lisible de narrower des discriminated unions :
+Le `switch` est la manière la plus lisible de narrower des discriminated unions :
 
 ```typescript
 type Notification =
@@ -756,7 +756,7 @@ function traiter2(valeur: string | null): void {
 
 ### Le concept
 
-La verification exhaustive (exhaustive checking) s'assure que **tous les cas** d'une union sont geres. Si un cas est oublie, TypeScript genere une erreur :
+La vérification exhaustive (exhaustive checking) s'assure que **tous les cas** d'une union sont geres. Si un cas est oublie, TypeScript généré une erreur :
 
 ```typescript
 type CouleurFeu = "rouge" | "orange" | "vert";
@@ -842,7 +842,7 @@ function decrireAnimal(animal: Animal): string {
 
 ### Comment TypeScript analyse le flux
 
-TypeScript suit le flux d'execution de ton code et **narrow les types automatiquement** :
+TypeScript suit le flux d'exécution de ton code et **narrow les types automatiquement** :
 
 ```typescript
 function analyserDonnee(donnee: string | number | null): void {
@@ -1036,7 +1036,7 @@ Cree un type `Evenement` pour un calendrier avec ces variantes :
 - `Rappel` : titre, importance ("haute" | "moyenne" | "basse")
 - `Tache` : titre, description, dateEcheance, terminee
 
-Ecris une fonction `resumer(evenement)` qui retourne un resume different selon le type.
+Ecris une fonction `resumer(evenement)` qui retourne un résumé différent selon le type.
 
 <details>
 <summary>Solution</summary>
@@ -1134,7 +1134,7 @@ Ecris des type guards pour valider des donnees venant d'une API (format unknown)
 
 1. `estChaine(valeur: unknown): valeur is string`
 2. `estNombrePositif(valeur: unknown): valeur is number` — doit etre > 0
-3. `estTableauNonVide<T>(valeur: unknown): valeur is [T, ...T[]]` — au moins un element
+3. `estTableauNonVide<T>(valeur: unknown): valeur is [T, ...T[]]` — au moins un élément
 4. `estEmail(valeur: unknown): valeur is string` — doit contenir @
 
 <details>
@@ -1217,7 +1217,7 @@ validerInscription({ email: "alice@example.com", age: 30 });
 ### Exercice 3 — Narrowing exhaustif
 
 Cree un type `Paiement` avec les variantes : `CarteBancaire`, `Virement`, `PayPal`, `Especes`.
-Ecris une fonction `traiterPaiement` avec verification exhaustive.
+Ecris une fonction `traiterPaiement` avec vérification exhaustive.
 
 <details>
 <summary>Solution</summary>
@@ -1444,9 +1444,9 @@ try {
 
 </details>
 
-### Exercice 5 — Machine a etats
+### Exercice 5 — Machine a états
 
-Implemente une machine a etats pour une commande e-commerce avec les etats :
+Implemente une machine a états pour une commande e-commerce avec les états :
 `brouillon` → `validee` → `payee` → `expediee` → `livree`
 
 Chaque transition doit etre typee — impossible de passer directement de `brouillon` a `livree`.
@@ -1572,7 +1572,7 @@ console.log(commande);
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -1619,9 +1619,20 @@ console.log(commande);
 
 Dans les prochains modules, nous allons approfondir :
 
-- Les **generiques** — parametrer les types pour creer du code reutilisable
+- Les **génériques** — parametrer les types pour créer du code réutilisable
 - Les **utility types** — `Partial`, `Required`, `Pick`, `Omit`, `Record`, etc.
 - Les **mapped types** et **conditional types** — transformer les types
-- Les **classes** avec TypeScript — heritage, modificateurs d'acces, abstractions
+- Les **classes** avec TypeScript — héritage, modificateurs d'acces, abstractions
 
-> **Conseil** : Les discriminated unions et le narrowing sont au coeur de TypeScript. Entraine-toi a modeliser des problemes reels (etats d'une commande, types de notifications, reponses d'API) avec des unions discriminees. C'est un pattern que tu utiliseras tous les jours.
+> **Conseil** : Les discriminated unions et le narrowing sont au coeur de TypeScript. Entraine-toi a modeliser des problèmes réels (états d'une commande, types de notifications, réponses d'API) avec des unions discriminees. C'est un pattern que tu utiliseras tous les jours.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 04 narrowing](../screencasts/screencast-04-narrowing.md)
+2. **Lab** : [lab-04-narrowing](../labs/lab-04-narrowing/README)
+3. **Visualisation** : [Type Narrowing](../visualizations/type-narrowing.html)
+4. **Quiz** : [quiz 04 narrowing](../quizzes/quiz-04-narrowing.html)
+:::

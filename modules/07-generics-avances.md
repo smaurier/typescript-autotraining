@@ -2,32 +2,32 @@
 
 > **Duree estimee** : 5 heures
 > **Difficulte** : 3/5
-> **Prerequis** : Module 06 (Generics fondamentaux, contraintes, keyof, acces indexes)
+> **Prérequis** : Module 06 (Generics fondamentaux, contraintes, keyof, acces indexes)
 > **Objectifs** :
 >
 > - Comprendre les types tuples variadiques et leurs applications
-> - Maitriser l'inference avancee avec `infer` dans les generics
+> - Maîtriser l'inference avancee avec `infer` dans les generics
 > - Typer des fonctions d'ordre superieur (higher-order functions)
-> - Implementer le currying et le builder pattern de maniere type-safe
-> - Exploiter la distributivite dans les types conditionnels generiques
-> - Creer des contraintes recursives
-> - Utiliser les branded types (types opaques) pour renforcer la securite
+> - Implementer le currying et le builder pattern de manière type-safe
+> - Exploiter la distributivite dans les types conditionnels génériques
+> - Créer des contraintes recursives
+> - Utiliser les branded types (types opaques) pour renforcer la sécurité
 
 ---
 
 ## Introduction
 
-Le Module 06 a pose les bases des generics. Dans ce module, nous allons explorer des **patterns avances** qui tirent pleinement parti du systeme de types de TypeScript. Ces techniques sont utilisees dans les bibliotheques les plus populaires (Zod, tRPC, Prisma, etc.) pour offrir une experience developpeur exceptionnelle.
+Le Module 06 a pose les bases des generics. Dans ce module, nous allons explorer des **patterns avances** qui tirent pleinement parti du système de types de TypeScript. Ces techniques sont utilisees dans les bibliotheques les plus populaires (Zod, tRPC, Prisma, etc.) pour offrir une experience développeur exceptionnelle.
 
 ### Analogie : de l'artisan au maitre horloger
 
-Si les generics fondamentaux sont les outils d'un **artisan** (marteau, tournevis), les generics avances sont les outils d'un **maitre horloger** : precis, sophistiques, et capables de creer des mecanismes d'une complexite remarquable. Chaque rouage (type) s'emboite parfaitement dans l'ensemble.
+Si les generics fondamentaux sont les outils d'un **artisan** (marteau, tournevis), les generics avances sont les outils d'un **maitre horloger** : précis, sophistiques, et capables de créer des mécanismes d'une complexite remarquable. Chaque rouage (type) s'emboite parfaitement dans l'ensemble.
 
 ---
 
 ## Types tuples variadiques
 
-Introduits dans TypeScript 4.0, les **variadic tuple types** permettent de manipuler des tuples de maniere generique, en concatenant, en decoupant et en transformant leurs elements.
+Introduits dans TypeScript 4.0, les **variadic tuple types** permettent de manipuler des tuples de manière générique, en concatenant, en decoupant et en transformant leurs éléments.
 
 ### Concatenation de tuples
 
@@ -45,7 +45,7 @@ type Resultat3 = Concat<[], [string]>;
 // [string]
 ```
 
-### Fonction avec spread generique
+### Fonction avec spread générique
 
 ```typescript
 // Fonction qui fusionne les arguments de deux fonctions
@@ -74,7 +74,7 @@ type T3 = Premier<[]>;                         // never
 type T4 = Reste<[string]>;                     // []
 ```
 
-### Dernier element d'un tuple
+### Dernier élément d'un tuple
 
 ```typescript
 type Dernier<T extends readonly unknown[]> = T extends [...unknown[], infer D] ? D : never;
@@ -124,7 +124,7 @@ const resultat2 = pipe3(
 // resultat2: number = 10
 ```
 
-### Prepend — ajouter un element au debut d'un tuple
+### Prepend — ajouter un élément au debut d'un tuple
 
 ```typescript
 type Prepend<E, T extends readonly unknown[]> = [E, ...T];
@@ -146,7 +146,7 @@ const t = prepend("debut", [1, true, "fin"]);
 
 ## Inference avancee avec `infer`
 
-Le mot-cle `infer` dans les types conditionnels permet d'**extraire** des types depuis des structures complexes. C'est l'outil le plus puissant du systeme de types de TypeScript.
+Le mot-clé `infer` dans les types conditionnels permet d'**extraire** des types depuis des structures complexes. C'est l'outil le plus puissant du système de types de TypeScript.
 
 ### Extraire le type de retour d'une fonction
 
@@ -159,7 +159,7 @@ type R2 = MonReturnType<(x: number) => boolean>; // boolean
 type R3 = MonReturnType<typeof Math.max>;         // number
 ```
 
-### Extraire les types des parametres
+### Extraire les types des paramètres
 
 ```typescript
 // Recreer Parameters<T>
@@ -374,7 +374,7 @@ console.log(boite10x5(2));               // 100
 console.log(boite10x5(3));               // 150
 ```
 
-### Currying generique avance
+### Currying générique avance
 
 ```typescript
 // Type recursif pour le currying
@@ -420,7 +420,7 @@ console.log(formaterDupont(25)); // "Jean Dupont a 25 ans"
 
 ## Builder pattern type-safe
 
-Le builder pattern permet de construire des objets complexes etape par etape. Avec les generics, on peut s'assurer que toutes les etapes obligatoires sont effectuees **au moment de la compilation**.
+Le builder pattern permet de construire des objets complexes étape par étape. Avec les generics, on peut s'assurer que toutes les étapes obligatoires sont effectuees **au moment de la compilation**.
 
 ```typescript
 // Les proprietes requises et leur type
@@ -494,11 +494,11 @@ console.log(serveur);
 
 ### Analogie : la checklist du pilote
 
-Le builder type-safe est comme la **checklist d'un pilote d'avion** avant le decollage. Chaque etape cochee debloque la suivante, et le decollage (`.construire()`) n'est autorise que lorsque toutes les verifications obligatoires sont effectuees.
+Le builder type-safe est comme la **checklist d'un pilote d'avion** avant le decollage. Chaque étape cochee debloque la suivante, et le decollage (`.construire()`) n'est autorise que lorsque toutes les verifications obligatoires sont effectuees.
 
 ---
 
-## Retour conditionnel generique
+## Retour conditionnel générique
 
 Les generics peuvent etre combines avec des types conditionnels pour que le type de retour d'une fonction depende du type de l'argument.
 
@@ -525,7 +525,7 @@ console.log(b); // "42"
 console.log(c); // false
 ```
 
-### Exemple : reponse API conditionnelle
+### Exemple : réponse API conditionnelle
 
 ```typescript
 // Le format de la reponse depend du parametre `format`
@@ -576,7 +576,7 @@ async function demo() {
 
 ## Distributivite dans les generics
 
-Quand un type conditionnel est applique a un type union, il se **distribue** sur chaque membre de l'union. Ce comportement est fondamental a comprendre.
+Quand un type conditionnel est applique à un type union, il se **distribue** sur chaque membre de l'union. Ce comportement est fondamental à comprendre.
 
 ### Comportement distributif
 
@@ -625,9 +625,9 @@ La distributivite est comme un **centre de tri postal** : si vous envoyez un paq
 
 ## Contraintes recursives
 
-Les types generiques peuvent se referer a eux-memes, ce qui permet de decrire des structures arborescentes ou imbriquees.
+Les types génériques peuvent se referer a eux-memes, ce qui permet de decrire des structures arborescentes ou imbriquees.
 
-### Arbre generique
+### Arbre générique
 
 ```typescript
 // Noeud d'un arbre generique
@@ -683,7 +683,7 @@ parcourirProfondeur(arbre, (val, prof) => {
 });
 ```
 
-### JSON type recursif
+### JSON type récursif
 
 ```typescript
 // Definition recursive du type JSON
@@ -712,7 +712,7 @@ const donnees: JSONValue = {
 };
 ```
 
-### DeepReadonly recursif
+### DeepReadonly récursif
 
 ```typescript
 // Rendre un objet profondement immutable
@@ -754,7 +754,7 @@ const etat: EtatImmutable = {
 // etat.articles.push({ id: 2, titre: "Article 2" }); // ERREUR : readonly array
 ```
 
-### DeepPartial recursif
+### DeepPartial récursif
 
 ```typescript
 // Rendre toutes les proprietes optionnelles en profondeur
@@ -805,7 +805,7 @@ console.log(configModifiee.serveur.port);       // 3000 (inchange)
 
 ## Generic overload patterns
 
-Les overloads generiques permettent de creer des fonctions avec des signatures multiples et type-safe.
+Les overloads génériques permettent de créer des fonctions avec des signatures multiples et type-safe.
 
 ```typescript
 // Overloads generiques pour une fonction `rechercher`
@@ -839,9 +839,9 @@ const peripheriques = rechercher(produits, "categorie", "peripherique");
 
 ## Branded Types / Types opaques
 
-Les **branded types** (ou types opaques) permettent de creer des types qui sont structurellement identiques a un type de base mais **incompatibles** entre eux. Cela empeche de melanger des valeurs qui ont le meme type sous-jacent mais des significations differentes.
+Les **branded types** (où types opaques) permettent de créer des types qui sont structurellement identiques à un type de base mais **incompatibles** entre eux. Cela empeche de melanger des valeurs qui ont le même type sous-jacent mais des significations différentes.
 
-### Le probleme
+### Le problème
 
 ```typescript
 // Sans branded types : tout est juste `string`
@@ -899,7 +899,7 @@ envoyerEmailTypeSafe(userId, emailId);         // OK
 // envoyerEmailTypeSafe("user_123", emailId);   // ERREUR : string n'est pas UtilisateurId
 ```
 
-### Branded types numeriques
+### Branded types numériques
 
 ```typescript
 type EUR = Brand<number, "EUR">;
@@ -929,13 +929,13 @@ const total = additionnerEUR(prix1, prix2); // OK : 30 EUR
 
 ### Analogie : les etiquettes de bagages
 
-Les branded types sont comme des **etiquettes de bagages a l'aeroport**. Deux valises peuvent etre physiquement identiques (meme type sous-jacent), mais l'etiquette (la marque) indique leur destination. Cela empeche de les mettre dans le mauvais avion.
+Les branded types sont comme des **etiquettes de bagages a l'aeroport**. Deux valises peuvent etre physiquement identiques (même type sous-jacent), mais l'etiquette (la marque) indique leur destination. Cela empeche de les mettre dans le mauvais avion.
 
 ---
 
 ## Pratique
 
-### Exercice 1 : Type `Flatten` recursif
+### Exercice 1 : Type `Flatten` récursif
 
 Creez un type utilitaire `Flatten<T>` qui "aplatit" un type tableau imbrique. Par exemple, `Flatten<number[][]>` devrait donner `number[]`.
 
@@ -1043,7 +1043,7 @@ console.log(codePays);  // "FR"
 
 ### Exercice 3 : EventEmitter type-safe avec generics
 
-Creez un emetteur d'evenements generique ou les types des evenements et de leurs donnees sont verifies a la compilation.
+Creez un emetteur d'événements générique ou les types des événements et de leurs donnees sont verifies à la compilation.
 
 <details>
 <summary>Solution</summary>
@@ -1140,7 +1140,7 @@ desabonnerErreur(); // Se desabonner
 
 ### Exercice 4 : Branded types pour une application financiere
 
-Creez un systeme de types marques pour une application financiere qui empeche de melanger les devises.
+Creez un système de types marques pour une application financiere qui empeche de melanger les devises.
 
 <details>
 <summary>Solution</summary>
@@ -1209,7 +1209,7 @@ console.log(`Total avec conversion: ${totalAvecConversion} EUR`);
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Concept                      | Description                                                        |
 |------------------------------|--------------------------------------------------------------------|
@@ -1217,17 +1217,28 @@ console.log(`Total avec conversion: ${totalAvecConversion} EUR`);
 | `infer`                      | Extraire un type depuis une structure dans un conditionnel         |
 | Higher-order generics        | Typer les fonctions qui prennent/retournent des fonctions          |
 | Currying type-safe           | Transformer `f(a, b, c)` en `f(a)(b)(c)` avec types preserves     |
-| Builder type-safe            | Forcer les etapes obligatoires au moment de la compilation         |
+| Builder type-safe            | Forcer les étapes obligatoires au moment de la compilation         |
 | Retour conditionnel          | Le type de retour depend du type d'entree                          |
 | Distributivite               | Les conditionnels se distribuent sur les unions                    |
 | Contraintes recursives       | Types qui se referencent eux-memes (arbres, DeepReadonly)          |
-| Overloads generiques         | Signatures multiples avec types differents                         |
+| Overloads génériques         | Signatures multiples avec types différents                         |
 | Branded types                | Types nominaux pour empecher les melanges                          |
 
 ---
 
 ## Pour aller plus loin
 
-Dans le **Module 08**, nous explorerons les **Enums, Tuples et Types speciaux** (`never`, `unknown`, `void`). Ces types jouent des roles specifiques dans le systeme de types de TypeScript et sont essentiels pour ecrire du code robuste et expressif.
+Dans le **Module 08**, nous explorerons les **Enums, Tuples et Types speciaux** (`never`, `unknown`, `void`). Ces types jouent des roles spécifiques dans le système de types de TypeScript et sont essentiels pour écrire du code robuste et expressif.
 
 [Continuer vers le Module 08 : Enums, Tuples & Types speciaux →](./08-enums-tuples-types-speciaux.md)
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 07 generics avances](../screencasts/screencast-07-generics-avances.md)
+2. **Lab** : [lab-07-generics-avances](../labs/lab-07-generics-avances/README)
+3. **Visualisation** : [Generics Flow](../visualizations/generics-flow.html)
+4. **Quiz** : [quiz 07 generics avances](../quizzes/quiz-07-generics-avances.html)
+:::

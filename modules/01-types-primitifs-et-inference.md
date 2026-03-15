@@ -2,14 +2,14 @@
 
 > **Duree estimee** : 3h30
 > **Difficulte** : 1/5
-> **Prerequis** : Module 00 (installation TypeScript, premier fichier .ts, tsconfig.json)
+> **Prérequis** : Module 00 (installation TypeScript, premier fichier .ts, tsconfig.json)
 > **Objectifs** :
-> - Maitriser tous les **types primitifs** de TypeScript
-> - Comprendre le systeme d'**inference de types**
+> - Maîtriser tous les **types primitifs** de TypeScript
+> - Comprendre le système d'**inference de types**
 > - Savoir quand annoter et quand laisser TypeScript inferer
-> - Eviter le piege de `any` et utiliser `unknown` a la place
+> - Éviter le piege de `any` et utiliser `unknown` à la place
 > - Comprendre `void`, `never`, et les **literal types**
-> - Maitriser `as`, `!` et l'operateur `satisfies`
+> - Maîtriser `as`, `!` et l'operateur `satisfies`
 
 ---
 
@@ -17,7 +17,7 @@
 
 ### Vue d'ensemble
 
-TypeScript herite des types primitifs de JavaScript et leur ajoute un systeme de verification statique :
+TypeScript hérité des types primitifs de JavaScript et leur ajoute un système de vérification statique :
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -138,7 +138,7 @@ console.log(tache); // "Faire les courses"
 
 Imagine un formulaire papier :
 
-- **`undefined`** = Le champ n'existe meme pas sur le formulaire. Personne n'a pense a le mettre.
+- **`undefined`** = Le champ n'existe même pas sur le formulaire. Personne n'a pense a le mettre.
 - **`null`** = Le champ existe, mais la personne l'a volontairement laisse **vide**.
 
 ```typescript
@@ -198,7 +198,7 @@ const mixte: bigint = grandNombre + BigInt(1);
 
 ### symbol
 
-Le type `symbol` cree des identifiants uniques :
+Le type `symbol` créé des identifiants uniques :
 
 ```typescript
 // Chaque symbol est unique
@@ -231,7 +231,7 @@ const coffre: Coffre = {
 
 ### Qu'est-ce que l'inference ?
 
-TypeScript peut **deviner** (inferer) le type d'une variable a partir de sa valeur initiale. Tu n'as pas toujours besoin d'ecrire le type explicitement :
+TypeScript peut **deviner** (inferer) le type d'une variable à partir de sa valeur initiale. Tu n'as pas toujours besoin d'écrire le type explicitement :
 
 ```typescript
 // Annotation explicite (pas toujours necessaire)
@@ -299,7 +299,7 @@ nombre2 = 100;        // OK — 100 est un number
 
 ### Concept
 
-Un **literal type** est un type qui ne peut prendre qu'une seule valeur precise :
+Un **literal type** est un type qui ne peut prendre qu'une seule valeur précisé :
 
 ```typescript
 // Types litteraux explicites
@@ -426,11 +426,11 @@ alice.actif;  // boolean
 
 ---
 
-## any — Le type a eviter
+## any — Le type a éviter
 
 ### Qu'est-ce que any ?
 
-`any` est le type qui **desactive completement** la verification de types. C'est comme enlever la ceinture de securite :
+`any` est le type qui **désactivé complètement** la vérification de types. C'est comme enlever la ceinture de sécurité :
 
 ```typescript
 // Avec any, TOUT est permis — meme les absurdites
@@ -482,7 +482,7 @@ function calculer(a, b) { return a + b; } // 'a' et 'b' sont 'any'
 const config = JSON.parse('{"port": 3000}'); // config est 'any' !
 ```
 
-### Comment eviter any
+### Comment éviter any
 
 ```typescript
 // Au lieu de any, utilise un type precis ou unknown
@@ -516,7 +516,7 @@ function parseConfig(texte: string): Config {
 
 ### Concept
 
-`unknown` est le **type-safe counterpart** de `any`. C'est un type qui accepte n'importe quelle valeur, mais qui **t'oblige a verifier** le type avant de l'utiliser :
+`unknown` est le **type-safe counterpart** de `any`. C'est un type qui accepte n'importe quelle valeur, mais qui **t'oblige a vérifier** le type avant de l'utiliser :
 
 ```typescript
 // unknown accepte n'importe quelle valeur (comme any)
@@ -542,8 +542,8 @@ if (typeof valeur === "number") {
 
 ### Analogie — Le colis suspect
 
-- **`any`** = Un colis arrive, tu l'ouvres directement sans verifier. Ca pourrait etre un cadeau ou une bombe.
-- **`unknown`** = Un colis arrive, tu ne peux pas l'ouvrir tant que tu n'as pas passe le colis au scanner de securite. Tu verifies d'abord, tu ouvres ensuite.
+- **`any`** = Un colis arrive, tu l'ouvres directement sans vérifier. Ça pourrait etre un cadeau ou une bombe.
+- **`unknown`** = Un colis arrive, tu ne peux pas l'ouvrir tant que tu n'as pas passe le colis au scanner de sécurité. Tu verifies d'abord, tu ouvres ensuite.
 
 ### Comparaison any vs unknown
 
@@ -653,7 +653,7 @@ function afficherCouleur(couleur: Couleur): string {
 
 ### Analogie — void vs never
 
-- **`void`** = Tu envoies une lettre et tu n'attends pas de reponse. La poste fait son travail (la fonction s'execute), mais tu ne recois rien en retour.
+- **`void`** = Tu envoies une lettre et tu n'attends pas de réponse. La poste fait son travail (la fonction s'exécuté), mais tu ne recois rien en retour.
 - **`never`** = Tu envoies une lettre dans un trou noir. La lettre ne reviendra **jamais**, et rien d'autre ne sortira non plus. La fonction ne termine pas.
 
 ---
@@ -662,7 +662,7 @@ function afficherCouleur(couleur: Couleur): string {
 
 ### Concept
 
-Une **type assertion** dit a TypeScript : "Fais-moi confiance, je sais quel type c'est." C'est un **override** du systeme de types :
+Une **type assertion** dit a TypeScript : "Fais-moi confiance, je sais quel type c'est." C'est un **override** du système de types :
 
 ```typescript
 // Cas classique : le DOM
@@ -690,7 +690,7 @@ const longueur2 = (<string>donnee).length;
 // Recommandation : toujours utiliser 'as'
 ```
 
-### Regles de securite
+### Regles de sécurité
 
 ```typescript
 // TypeScript ne permet PAS les assertions completement impossibles
@@ -756,7 +756,7 @@ element2.textContent = "Bonjour"; // OK
 const element3 = document.getElementById("titre") as HTMLElement;
 ```
 
-### Attention : c'est une promesse, pas une verification
+### Attention : c'est une promesse, pas une vérification
 
 ```typescript
 // Le ! ne verifie RIEN au runtime
@@ -792,7 +792,7 @@ const utilisateur = getUtilisateurTest()!;
 
 ### Concept (TypeScript 4.9+)
 
-L'operateur `satisfies` verifie qu'une valeur est **compatible** avec un type, **sans changer** le type infere :
+L'operateur `satisfies` vérifié qu'une valeur est **compatible** avec un type, **sans changer** le type infere :
 
 ```typescript
 // Le probleme SANS satisfies
@@ -823,7 +823,7 @@ palette2.secondaire[0]; // OK ! TypeScript sait que c'est un tuple
 ### Analogie — satisfies vs annotation
 
 - **Annotation (`: Type`)** = "Ce colis SERA un cadeau." Le livreur ne te dit pas ce qu'il y a dedans. Tu sais juste que c'est un cadeau.
-- **satisfies** = "Verifie que ce colis est un cadeau, mais dis-moi aussi exactement ce qu'il y a dedans." Tu sais que c'est un cadeau ET tu connais le contenu precis.
+- **satisfies** = "Verifie que ce colis est un cadeau, mais dis-moi aussi exactement ce qu'il y a dedans." Tu sais que c'est un cadeau ET tu connais le contenu précis.
 
 ### Cas d'usage pratiques
 
@@ -953,7 +953,7 @@ const j = null;          // Type: null
 
 ### Exercice 3 — any vs unknown
 
-Reecris le code suivant en remplacant `any` par des types plus precis :
+Reecris le code suivant en remplacant `any` par des types plus précis :
 
 ```typescript
 function traiterReponse(reponse: any): any {
@@ -1002,9 +1002,9 @@ function logErreur(erreur: unknown): void {
 
 ### Exercice 4 — satisfies
 
-Utilise l'operateur `satisfies` pour creer un objet de configuration de theme qui :
+Utilise l'operateur `satisfies` pour créer un objet de configuration de theme qui :
 - Respecte un type `ThemeConfig`
-- Conserve la precision de l'inference (literal types des couleurs)
+- Conserve la précision de l'inference (literal types des couleurs)
 
 ```typescript
 type CouleurCSS = string | [number, number, number];
@@ -1059,10 +1059,10 @@ const theme2: ThemeConfig = {
 
 </details>
 
-### Exercice 5 — Types et verification
+### Exercice 5 — Types et vérification
 
 Cree une fonction `formaterValeur` qui :
-- Prend un parametre de type `unknown`
+- Prend un paramètre de type `unknown`
 - Retourne une `string`
 - Gere les cas : `number` (arrondi a 2 decimales), `string` (mise en majuscules), `boolean` ("oui"/"non"), `null`/`undefined` ("N/A"), et tout autre type ("Type non supporte")
 
@@ -1104,7 +1104,7 @@ console.log(formaterValeur({ x: 1 }));  // "Type non supporte"
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -1139,12 +1139,23 @@ console.log(formaterValeur({ x: 1 }));  // "Type non supporte"
 
 ## Pour aller plus loin
 
-Dans le prochain module, **02 — Fonctions — Signatures, Surcharges & Callbacks**, nous allons decouvrir :
+Dans le prochain module, **02 — Fonctions — Signatures, Surcharges & Callbacks**, nous allons découvrir :
 
-- Comment typer des fonctions complexes (parametres optionnels, rest, etc.)
+- Comment typer des fonctions complexes (paramètres optionnels, rest, etc.)
 - Les surcharges de fonctions (overloads)
 - Le typage des callbacks
 - Les type predicates (`is`) et assertion functions (`asserts`)
-- Un premier apercu des generiques dans les fonctions
+- Un premier apercu des génériques dans les fonctions
 
-> **Conseil** : Avant de passer au module suivant, assure-toi de bien comprendre la difference entre `any` et `unknown`, et l'inference `let` vs `const`. Ce sont des concepts fondamentaux qui reviendront dans tous les modules suivants.
+> **Conseil** : Avant de passer au module suivant, assure-toi de bien comprendre la différence entre `any` et `unknown`, et l'inference `let` vs `const`. Ce sont des concepts fondamentaux qui reviendront dans tous les modules suivants.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 01 types primitifs](../screencasts/screencast-01-types-primitifs.md)
+2. **Lab** : [lab-01-premiers-types](../labs/lab-01-premiers-types/README)
+3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
+4. **Quiz** : [quiz 01 types primitifs](../quizzes/quiz-01-types-primitifs.html)
+:::

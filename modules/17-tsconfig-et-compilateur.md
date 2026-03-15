@@ -4,21 +4,21 @@
 |-------------|------------------------------------------------------------------------|
 | **Duree**       | 3h30                                                                  |
 | **Difficulte**  | 4/5                                                                    |
-| **Prerequis**   | Modules 1-16, experience avec npm/yarn, notions de build tools        |
-| **Objectifs**   | Maitriser tsconfig.json, optimiser la compilation, configurer un monorepo |
+| **Prérequis**   | Modules 1-16, experience avec npm/yarn, notions de build tools        |
+| **Objectifs**   | Maîtriser tsconfig.json, optimiser la compilation, configurer un monorepo |
 
 ---
 
 ## Introduction
 
 Le fichier `tsconfig.json` est le coeur de tout projet TypeScript. Il dicte comment
-le compilateur analyse, verifie et transforme votre code. Une bonne configuration
-fait la difference entre un projet rapide et agreable a utiliser, et un projet ou
+le compilateur analyse, vérifié et transforme votre code. Une bonne configuration
+fait la différence entre un projet rapide et agreable à utiliser, et un projet ou
 la compilation prend des minutes et les erreurs de type sont incomprehensibles.
 
 > **Analogie du tableau de bord** : `tsconfig.json` est comme le tableau de bord
 > d'un avion. Chaque option est un bouton ou un cadran. Mal configurer un seul
-> parametre peut faire devier tout le projet. Mais une fois maitrise, vous avez
+> paramètre peut faire devier tout le projet. Mais une fois maîtrise, vous avez
 > un controle total sur la compilation.
 
 ---
@@ -326,9 +326,9 @@ import { Button } from "@composants/Button";
 
 ---
 
-## Project References (References de projets)
+## Project Références (Références de projets)
 
-### Le probleme des grands projets
+### Le problème des grands projets
 
 ```typescript
 // Dans un grand projet ou un monorepo, compiler tout en un seul
@@ -343,7 +343,7 @@ import { Button } from "@composants/Button";
 // Decouper le projet en sous-projets avec leurs propres tsconfig
 ```
 
-### Configuration des references
+### Configuration des références
 
 ```
 # Structure d'un monorepo avec project references
@@ -806,7 +806,7 @@ monorepo/
 }
 ```
 
-### Gestion des dependances internes
+### Gestion des dépendances internes
 
 ```json
 // packages/core/package.json
@@ -837,7 +837,7 @@ monorepo/
 
 ---
 
-## Configuration specifique aux bundlers
+## Configuration spécifique aux bundlers
 
 ### Vite + TypeScript
 
@@ -975,7 +975,7 @@ export default tseslint.config(
 
 ---
 
-## Integration CI/CD
+## Intégration CI/CD
 
 ### Pipeline TypeScript
 
@@ -1036,7 +1036,7 @@ jobs:
 
 ### Exercice 1 : Diagnostiquer un tsconfig.json
 
-Le tsconfig.json suivant a plusieurs problemes. Identifiez et corrigez-les :
+Le tsconfig.json suivant a plusieurs problèmes. Identifiez et corrigez-les :
 
 ```json
 {
@@ -1270,21 +1270,21 @@ tsconfig.json pour ameliorer les performances ?
 
 ---
 
-## Recapitulatif
+## Récapitulatif
 
 | Option                       | Role                                              |
 |------------------------------|--------------------------------------------------|
 | **target**                   | Version JS de sortie (ES2022 recommande)          |
-| **module**                   | Systeme de modules (NodeNext/ESNext)              |
-| **moduleResolution**         | Algorithme de resolution (NodeNext/Bundler)       |
+| **module**                   | Système de modules (NodeNext/ESNext)              |
+| **moduleResolution**         | Algorithme de résolution (NodeNext/Bundler)       |
 | **strict**                   | Active toutes les verifications strictes          |
 | **paths**                    | Alias d'import (@/*, @utils/*, etc.)             |
-| **composite**                | Active les project references                     |
+| **composite**                | Active les project références                     |
 | **incremental**              | Compilation incrementale avec cache               |
 | **skipLibCheck**             | Ignore les .d.ts (performance)                   |
 | **isolatedModules**          | Compilation fichier par fichier                   |
 | **declaration**              | Genere les fichiers .d.ts                         |
-| **noEmit**                   | Ne genere pas de JS (bundler externe)            |
+| **noEmit**                   | Ne généré pas de JS (bundler externe)            |
 
 ---
 
@@ -1292,8 +1292,18 @@ tsconfig.json pour ameliorer les performances ?
 
 Dans le prochain module, **Module 18 — Patterns de conception en TypeScript**,
 nous verrons comment appliquer les patterns classiques (Strategy, Observer, Builder,
-Result, etc.) en tirant pleinement parti du systeme de types de TypeScript.
+Result, etc.) en tirant pleinement parti du système de types de TypeScript.
 
 Une bonne configuration `tsconfig.json` est le socle sur lequel reposent tous
 ces patterns : sans `strict: true`, la plupart des garanties de type que nous
 allons exploiter n'existeraient pas.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 17 tsconfig](../screencasts/screencast-17-tsconfig.md)
+2. **Lab** : [lab-17-tsconfig](../labs/lab-17-tsconfig/README)
+3. **Quiz** : [quiz 17 tsconfig](../quizzes/quiz-17-tsconfig.html)
+:::

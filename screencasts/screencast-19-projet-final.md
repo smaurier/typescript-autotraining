@@ -4,13 +4,13 @@
 - **Duree estimee** : 25-30 min
 - **Module** : `modules/19-projet-final.md`
 - **Lab associe** : Lab 19 (projet complet)
-- **Prerequis** : Tous les screencasts precedents (00 a 18)
+- **Prérequis** : Tous les screencasts précédents (00 a 18)
 
 ## Setup
 - [ ] VS Code ouvert avec un dossier vide `ts-toolkit/`
-- [ ] Terminal integre ouvert
+- [ ] Terminal intégré ouvert
 - [ ] Node.js et npm installes
-- [ ] Tous les concepts des screencasts precedents maitrises
+- [ ] Tous les concepts des screencasts précédents maitrises
 - [ ] Connexion internet pour les installations npm
 
 ## Script
@@ -49,7 +49,7 @@ npx tsc --init
 }
 ```
 
-**Action** : Creer la structure de dossiers.
+**Action** : Créer la structure de dossiers.
 
 ```
 ts-toolkit/
@@ -67,13 +67,13 @@ ts-toolkit/
   tsconfig.json
 ```
 
-> Notre librairie aura cinq modules. Chacun utilise des concepts vus dans les screencasts precedents. Commencons par le coeur : le module Result.
+> Notre librairie aura cinq modules. Chacun utilise des concepts vus dans les screencasts précédents. Commencons par le coeur : le module Result.
 
 ### [05:00-11:00] Module Result et module Pipe
 
-> Implementons le module Result avec des methodes de chainage.
+> Implementons le module Result avec des méthodes de chainage.
 
-**Action** : Creer `src/result.ts`.
+**Action** : Créer `src/result.ts`.
 
 ```typescript
 // src/result.ts
@@ -147,7 +147,7 @@ export async function tryCatchAsync<T>(
 }
 ```
 
-**Action** : Creer `src/pipe.ts`.
+**Action** : Créer `src/pipe.ts`.
 
 ```typescript
 // src/pipe.ts
@@ -180,13 +180,13 @@ export function compose(...fns: Function[]): Function {
 
 **Action** : Montrer les surcharges pour le pipe et la compose.
 
-> Le module Result couvre toutes les operations : creation avec `Ok`/`Err`, chainage avec `map`/`flatMap`, unwrap pour extraire la valeur, et `tryCatch` pour convertir des exceptions en Results. Le module pipe offre la composition fonctionnelle.
+> Le module Result couvre toutes les operations : création avec `Ok`/`Err`, chainage avec `map`/`flatMap`, unwrap pour extraire la valeur, et `tryCatch` pour convertir des exceptions en Results. Le module pipe offre la composition fonctionnelle.
 
 ### [11:00-17:00] Module Validator type-safe
 
-> Le validateur utilise les generics et les types conditionnels pour inferer le type de sortie a partir du schema.
+> Le validateur utilise les generics et les types conditionnels pour inferer le type de sortie à partir du schema.
 
-**Action** : Creer `src/validator.ts`.
+**Action** : Créer `src/validator.ts`.
 
 ```typescript
 // src/validator.ts
@@ -317,7 +317,7 @@ if (result.ok) {
 
 > Assemblons le EventBus et le point d'entree.
 
-**Action** : Creer `src/event-bus.ts`.
+**Action** : Créer `src/event-bus.ts`.
 
 ```typescript
 // src/event-bus.ts
@@ -363,7 +363,7 @@ export class EventBus<Events extends EventMap> {
 }
 ```
 
-**Action** : Creer `src/types.ts` avec des utility types custom.
+**Action** : Créer `src/types.ts` avec des utility types custom.
 
 ```typescript
 // src/types.ts — Utility types customs
@@ -403,7 +403,7 @@ export type Entries<T> = {
 }[keyof T][];
 ```
 
-**Action** : Creer `src/index.ts` (barrel file).
+**Action** : Créer `src/index.ts` (barrel file).
 
 ```typescript
 // src/index.ts — Point d'entree de la librairie
@@ -420,7 +420,7 @@ export type { DeepPartial, DeepReadonly, PartialBy, RequiredBy, Brand, Prettify,
 
 > Ecrivons quelques tests pour valider notre librairie.
 
-**Action** : Creer `tests/result.test.ts`.
+**Action** : Créer `tests/result.test.ts`.
 
 ```typescript
 // tests/result.test.ts
@@ -481,7 +481,7 @@ describe("Result", () => {
 });
 ```
 
-**Action** : Executer les tests.
+**Action** : Exécuter les tests.
 
 ```bash
 npx vitest run
@@ -498,7 +498,7 @@ ls dist/
 
 **Action** : Montrer les fichiers `.js`, `.d.ts` et `.js.map` generes.
 
-### [27:00-29:30] Recapitulatif final
+### [27:00-29:30] Récapitulatif final
 
 > Faisons le bilan de tout ce que nous avons utilise dans ce projet.
 
@@ -523,12 +523,12 @@ ls dist/
 // Screencast 18 : Patterns Result, pipe, EventEmitter
 ```
 
-> Felicitations ! Vous venez de construire une librairie TypeScript complete en utilisant pratiquement tous les concepts du cours. `ts-toolkit` inclut un systeme Result pour la gestion d'erreurs, un validateur de schema avec inference automatique, un EventBus type-safe, des fonctions pipe/compose, et des utility types. Vous avez les outils pour ecrire du TypeScript professionnel. La prochaine etape : explorez Zod, tRPC et Prisma pour voir ces patterns a l'echelle industrielle.
+> Felicitations ! Vous venez de construire une librairie TypeScript complete en utilisant pratiquement tous les concepts du cours. `ts-toolkit` inclut un système Result pour la gestion d'erreurs, un validateur de schema avec inference automatique, un EventBus type-safe, des fonctions pipe/compose, et des utility types. Vous avez les outils pour écrire du TypeScript professionnel. La prochaine étape : explorez Zod, tRPC et Prisma pour voir ces patterns a l'echelle industrielle.
 
 ## Points d'attention pour l'enregistrement
 - C'est le screencast le plus long — garder un rythme soutenu mais pas precipite
 - Taper le code en direct autant que possible pour montrer l'autocompletion
 - Le module Validator est le plus impressionnant visuellement — prendre le temps sur `Infer`
-- Executer les tests pour montrer que tout fonctionne a l'execution
+- Exécuter les tests pour montrer que tout fonctionne a l'exécution
 - Terminer sur une note d'encouragement — c'est la conclusion du cours
-- Verifier que la compilation passe sans erreur avant l'enregistrement
+- Vérifier que la compilation passe sans erreur avant l'enregistrement

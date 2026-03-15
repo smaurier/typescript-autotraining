@@ -2,9 +2,9 @@
 
 > **Duree estimee** : 4 heures
 > **Difficulte** : 3/5
-> **Prerequis** : Generics, types de base, interfaces, unions et intersections
+> **Prérequis** : Generics, types de base, interfaces, unions et intersections
 > **Objectifs** :
-> - Maitriser tous les utility types natifs de TypeScript
+> - Maîtriser tous les utility types natifs de TypeScript
 > - Comprendre leur implementation interne
 > - Savoir quand et pourquoi les utiliser
 > - Combiner les utility types pour des transformations complexes
@@ -15,7 +15,7 @@
 
 TypeScript fournit un ensemble d'**utility types** integres qui permettent de transformer des types existants sans les redefinir manuellement. Ce sont des outils puissants qui evitent la duplication et rendent le code plus expressif.
 
-Pensez aux utility types comme a une **boite a outils de menuisier** : chaque outil a un usage precis, et c'est en les combinant qu'on construit des meubles complexes. Un marteau seul ne suffit pas, mais avec une scie, des vis et de la colle, on peut tout construire.
+Pensez aux utility types comme à une **boite a outils de menuisier** : chaque outil à un usage précis, et c'est en les combinant qu'on construit des meubles complexes. Un marteau seul ne suffit pas, mais avec une scie, des vis et de la colle, on peut tout construire.
 
 Dans ce module, nous allons explorer **chaque utility type natif**, comprendre son implementation interne, et voir des cas d'usage concrets.
 
@@ -25,7 +25,7 @@ Dans ce module, nous allons explorer **chaque utility type natif**, comprendre s
 
 ### Description
 
-`Partial<T>` rend toutes les proprietes d'un type **optionnelles**. C'est l'un des utility types les plus utilises.
+`Partial<T>` rend toutes les propriétés d'un type **optionnelles**. C'est l'un des utility types les plus utilises.
 
 ### Implementation interne
 
@@ -89,7 +89,7 @@ Imaginez un formulaire d'inscription ou tous les champs sont obligatoires. `Part
 
 ### Description
 
-`Required<T>` est l'inverse de `Partial` : il rend toutes les proprietes **obligatoires**, meme celles qui etaient optionnelles.
+`Required<T>` est l'inverse de `Partial` : il rend toutes les propriétés **obligatoires**, même celles qui etaient optionnelles.
 
 ### Implementation interne
 
@@ -136,7 +136,7 @@ initialiserApp({
 
 ### Cas d'usage
 
-`Required` est souvent utilise pour valider qu'une configuration est **complete** avant de l'utiliser, par exemple apres avoir fusionne des valeurs par defaut avec des valeurs utilisateur.
+`Required` est souvent utilise pour valider qu'une configuration est **complete** avant de l'utiliser, par exemple après avoir fusionne des valeurs par defaut avec des valeurs utilisateur.
 
 ```typescript
 // Valeurs par defaut
@@ -165,7 +165,7 @@ const configFinale: Required<ConfigurationApp> = {
 
 ### Description
 
-`Readonly<T>` rend toutes les proprietes d'un type **en lecture seule**. Toute tentative de modification sera une erreur de compilation.
+`Readonly<T>` rend toutes les propriétés d'un type **en lecture seule**. Toute tentative de modification sera une erreur de compilation.
 
 ### Implementation interne
 
@@ -238,7 +238,7 @@ commande.articles.push({ nom: "Cahier", quantite: 1 }); // Pas d'erreur !
 
 ### Description
 
-`Record<K, T>` construit un type objet dont les **cles** sont de type `K` et les **valeurs** de type `T`.
+`Record<K, T>` construit un type objet dont les **clés** sont de type `K` et les **valeurs** de type `T`.
 
 ### Implementation interne
 
@@ -293,7 +293,7 @@ const messagesErreur: Record<CodeErreur, string> = {
 
 ### Analogie
 
-`Record` c'est comme un **tableau de correspondances** : a chaque cle dans la colonne de gauche correspond exactement une valeur dans la colonne de droite. Comme un dictionnaire francais-anglais ou chaque mot francais a sa traduction.
+`Record` c'est comme un **tableau de correspondances** : à chaque clé dans la colonne de gauche correspond exactement une valeur dans la colonne de droite. Comme un dictionnaire français-anglais ou chaque mot français a sa traduction.
 
 ---
 
@@ -301,7 +301,7 @@ const messagesErreur: Record<CodeErreur, string> = {
 
 ### Description
 
-`Pick<T, K>` cree un type en ne selectionnant que **certaines proprietes** d'un type existant.
+`Pick<T, K>` créé un type en ne selectionnant que **certaines propriétés** d'un type existant.
 
 ### Implementation interne
 
@@ -362,7 +362,7 @@ function creerArticle(donnees: CreerArticleDTO): Article {
 
 ### Description
 
-`Omit<T, K>` est l'inverse de `Pick` : il cree un type en **excluant** certaines proprietes.
+`Omit<T, K>` est l'inverse de `Pick` : il créé un type en **excluant** certaines propriétés.
 
 ### Implementation interne
 
@@ -422,7 +422,7 @@ type Presque = Omit<GrosType, "x" | "y" | "z">;
 
 ### Description
 
-`Exclude<T, U>` supprime d'un type union les membres qui sont assignables a `U`. Il travaille sur des **unions de types**, pas sur des proprietes d'objets.
+`Exclude<T, U>` supprime d'un type union les membres qui sont assignables a `U`. Il travaille sur des **unions de types**, pas sur des propriétés d'objets.
 
 ### Implementation interne
 
@@ -563,7 +563,7 @@ type DonneesCertaines = NonNullable<Reponse["donnees"]>;
 
 ### Description
 
-`Parameters<T>` extrait les types des **parametres** d'une fonction sous forme de tuple.
+`Parameters<T>` extrait les types des **paramètres** d'une fonction sous forme de tuple.
 
 ### Implementation interne
 
@@ -611,7 +611,7 @@ type DeuxiemeParam = Parameters<typeof creerUtilisateur>[1]; // number
 
 ### Description
 
-`ConstructorParameters<T>` extrait les types des parametres du **constructeur** d'une classe.
+`ConstructorParameters<T>` extrait les types des paramètres du **constructeur** d'une classe.
 
 ### Implementation interne
 
@@ -764,8 +764,8 @@ service.connecter("alice@example.com", "motdepasse");
 
 ### Description
 
-`ThisParameterType<T>` extrait le type du parametre `this` d'une fonction.
-`OmitThisParameter<T>` supprime le parametre `this` d'une fonction.
+`ThisParameterType<T>` extrait le type du paramètre `this` d'une fonction.
+`OmitThisParameter<T>` supprime le paramètre `this` d'une fonction.
 
 ### Implementation interne
 
@@ -858,7 +858,7 @@ type ResultatChargement = Awaited<ReturnType<typeof chargerTout>>;
 
 ### Description
 
-`NoInfer<T>` empeche TypeScript d'inferer un type a partir d'une position donnee. C'est un utility type ajoute dans TypeScript 5.4.
+`NoInfer<T>` empeche TypeScript d'inferer un type à partir d'une position donnee. C'est un utility type ajoute dans TypeScript 5.4.
 
 ### Exemple concret
 
@@ -951,7 +951,7 @@ interface Formulaire {
 type FormulaireMinimal = RequiredSeulement<Formulaire, "nom" | "email">;
 ```
 
-### Exemple 4 : Extraire les cles par type de valeur
+### Exemple 4 : Extraire les clés par type de valeur
 
 ```typescript
 type ClesDeType<T, V> = {
@@ -981,9 +981,9 @@ type ChampsTextuels = Pick<Modele, ClesDeType<Modele, string>>;
 
 ## Pratique : Exercices
 
-### Exercice 1 : Creer un type pour une reponse API
+### Exercice 1 : Créer un type pour une réponse API
 
-Creez un type generique `ReponseAPI<T>` qui a :
+Creez un type générique `ReponseAPI<T>` qui a :
 - `donnees` de type `T` (optionnel)
 - `erreur` de type `string` (optionnel)
 - `statut` de type `number` (obligatoire)
@@ -1068,9 +1068,9 @@ type TestRequired = MonRequired<Test>;
 ```
 </details>
 
-### Exercice 3 : Creer un type Mutable (inverse de Readonly)
+### Exercice 3 : Créer un type Mutable (inverse de Readonly)
 
-Creez un type `Mutable<T>` qui supprime le modificateur `readonly` de toutes les proprietes.
+Creez un type `Mutable<T>` qui supprime le modificateur `readonly` de toutes les propriétés.
 
 <details>
 <summary>Solution</summary>
@@ -1176,9 +1176,9 @@ const configGelee: ConfigGelee = {
 ```
 </details>
 
-### Exercice 5 : Creer un type FonctionVersObjet
+### Exercice 5 : Créer un type FonctionVersObjet
 
-A partir d'un type fonction, creez un type objet avec les proprietes `parametres`, `retour` et `estAsync`.
+A partir d'un type fonction, creez un type objet avec les propriétés `parametres`, `retour` et `estAsync`.
 
 <details>
 <summary>Solution</summary>
@@ -1218,33 +1218,33 @@ type InfoCharger = FonctionVersObjet<typeof charger>;
 
 ---
 
-## Resume
+## Résumé
 
 | Utility Type            | Role                                                    |
 | ----------------------- | ------------------------------------------------------- |
-| `Partial<T>`            | Rend toutes les proprietes optionnelles                 |
-| `Required<T>`           | Rend toutes les proprietes obligatoires                 |
-| `Readonly<T>`           | Rend toutes les proprietes en lecture seule              |
-| `Record<K, T>`          | Cree un objet avec cles K et valeurs T                  |
-| `Pick<T, K>`            | Selectionne certaines proprietes                        |
-| `Omit<T, K>`            | Exclut certaines proprietes                             |
+| `Partial<T>`            | Rend toutes les propriétés optionnelles                 |
+| `Required<T>`           | Rend toutes les propriétés obligatoires                 |
+| `Readonly<T>`           | Rend toutes les propriétés en lecture seule              |
+| `Record<K, T>`          | Cree un objet avec clés K et valeurs T                  |
+| `Pick<T, K>`            | Selectionne certaines propriétés                        |
+| `Omit<T, K>`            | Exclut certaines propriétés                             |
 | `Exclude<T, U>`         | Supprime des membres d'une union                        |
 | `Extract<T, U>`         | Garde certains membres d'une union                      |
 | `NonNullable<T>`        | Supprime null et undefined                              |
-| `Parameters<T>`         | Extrait les types des parametres d'une fonction         |
+| `Parameters<T>`         | Extrait les types des paramètres d'une fonction         |
 | `ConstructorParameters`  | Extrait les types des params d'un constructeur          |
 | `ReturnType<T>`         | Extrait le type de retour d'une fonction                |
 | `InstanceType<T>`       | Extrait le type d'instance d'une classe                 |
-| `ThisParameterType<T>`  | Extrait le type du parametre this                       |
-| `OmitThisParameter<T>`  | Supprime le parametre this                              |
+| `ThisParameterType<T>`  | Extrait le type du paramètre this                       |
+| `OmitThisParameter<T>`  | Supprime le paramètre this                              |
 | `Awaited<T>`            | Decompresse les Promises                                |
 | `NoInfer<T>`            | Empeche l'inference depuis une position                 |
 
-### Points cles a retenir
+### Points clés à retenir
 
 1. **Les utility types evitent la duplication** : ne redefinissez jamais un sous-ensemble d'un type manuellement
 2. **Combinez-les** pour des transformations complexes
-3. **Comprenez leur implementation** pour creer vos propres utility types
+3. **Comprenez leur implementation** pour créer vos propres utility types
 4. **Pick vs Omit** : choisissez selon le nombre de champs a inclure/exclure
 5. **Exclude/Extract** travaillent sur des unions, **Pick/Omit** sur des objets
 
@@ -1252,4 +1252,14 @@ type InfoCharger = FonctionVersObjet<typeof charger>;
 
 ## Pour aller plus loin
 
-Dans le prochain module, **[11 — Conditional Types & infer](./11-conditional-types.md)**, nous plongerons dans le mecanisme qui rend la plupart de ces utility types possibles : les **conditional types**. Vous decouvrirez le mot-cle `infer` et apprendrez a creer des transformations de types encore plus puissantes.
+Dans le prochain module, **[11 — Conditional Types & infer](./11-conditional-types.md)**, nous plongerons dans le mécanisme qui rend la plupart de ces utility types possibles : les **conditional types**. Vous decouvrirez le mot-clé `infer` et apprendrez a créer des transformations de types encore plus puissantes.
+
+---
+
+<!-- parcours-recommande -->
+
+::: tip Parcours recommandé
+1. **Screencast** : [screencast 10 utility types](../screencasts/screencast-10-utility-types.md)
+2. **Lab** : [lab-10-utility-types](../labs/lab-10-utility-types/README)
+3. **Quiz** : [quiz 10 utility types](../quizzes/quiz-10-utility-types.html)
+:::

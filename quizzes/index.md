@@ -1,10 +1,10 @@
 # Quizzes
 
-Validez vos connaissances apres chaque module avec ces quizzes interactifs (5 questions chacun).
+Validez vos connaissances après chaque module avec ces quizzes interactifs (5 questions chacun).
 
 | # | Quiz | Module |
 |---|------|--------|
-| 00 | [Prerequis & Introduction](./quiz-00-prerequis.html) | [Module 00](/modules/00-prerequis-et-introduction) |
+| 00 | [Prérequis & Introduction](./quiz-00-prerequis.html) | [Module 00](/modules/00-prerequis-et-introduction) |
 | 01 | [Types primitifs & Inference](./quiz-01-types-primitifs.html) | [Module 01](/modules/01-types-primitifs-et-inference) |
 | 02 | [Fonctions](./quiz-02-fonctions.html) | [Module 02](/modules/02-fonctions) |
 | 03 | [Objets & Interfaces](./quiz-03-objets-interfaces.html) | [Module 03](/modules/03-objets-interfaces-types) |

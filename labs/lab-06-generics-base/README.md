@@ -2,29 +2,29 @@
 
 ## Objectifs
 
-- Comprendre le concept des generiques en TypeScript
-- Creer des classes generiques (`Stack<T>`)
-- Ecrire des fonctions generiques avec contraintes
-- Utiliser `keyof` et les contraintes generiques
-- Implementer un cache generique
-- Creer une factory generique
+- Comprendre le concept des génériques en TypeScript
+- Créer des classes génériques (`Stack<T>`)
+- Écrire des fonctions génériques avec contraintes
+- Utiliser `keyof` et les contraintes génériques
+- Implementer un cache générique
+- Créer une factory générique
 
 ## Exercices
 
 Le fichier `exercise.ts` contient 6 exercices progressifs :
 
-1. **Fonction identity generique** — La fonction generique la plus simple.
-2. **`Stack<T>`** — Implementer une pile generique avec push, pop, peek.
-3. **Cache generique** — Creer un systeme de cache type-safe.
-4. **Contraintes generiques** — Utiliser `extends` pour contraindre les types.
-5. **keyof et lookup types** — Acceder aux proprietes de maniere type-safe.
-6. **Factory generique** — Creer des objets de maniere generique.
+1. **Fonction identity générique** — La fonction générique la plus simple.
+2. **`Stack<T>`** — Implementer une pile générique avec push, pop, peek.
+3. **Cache générique** — Créer un système de cache type-safe.
+4. **Contraintes génériques** — Utiliser `extends` pour contraindre les types.
+5. **keyof et lookup types** — Acceder aux propriétés de manière type-safe.
+6. **Factory générique** — Créer des objets de manière générique.
 
 ## Instructions
 
 1. Ouvrez `exercise.ts`
-2. Recherchez les commentaires `// TODO` et completez le code demande
-3. Executez le fichier pour verifier vos reponses : `npx tsx exercise.ts`
+2. Recherchez les commentaires `// TODO` et completez le code demandé
+3. Executez le fichier pour vérifier vos réponses : `npx tsx exercise.ts`
 4. Comparez avec `solution.ts` si besoin
 
 ## Criteres de reussite

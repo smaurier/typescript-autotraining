@@ -151,7 +151,7 @@ Chronologie des versions majeures :
 2020  │  TypeScript 4.0    — Variadic tuple types, labeled tuples
 2023  │  TypeScript 5.0    — Decorators ES, const type parameters
 2024  │  TypeScript 5.4+   — NoInfer, improved narrowing
-2025  │  TypeScript 5.7+   — Derniere version stable
+2025  │  TypeScript 5.8+   — Derniere version stable
 ──────────────────────────────────────────────────────────
 ```
 
@@ -160,7 +160,10 @@ Chronologie des versions majeures :
 TypeScript est devenu un **standard de l'industrie** :
 
 - **Angular** est ecrit en TypeScript depuis Angular 2
-- **React** a un support TypeScript natif via `create-react-app --template typescript`
+- **React** a un support TypeScript natif via `npm create vite@latest -- --template react-ts`
+
+> **Note** : `create-react-app` est deprecie depuis fevrier 2025. Utilisez Vite, Next.js, ou Remix pour les nouveaux projets React + TypeScript.
+
 - **Vue 3** est ecrit en TypeScript
 - **Node.js** supporte TypeScript nativement depuis la v22.6+ (flag `--experimental-strip-types`)
 - **Deno** et **Bun** supportent TypeScript nativement
@@ -196,7 +199,7 @@ npm install -g typescript
 
 # Verifier l'installation
 tsc --version
-# Version 5.7.x
+# Version 5.8.x
 ```
 
 ### Installer tsx (TypeScript Execute)

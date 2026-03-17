@@ -1304,6 +1304,253 @@ if (resultatInscription.ok) {
 
 ---
 
+## Pattern Disposable — `using` et gestion des ressources (ES2025)
+
+### Le problème
+
+En JavaScript, la gestion des ressources (fichiers, connexions BDD, verrous, répertoires
+temporaires) est manuelle et fragile. Si une exception survient entre l'ouverture et la
+fermeture d'une ressource, on a une **fuite de ressource** :
+
+```typescript
+// PROBLEME : si readData() lance une exception, la connexion n'est jamais fermée
+const conn = await openDatabaseConnection();
+const data = await readData(conn);
+await conn.close(); // ← jamais atteint si readData() échoue !
+```
+
+Le pattern `try/finally` fonctionne mais est verbeux et source d'erreurs :
+
+```typescript
+const conn = await openDatabaseConnection();
+try {
+  const data = await readData(conn);
+  return data;
+} finally {
+  await conn.close(); // OK mais verbeux, et on oublie facilement
+}
+```
+
+> **Analogie du robinet** : Ouvrir une ressource sans la fermer, c'est comme ouvrir
+> un robinet et quitter la pièce. Le `using` est un robinet automatique qui se ferme
+> dès que tu sors de la pièce — impossible d'oublier.
+
+### Les symboles `Symbol.dispose` et `Symbol.asyncDispose`
+
+ES2025 introduit deux nouveaux symboles globaux qui servent de "contrat" pour
+indiquer qu'un objet sait se nettoyer :
+
+```typescript
+// Symbol.dispose : nettoyage synchrone
+// Symbol.asyncDispose : nettoyage asynchrone (retourne une Promise)
+
+// Un objet Disposable implementer Symbol.dispose
+const verrou = {
+  acquis: true,
+  [Symbol.dispose]() {
+    this.acquis = false;
+    console.log("Verrou libere automatiquement");
+  },
+};
+
+// Un objet AsyncDisposable implemente Symbol.asyncDispose
+const connexion = {
+  ouverte: true,
+  async [Symbol.asyncDispose]() {
+    await envoyerRequeteFermeture();
+    this.ouverte = false;
+    console.log("Connexion fermee proprement");
+  },
+};
+```
+
+### Les interfaces `Disposable` et `AsyncDisposable`
+
+TypeScript fournit des interfaces pour typer ces objets :
+
+```typescript
+// Deja defini dans lib.esnext.disposable.d.ts
+interface Disposable {
+  [Symbol.dispose](): void;
+}
+
+interface AsyncDisposable {
+  [Symbol.asyncDispose](): PromiseLike<void>;
+}
+```
+
+### Les declarations `using` et `await using`
+
+Le mot-cle `using` déclare une variable dont la ressource sera **automatiquement
+disposee** a la sortie du bloc (scope) :
+
+```typescript
+// using : pour les ressources synchrones (Disposable)
+function traiterFichier(chemin: string): void {
+  using fichier = ouvrirFichier(chemin);
+  // ... travailler avec le fichier ...
+  // A la sortie du bloc, fichier[Symbol.dispose]() est appele automatiquement
+  // Meme si une exception est lancee !
+}
+
+// await using : pour les ressources asynchrones (AsyncDisposable)
+async function traiterDonnees(): Promise<void> {
+  await using conn = await ouvrirConnexionBDD();
+  await using transaction = await conn.beginTransaction();
+
+  await transaction.execute("INSERT INTO logs VALUES (...)");
+  await transaction.commit();
+  // A la sortie : transaction puis conn sont fermees dans l'ORDRE INVERSE
+}
+```
+
+### `DisposableStack` et `AsyncDisposableStack`
+
+Quand tu gères plusieurs ressources dynamiquement (nombre variable, boucles),
+les stacks permettent de les regrouper :
+
+```typescript
+// DisposableStack : regroupe plusieurs ressources synchrones
+function creerEnvironnementTest(): Disposable {
+  const stack = new DisposableStack();
+
+  // Chaque ressource ajoutee sera disposee dans l'ordre inverse
+  const serveur = stack.use(creerServeurMock());
+  const bdd = stack.use(creerBDDMemoire());
+  const cache = stack.use(creerCacheLocal());
+
+  // On peut aussi ajouter un callback de nettoyage
+  stack.defer(() => {
+    console.log("Nettoyage des fichiers temporaires");
+    supprimerDossierTemp();
+  });
+
+  // Retourner la stack elle-meme (elle est Disposable)
+  return stack;
+}
+
+// Utilisation
+{
+  using env = creerEnvironnementTest();
+  // ... executer les tests ...
+  // A la sortie : cache, bdd, serveur sont nettoyes dans cet ordre
+}
+
+// AsyncDisposableStack : meme chose pour les ressources async
+async function creerPipeline(): Promise<AsyncDisposable> {
+  const stack = new AsyncDisposableStack();
+
+  const producer = stack.use(await creerProducteurKafka());
+  const consumer = stack.use(await creerConsommateurKafka());
+
+  stack.defer(async () => {
+    await nettoyerTopicsTemporaires();
+  });
+
+  return stack;
+}
+```
+
+### Exemples pratiques
+
+#### File handles (Node.js)
+
+```typescript
+import { open } from "node:fs/promises";
+
+// Le FileHandle de Node.js implemente deja AsyncDisposable !
+async function lireFichier(chemin: string): Promise<string> {
+  await using handle = await open(chemin, "r");
+  const contenu = await handle.readFile({ encoding: "utf-8" });
+  return contenu;
+  // handle.close() est appele automatiquement
+}
+```
+
+#### Connexions BDD
+
+```typescript
+class ConnexionPostgres implements AsyncDisposable {
+  private client: PoolClient;
+
+  private constructor(client: PoolClient) {
+    this.client = client;
+  }
+
+  static async ouvrir(pool: Pool): Promise<ConnexionPostgres> {
+    const client = await pool.connect();
+    return new ConnexionPostgres(client);
+  }
+
+  async requete<T>(sql: string, params?: unknown[]): Promise<T[]> {
+    const result = await this.client.query(sql, params);
+    return result.rows;
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    this.client.release();
+    console.log("Connexion rendue au pool");
+  }
+}
+
+// Utilisation — impossible d'oublier de liberer la connexion
+async function obtenirUtilisateurs(pool: Pool): Promise<Utilisateur[]> {
+  await using conn = await ConnexionPostgres.ouvrir(pool);
+  return conn.requete<Utilisateur>("SELECT * FROM utilisateurs");
+}
+```
+
+#### Répertoires temporaires
+
+```typescript
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+class RepertoireTemp implements AsyncDisposable {
+  private constructor(public readonly chemin: string) {}
+
+  static async creer(prefix: string = "app-"): Promise<RepertoireTemp> {
+    const chemin = await mkdtemp(join(tmpdir(), prefix));
+    return new RepertoireTemp(chemin);
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    await rm(this.chemin, { recursive: true, force: true });
+    console.log(`Repertoire temporaire supprime : ${this.chemin}`);
+  }
+}
+
+// Utilisation
+async function traiterUpload(fichier: Buffer): Promise<string> {
+  await using tmpDir = await RepertoireTemp.creer("upload-");
+  const cheminFichier = join(tmpDir.chemin, "data.bin");
+  await writeFile(cheminFichier, fichier);
+  const resultat = await analyserFichier(cheminFichier);
+  return resultat;
+  // Le repertoire temporaire est supprime automatiquement
+}
+```
+
+### Quand utiliser `using` ?
+
+| Situation | Utiliser `using` ? | Pourquoi |
+|-----------|-------------------|----------|
+| Connexion BDD | Oui (`await using`) | Liberer la connexion au pool |
+| File handle | Oui (`await using`) | Fermer le descripteur de fichier |
+| Verrou / Mutex | Oui (`using`) | Liberer le verrou automatiquement |
+| Répertoire temporaire | Oui (`await using`) | Supprimer les fichiers temp |
+| Transaction BDD | Oui (`await using`) | Rollback automatique si non commit |
+| Timer / Intervalle | Oui (`using`) | clearTimeout / clearInterval |
+| Variable simple | Non | Pas de ressource a liberer |
+| Objet en memoire | Non | Le GC s'en occupe |
+
+> **Pré-requis tsconfig** : pour utiliser `using`, il faut au minimum
+> `"target": "es2022"` et `"lib": ["es2022", "esnext.disposable"]` dans
+> votre `tsconfig.json`.
+
+---
+
 ## Récapitulatif
 
 | Pattern                | Description                                           | Avantage TypeScript                    |
@@ -1318,6 +1565,7 @@ if (resultatInscription.ok) {
 | **Type-State**         | Machine a états dans les types                        | Méthodes conditionelles par état        |
 | **DI Container**       | Injection de dépendances type-safe                    | Registry type avec keyof                |
 | **pipe/compose**       | Chainer des fonctions                                 | Types inferes a travers la chaine       |
+| **Disposable/using**   | Gestion automatique des ressources (ES2025)           | Interfaces Disposable/AsyncDisposable   |
 
 ---
 

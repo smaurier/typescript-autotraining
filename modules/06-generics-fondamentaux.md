@@ -14,40 +14,76 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les generics ?
 
-Les **generics** sont l'une des fonctionnalites les plus puissantes de TypeScript. Ils permettent de créer des composants (fonctions, classes, interfaces) qui fonctionnent avec **n'importe quel type** tout en conservant la **sécurité du typage**.
+### Le problème qu'on cherche à résoudre
 
-Sans les generics, on serait force de choisir entre :
-- Écrire du code spécifique pour chaque type (duplication)
-- Utiliser `any` (perte de typage)
-
-Les generics offrent le meilleur des deux mondes : **flexibilite** et **sécurité**.
-
-### Analogie : la boite universelle
-
-Imaginez une **boite** qui peut contenir n'importe quel objet. Lorsque vous mettez un livre dedans, la boite "sait" qu'elle contient un livre. Si vous mettez un jouet, elle "sait" qu'elle contient un jouet.
+Imaginons que tu veuilles écrire une fonction qui retourne le premier élément d'un tableau. Sans generics, tu as deux options, et **aucune n'est satisfaisante** :
 
 ```typescript
-// Sans generics : on perd l'information du type
+// ❌ Option 1 : on écrit une fonction par type → duplication de code
+function premierNombre(tableau: number[]): number | undefined {
+  return tableau[0];
+}
+function premierString(tableau: string[]): string | undefined {
+  return tableau[0];
+}
+// Et si demain on a un tableau de booléens ? Encore une fonction...
+
+// ❌ Option 2 : on utilise `any` → on perd le typage
+function premierElement(tableau: any[]): any {
+  return tableau[0];
+}
+const resultat = premierElement([1, 2, 3]);
+// `resultat` est de type `any` → TypeScript ne peut plus t'aider
+// Tu pourrais faire resultat.toUpperCase() sans erreur... alors que c'est un number !
+```
+
+### La solution : les generics
+
+Les **generics** permettent de dire : _"Je ne connais pas encore le type, mais quand tu utiliseras cette fonction, TypeScript le déduira automatiquement."_
+
+```typescript
+// ✅ UNE SEULE fonction qui marche avec TOUS les types
+function premier<T>(tableau: T[]): T | undefined {
+  return tableau[0];
+}
+
+const a = premier([1, 2, 3]); // TypeScript sait que a est number | undefined
+const b = premier(["hello", "world"]); // TypeScript sait que b est string | undefined
+```
+
+**Comment lire `<T>` ?** C'est un "paramètre de type". Comme une fonction prend des paramètres en entrée (des valeurs), un generic prend un **type** en paramètre. Le `T` est juste un nom — tu peux l'appeler comme tu veux : `<MonType>`, `<Element>`, `<Donnee>`, etc.
+
+> 💡 **Astuce** : Par convention, on utilise souvent des lettres courtes (`T`, `U`, `V`), mais des noms explicites comme `<TypeElement>` ou `<TypeDonnee>` rendent le code plus lisible : c'est un choix à faire en équipe.
+
+### Analogie : la boîte étiquetée
+
+Imagine une **boîte** dans laquelle tu ranges un objet. Quand tu poses un livre dedans, une étiquette s'affiche automatiquement : "Cette boîte contient un **livre**". Quand tu poses un jouet, l'étiquette change : "Cette boîte contient un **jouet**".
+
+C'est exactement ce que fait un generic : il **adapte le type** en fonction de ce qu'on lui donne.
+
+```typescript
+// La boîte sans étiquette (any) : dangereux
 function mettreEnBoite(objet: any): { contenu: any } {
   return { contenu: objet };
 }
+const boite1 = mettreEnBoite("Bonjour");
+// boite1.contenu est `any` → on ne sait plus que c'est un string
 
-const boite = mettreEnBoite("Bonjour");
-// boite.contenu est de type `any` — on a perdu l'info que c'est un string
-
-// Avec generics : le type est preserve
-function mettreEnBoiteTypee<T>(objet: T): { contenu: T } {
+// La boîte avec étiquette (generic) : sûr
+function mettreEnBoiteTypee<TypeObjet>(objet: TypeObjet): {
+  contenu: TypeObjet;
+} {
   return { contenu: objet };
 }
-
-const boiteStr = mettreEnBoiteTypee("Bonjour");
-// boiteStr.contenu est de type `string` — TypeScript le sait !
-
-const boiteNum = mettreEnBoiteTypee(42);
-// boiteNum.contenu est de type `number`
+const boite2 = mettreEnBoiteTypee("Bonjour");
+// boite2.contenu est `string` → TypeScript le sait !
+const boite3 = mettreEnBoiteTypee(42);
+// boite3.contenu est `number`
 ```
+
+> 🎯 **Ce qu'il faut retenir** : Un generic = un **type en paramètre**. Il est remplacé par le vrai type au moment de l'utilisation.
 
 ---
 
@@ -55,139 +91,167 @@ const boiteNum = mettreEnBoiteTypee(42);
 
 ### Syntaxe de base
 
-On declare un paramètre de type entre chevrons `<T>` avant les paramètres de la fonction. Par convention, on utilise souvent `T` (pour "Type"), mais on peut utiliser n'importe quel nom.
+On place le paramètre de type entre chevrons `<T>` **juste avant les parenthèses** de la fonction :
 
 ```typescript
-// Fonction generique simple
+//                  ↓ le paramètre de type
 function identite<T>(valeur: T): T {
+  //                   ↑ l'argument est de type T
+  //                              ↑ la valeur de retour aussi
   return valeur;
 }
+```
 
-// TypeScript infere le type automatiquement
-const a = identite("hello");   // type: string
-const b = identite(42);        // type: number
-const c = identite(true);      // type: boolean
+Quand on appelle la fonction, TypeScript **infère** (devine) le type automatiquement :
 
-// On peut aussi specifier le type explicitement
-const d = identite<string>("hello"); // type: string
-const e = identite<number[]>([1, 2, 3]); // type: number[]
+```typescript
+const a = identite("hello"); // T est inféré comme string
+const b = identite(42); // T est inféré comme number
+const c = identite(true); // T est inféré comme boolean
+```
+
+On peut aussi **spécifier le type explicitement** (utile quand TypeScript ne peut pas le deviner) :
+
+```typescript
+const d = identite<string>("hello"); // On force T = string
+const e = identite<number[]>([1, 2, 3]); // On force T = number[]
 ```
 
 ### Fonctions génériques avec tableaux
 
+Les generics sont très naturels avec les tableaux, car le type de l'élément peut varier :
+
 ```typescript
-// Retourne le premier element d'un tableau
-function premier<T>(tableau: T[]): T | undefined {
+// Retourne le premier élément d'un tableau
+function premier<TypeElement>(tableau: TypeElement[]): TypeElement | undefined {
   return tableau[0];
 }
 
-const premierNombre = premier([10, 20, 30]); // type: number | undefined
-const premierMot = premier(["a", "b", "c"]); // type: string | undefined
+premier([10, 20, 30]); // type retourné : number | undefined
+premier(["a", "b", "c"]); // type retourné : string | undefined
 
-// Retourne le dernier element
-function dernier<T>(tableau: T[]): T | undefined {
+// Retourne le dernier élément
+function dernier<TypeElement>(tableau: TypeElement[]): TypeElement | undefined {
   return tableau.length > 0 ? tableau[tableau.length - 1] : undefined;
 }
 
-// Inverse un tableau (sans modifier l'original)
-function inverser<T>(tableau: T[]): T[] {
+// Inverse un tableau (sans modifier l'original grâce au spread [...])
+function inverser<TypeElement>(tableau: TypeElement[]): TypeElement[] {
   return [...tableau].reverse();
 }
 
-const inverse = inverser([1, 2, 3]); // [3, 2, 1] — type: number[]
+const inverse = inverser([1, 2, 3]); // résultat : [3, 2, 1], type : number[]
 ```
 
-### Fonctions génériques avec plusieurs paramètres de type
+> 💡 Remarque : `TypeElement | undefined` signifie "soit un élément du bon type, soit rien" (le tableau pourrait être vide).
+
+### Plusieurs paramètres de type
+
+Parfois, on a besoin de **plusieurs types différents**. On les sépare par des virgules :
 
 ```typescript
-// Fonction avec deux parametres de type
-function paire<A, B>(premier: A, second: B): [A, B] {
+// <TypeA, TypeB> : deux types indépendants
+function paire<TypeA, TypeB>(premier: TypeA, second: TypeB): [TypeA, TypeB] {
   return [premier, second];
 }
 
-const p1 = paire("nom", 42);       // type: [string, number]
-const p2 = paire(true, [1, 2, 3]); // type: [boolean, number[]]
+const p1 = paire("nom", 42); // type : [string, number]
+const p2 = paire(true, [1, 2, 3]); // type : [boolean, number[]]
+```
 
-// Fonction de transformation
-function transformer<TEntree, TSortie>(
-  valeur: TEntree,
-  fn: (v: TEntree) => TSortie
-): TSortie {
+Un cas d'usage fréquent : une fonction de **transformation** qui prend une valeur d'un type et la transforme en un autre :
+
+```typescript
+function transformer<TypeEntree, TypeSortie>(
+  valeur: TypeEntree,
+  fn: (v: TypeEntree) => TypeSortie,
+): TypeSortie {
   return fn(valeur);
 }
 
-const longueur = transformer("Bonjour", (s) => s.length); // type: number
-const majuscule = transformer("hello", (s) => s.toUpperCase()); // type: string
-const double = transformer(21, (n) => n * 2); // type: number
+// string → number (on mesure la longueur)
+const longueur = transformer("Bonjour", (s) => s.length); // 7
+
+// string → string (on met en majuscules)
+const majuscule = transformer("hello", (s) => s.toUpperCase()); // "HELLO"
+
+// number → number (on double)
+const double = transformer(21, (n) => n * 2); // 42
 ```
 
-### Analogie : la fonction générique comme un moule ajustable
-
-Une fonction générique est comme un **moule de patisserie ajustable** : il s'adapte à la taille de ce que vous y mettez, mais conserve la forme (le contrat du type). Que vous fassiez un petit gateau ou un grand, le moule s'adapte.
+> 🎯 **Ce qu'il faut retenir** : Chaque paramètre de type (`<A, B>`) est indépendant. TypeScript infère chacun séparément.
 
 ---
 
 ## Interfaces génériques
 
-Les interfaces peuvent egalement etre génériques, ce qui les rend extremement réutilisables.
+Les interfaces aussi peuvent être génériques. C'est le même principe : on ajoute un paramètre de type `<T>` après le nom.
 
-### Interface générique simple
+### Un premier exemple concret
+
+Imagine qu'on veut représenter le résultat d'une opération. Parfois c'est un succès (avec des données), parfois c'est un échec. Le **type des données peut varier** → c'est un bon candidat pour un generic :
 
 ```typescript
-// Interface pour un resultat d'operation
-interface Resultat<T> {
+// L'interface est paramétrée par `TypeDonnee`
+interface Resultat<TypeDonnee> {
   succes: boolean;
-  donnees: T;
+  donnees: TypeDonnee; // ← le type est "ouvert", on le précise à l'utilisation
   erreur?: string;
 }
 
-// Utilisation avec differents types
-const resultatUtilisateur: Resultat<{ nom: string; email: string }> = {
+// Résultat contenant un utilisateur
+const r1: Resultat<{ nom: string; email: string }> = {
   succes: true,
   donnees: { nom: "Alice", email: "alice@mail.com" },
 };
 
-const resultatNombres: Resultat<number[]> = {
+// Résultat contenant un tableau de nombres
+const r2: Resultat<number[]> = {
   succes: true,
   donnees: [1, 2, 3, 4, 5],
 };
 
-const resultatErreur: Resultat<null> = {
+// Résultat d'erreur (pas de données → null)
+const r3: Resultat<null> = {
   succes: false,
   donnees: null,
   erreur: "Ressource introuvable",
 };
 ```
 
-### Interface pour un depot de donnees (Repository pattern)
+> 💡 **Pourquoi c'est utile ?** Sans generic, on aurait écrit `donnees: any` et perdu tout le typage. Ici, TypeScript sait exactement ce que contient chaque résultat.
+
+### Cas d'usage courant : le Repository Pattern
+
+Voici un pattern qu'on retrouve beaucoup en développement backend. L'idée : une interface générique qui décrit les opérations CRUD (Créer / Lire / Modifier / Supprimer) pour **n'importe quel type d'entité**.
+
+Avant de lire le code, quelques mots sur les **utilitaires TypeScript** utilisés ici :
+
+- **`Omit<T, "id">`** : prend le type `T` et **enlève** la propriété `"id"`. Utile pour la création (l'ID est généré côté serveur).
+- **`Partial<T>`** : rend **tous** les champs de `T` optionnels. Utile pour une mise à jour (on ne modifie pas forcément tout).
 
 ```typescript
-// Interface generique pour un depot de donnees
-interface Depot<T> {
-  trouverTous(): Promise<T[]>;
-  trouverParId(id: string): Promise<T | null>;
-  creer(entite: Omit<T, "id">): Promise<T>;
-  mettreAJour(id: string, entite: Partial<T>): Promise<T>;
+// On définit le "contrat" une seule fois, de façon générique
+interface Depot<TypeEntite> {
+  trouverTous(): Promise<TypeEntite[]>;
+  trouverParId(id: string): Promise<TypeEntite | null>;
+  creer(entite: Omit<TypeEntite, "id">): Promise<TypeEntite>;
+  mettreAJour(id: string, entite: Partial<TypeEntite>): Promise<TypeEntite>;
   supprimer(id: string): Promise<boolean>;
 }
+```
 
-// Modele Utilisateur
+On **utilise** cette interface en précisant le type de l'entité :
+
+```typescript
 interface Utilisateur {
   id: string;
   nom: string;
   email: string;
-  dateInscription: Date;
 }
 
-// Modele Produit
-interface Produit {
-  id: string;
-  nom: string;
-  prix: number;
-  stock: number;
-}
-
-// Implementation du depot pour les utilisateurs
+// Cette classe implémente Depot<Utilisateur>
+// → TypeScript remplace TypeEntite par Utilisateur partout
 class DepotUtilisateurs implements Depot<Utilisateur> {
   private utilisateurs: Utilisateur[] = [];
 
@@ -200,6 +264,8 @@ class DepotUtilisateurs implements Depot<Utilisateur> {
   }
 
   async creer(entite: Omit<Utilisateur, "id">): Promise<Utilisateur> {
+    // Omit<Utilisateur, "id"> = { nom: string; email: string }
+    // → on n'a pas besoin de fournir l'id, il est généré ici
     const nouvelUtilisateur: Utilisateur = {
       ...entite,
       id: crypto.randomUUID(),
@@ -208,7 +274,12 @@ class DepotUtilisateurs implements Depot<Utilisateur> {
     return nouvelUtilisateur;
   }
 
-  async mettreAJour(id: string, entite: Partial<Utilisateur>): Promise<Utilisateur> {
+  async mettreAJour(
+    id: string,
+    entite: Partial<Utilisateur>,
+  ): Promise<Utilisateur> {
+    // Partial<Utilisateur> = { id?: string; nom?: string; email?: string }
+    // → tous les champs sont optionnels
     const index = this.utilisateurs.findIndex((u) => u.id === id);
     if (index === -1) throw new Error("Utilisateur introuvable");
     this.utilisateurs[index] = { ...this.utilisateurs[index], ...entite };
@@ -223,239 +294,139 @@ class DepotUtilisateurs implements Depot<Utilisateur> {
 }
 ```
 
-### Interface avec méthodes génériques
-
-```typescript
-// L'interface elle-meme n'est pas generique,
-// mais ses methodes le sont
-interface Convertisseur {
-  convertir<TEntree, TSortie>(valeur: TEntree, fn: (v: TEntree) => TSortie): TSortie;
-  essayerConvertir<TEntree, TSortie>(
-    valeur: TEntree,
-    fn: (v: TEntree) => TSortie
-  ): Resultat<TSortie>;
-}
-
-class ConvertisseurImpl implements Convertisseur {
-  convertir<TEntree, TSortie>(valeur: TEntree, fn: (v: TEntree) => TSortie): TSortie {
-    return fn(valeur);
-  }
-
-  essayerConvertir<TEntree, TSortie>(
-    valeur: TEntree,
-    fn: (v: TEntree) => TSortie
-  ): Resultat<TSortie> {
-    try {
-      const resultat = fn(valeur);
-      return { succes: true, donnees: resultat };
-    } catch (e) {
-      return { succes: false, donnees: undefined as any, erreur: String(e) };
-    }
-  }
-}
-```
+> 🎯 **Ce qu'il faut retenir** : L'interface `Depot<T>` est écrite **une seule fois**, puis réutilisée pour `Depot<Utilisateur>`, `Depot<Produit>`, `Depot<Commande>`... C'est tout l'intérêt des generics !
 
 ---
 
 ## Classes génériques
 
-Les classes génériques permettent de créer des structures de donnees réutilisables et type-safe.
+Les classes génériques permettent de créer des **structures de données réutilisables** et type-safe. Le principe est le même que pour les fonctions : on ajoute `<T>` après le nom de la classe.
 
 ### Pile (Stack) générique
 
-```typescript
-class Pile<T> {
-  private elements: T[] = [];
+Une **pile**, c'est comme une pile d'assiettes : on empile par le dessus, on dépile par le dessus aussi (LIFO — Last In, First Out).
 
-  // Empiler un element
-  empiler(element: T): void {
+```typescript
+class Pile<TypeElement> {
+  // Le tableau interne stocke des éléments de type TypeElement
+  private elements: TypeElement[] = [];
+
+  // Ajouter un élément au sommet
+  empiler(element: TypeElement): void {
     this.elements.push(element);
   }
 
-  // Depiler le dernier element
-  depiler(): T | undefined {
+  // Retirer et retourner l'élément du sommet
+  depiler(): TypeElement | undefined {
     return this.elements.pop();
   }
 
-  // Voir le dernier element sans le retirer
-  sommet(): T | undefined {
+  // Voir le sommet sans le retirer
+  sommet(): TypeElement | undefined {
     return this.elements[this.elements.length - 1];
   }
 
-  // Taille de la pile
   get taille(): number {
     return this.elements.length;
   }
 
-  // La pile est-elle vide ?
   estVide(): boolean {
     return this.elements.length === 0;
   }
-
-  // Vider la pile
-  vider(): void {
-    this.elements = [];
-  }
-
-  // Convertir en tableau (copie)
-  versTableau(): T[] {
-    return [...this.elements];
-  }
 }
 
-// Pile de nombres
+// Pile de nombres : TypeElement = number
 const pileNombres = new Pile<number>();
 pileNombres.empiler(10);
 pileNombres.empiler(20);
 pileNombres.empiler(30);
-console.log(pileNombres.sommet());  // 30
-console.log(pileNombres.depiler()); // 30
-console.log(pileNombres.taille);    // 2
+console.log(pileNombres.sommet()); // 30
+console.log(pileNombres.depiler()); // 30 (retiré du sommet)
+console.log(pileNombres.taille); // 2
 
-// Pile de strings
+// Pile de strings : TypeElement = string
 const pileMots = new Pile<string>();
 pileMots.empiler("Bonjour");
 pileMots.empiler("le");
 pileMots.empiler("monde");
+// pileMots.empiler(42); // ❌ ERREUR : number n'est pas assignable à string
 ```
 
-### File d'attente (Queue) générique
+> 💡 On écrit la classe **une seule fois**, et elle fonctionne avec n'importe quel type. `Pile<number>`, `Pile<string>`, `Pile<Utilisateur>`...
+
+### Classe générique avec plusieurs types
+
+On peut avoir plusieurs paramètres de type, exactement comme pour les fonctions :
 
 ```typescript
-class FileAttente<T> {
-  private elements: T[] = [];
+// Un dictionnaire avec un type pour la clé et un type pour la valeur
+class Dictionnaire<TypeCle extends string | number, TypeValeur> {
+  private donnees = new Map<TypeCle, TypeValeur>();
 
-  // Ajouter en fin de file
-  enfiler(element: T): void {
-    this.elements.push(element);
-  }
-
-  // Retirer du debut de la file
-  defiler(): T | undefined {
-    return this.elements.shift();
-  }
-
-  // Voir le premier element sans le retirer
-  premier(): T | undefined {
-    return this.elements[0];
-  }
-
-  get taille(): number {
-    return this.elements.length;
-  }
-
-  estVide(): boolean {
-    return this.elements.length === 0;
-  }
-
-  // Iterer sur les elements
-  pourChaque(callback: (element: T, index: number) => void): void {
-    this.elements.forEach(callback);
-  }
-}
-
-// File d'attente de taches
-interface Tache {
-  id: number;
-  description: string;
-  priorite: number;
-}
-
-const fileTaches = new FileAttente<Tache>();
-fileTaches.enfiler({ id: 1, description: "Envoyer rapport", priorite: 2 });
-fileTaches.enfiler({ id: 2, description: "Corriger bug", priorite: 1 });
-fileTaches.enfiler({ id: 3, description: "Reunion equipe", priorite: 3 });
-
-while (!fileTaches.estVide()) {
-  const tache = fileTaches.defiler()!;
-  console.log(`Traitement : ${tache.description}`);
-}
-```
-
-### Dictionnaire générique (Map type-safe)
-
-```typescript
-class Dictionnaire<TCle extends string | number, TValeur> {
-  private donnees = new Map<TCle, TValeur>();
-
-  definir(cle: TCle, valeur: TValeur): void {
+  definir(cle: TypeCle, valeur: TypeValeur): void {
     this.donnees.set(cle, valeur);
   }
 
-  obtenir(cle: TCle): TValeur | undefined {
+  obtenir(cle: TypeCle): TypeValeur | undefined {
     return this.donnees.get(cle);
-  }
-
-  possede(cle: TCle): boolean {
-    return this.donnees.has(cle);
-  }
-
-  supprimer(cle: TCle): boolean {
-    return this.donnees.delete(cle);
   }
 
   get taille(): number {
     return this.donnees.size;
   }
-
-  cles(): TCle[] {
-    return Array.from(this.donnees.keys());
-  }
-
-  valeurs(): TValeur[] {
-    return Array.from(this.donnees.values());
-  }
-
-  entries(): [TCle, TValeur][] {
-    return Array.from(this.donnees.entries());
-  }
 }
 
-// Dictionnaire string -> Utilisateur
+// string → objet utilisateur
 const utilisateurs = new Dictionnaire<string, { nom: string; age: number }>();
 utilisateurs.definir("alice", { nom: "Alice", age: 30 });
-utilisateurs.definir("bob", { nom: "Bob", age: 25 });
-
 console.log(utilisateurs.obtenir("alice")); // { nom: "Alice", age: 30 }
 
-// Dictionnaire number -> string
+// number → string (codes HTTP)
 const codes = new Dictionnaire<number, string>();
 codes.definir(200, "OK");
 codes.definir(404, "Not Found");
-codes.definir(500, "Internal Server Error");
 ```
+
+> 🎯 **Ce qu'il faut retenir** : Une classe générique est un **moule**. On choisit le type au moment où on fait `new MaClasse<MonType>()`.
 
 ---
 
 ## Contraintes génériques avec `extends`
 
-Les contraintes permettent de restreindre les types acceptes par un paramètre générique. On utilise `extends` pour spécifier que le type doit correspondre à un certain contrat.
+Jusqu'ici, `<T>` accepte **n'importe quel type**. Mais parfois, on a besoin de **restreindre** les types possibles. Par exemple : "je veux un type qui a forcément une propriété `length`". C'est le rôle de `extends`.
 
-### Contrainte simple
+### Contrainte simple : exiger une propriété
 
 ```typescript
-// T doit avoir une propriete `length` de type number
+// T doit avoir une propriété `length` de type number
+// Autrement dit : seuls les types avec .length sont acceptés
 function longueur<T extends { length: number }>(element: T): number {
   return element.length;
 }
 
-longueur("Bonjour");     // OK : string a `length`
-longueur([1, 2, 3]);     // OK : number[] a `length`
-longueur({ length: 10 }); // OK : l'objet a `length`
+longueur("Bonjour"); // ✅ OK : string a `.length`
+longueur([1, 2, 3]); // ✅ OK : number[] a `.length`
+longueur({ length: 10 }); // ✅ OK : l'objet a `.length`
 
-// longueur(42);          // ERREUR : number n'a pas `length`
-// longueur(true);        // ERREUR : boolean n'a pas `length`
+// longueur(42);    // ❌ ERREUR : number n'a pas `.length`
+// longueur(true);  // ❌ ERREUR : boolean n'a pas `.length`
 ```
+
+> 💡 **Comment lire `T extends { length: number }` ?** → "T est un type qui a **au minimum** une propriété `length` de type `number`". Il peut avoir d'autres propriétés, mais `length` est obligatoire.
 
 ### Contrainte avec une interface
 
 ```typescript
+// On définit le contrat minimum : avoir un id
 interface AvecId {
   id: string | number;
 }
 
-// T doit avoir un `id`
-function trouverParId<T extends AvecId>(elements: T[], id: T["id"]): T | undefined {
+// T doit obligatoirement avoir un `id`
+function trouverParId<T extends AvecId>(
+  elements: T[],
+  id: T["id"],
+): T | undefined {
   return elements.find((e) => e.id === id);
 }
 
@@ -466,43 +437,40 @@ const produits = [
 ];
 
 const produit = trouverParId(produits, 2);
-// produit est de type { id: number; nom: string; prix: number } | undefined
-
+// TypeScript sait que produit a un id, un nom et un prix
 console.log(produit?.nom); // "Souris"
 ```
 
 ### Contrainte avec `extends object`
 
 ```typescript
-// S'assurer que T est un objet (pas un primitif)
-function fusionner<T extends object, U extends object>(obj1: T, obj2: U): T & U {
+// On n'accepte que des objets (pas des string, number, etc.)
+function fusionner<T extends object, U extends object>(
+  obj1: T,
+  obj2: U,
+): T & U {
   return { ...obj1, ...obj2 };
 }
 
-const resultat = fusionner(
-  { nom: "Alice" },
-  { age: 30, email: "alice@mail.com" }
-);
-// type: { nom: string } & { age: number; email: string }
+const resultat = fusionner({ nom: "Alice" }, { age: 30 });
+// type: { nom: string } & { age: number }
+console.log(resultat.nom); // "Alice"
+console.log(resultat.age); // 30
 
-console.log(resultat.nom);   // "Alice"
-console.log(resultat.age);   // 30
-console.log(resultat.email); // "alice@mail.com"
-
-// fusionner("hello", { a: 1 }); // ERREUR : string n'est pas un object
+// fusionner("hello", { a: 1 }); // ❌ ERREUR : string n'est pas un object
 ```
 
-### Analogie : la contrainte comme un filtre de sécurité
-
-Une contrainte générique est comme un **filtre a l'entree d'un batiment** : seules les personnes avec un badge valide (les types qui satisfont la contrainte) peuvent entrer. Cela empeche les types incompatibles de causer des erreurs a l'interieur.
+> 🎯 **Ce qu'il faut retenir** : `extends` dans un generic = "le type doit **au minimum** respecter ce contrat". C'est un filtre pour n'accepter que les types compatibles.
 
 ---
 
-## `keyof` et acces indexes
+## `keyof` et accès indexés
 
-### L'operateur `keyof`
+Ces deux outils sont très utilisés avec les generics. Ils permettent de manipuler les **clés** et les **types des propriétés** d'un objet.
 
-`keyof` produit un type union de toutes les clés d'un type objet.
+### `keyof` — obtenir les clés d'un type
+
+`keyof` transforme un type objet en une **union de ses clés** (sous forme de strings).
 
 ```typescript
 interface Voiture {
@@ -512,11 +480,27 @@ interface Voiture {
   electrique: boolean;
 }
 
-// CleVoiture = "marque" | "modele" | "annee" | "electrique"
+// keyof Voiture = "marque" | "modele" | "annee" | "electrique"
 type CleVoiture = keyof Voiture;
 
-// Fonction pour obtenir la valeur d'une propriete de maniere type-safe
-function obtenirPropriete<T, K extends keyof T>(objet: T, cle: K): T[K] {
+// Concrètement : CleVoiture n'accepte QUE ces 4 valeurs
+let cle: CleVoiture;
+cle = "marque"; // ✅
+cle = "annee"; // ✅
+// cle = "couleur"; // ❌ "couleur" n'est pas une clé de Voiture
+```
+
+### Le combo classique : `<T, K extends keyof T>`
+
+C'est LE pattern le plus courant. Il permet de dire : "K est obligatoirement une **clé valide** de T".
+
+```typescript
+// "Donne-moi un objet et une de ses clés, je te retourne la valeur"
+function obtenirPropriete<TypeObjet, TypeCle extends keyof TypeObjet>(
+  objet: TypeObjet,
+  cle: TypeCle,
+): TypeObjet[TypeCle] {
+  //  ↑ TypeObjet[TypeCle] = le TYPE de la propriété à cette clé
   return objet[cle];
 }
 
@@ -527,161 +511,106 @@ const maVoiture: Voiture = {
   electrique: true,
 };
 
-const marque = obtenirPropriete(maVoiture, "marque");     // type: string
-const annee = obtenirPropriete(maVoiture, "annee");       // type: number
+const marque = obtenirPropriete(maVoiture, "marque"); // type: string
+const annee = obtenirPropriete(maVoiture, "annee"); // type: number
 const estElec = obtenirPropriete(maVoiture, "electrique"); // type: boolean
 
-// obtenirPropriete(maVoiture, "couleur"); // ERREUR : "couleur" n'est pas une cle de Voiture
+// obtenirPropriete(maVoiture, "couleur");
+// ❌ ERREUR : "couleur" n'existe pas dans Voiture
 ```
 
-### Le pattern `<T extends object, K extends keyof T>`
+> 💡 **Pourquoi `TypeObjet[TypeCle]` comme type de retour ?** C'est l'**accès indexé** : ça signifie "le type de la propriété `TypeCle` dans `TypeObjet`". Si TypeCle = `"marque"`, alors TypeObjet[TypeCle] = `string`. Si TypeCle = `"annee"`, c'est `number`.
 
-C'est le pattern le plus utilise avec `keyof`. Il garantit que la clé est valide pour l'objet donne.
+### Accès indexés — extraire le type d'une propriété
 
-```typescript
-// Definir une propriete de maniere type-safe
-function definirPropriete<T extends object, K extends keyof T>(
-  objet: T,
-  cle: K,
-  valeur: T[K]
-): void {
-  objet[cle] = valeur;
-}
-
-const config = {
-  theme: "sombre" as string,
-  langue: "fr" as string,
-  taille: 14 as number,
-};
-
-definirPropriete(config, "theme", "clair");   // OK
-definirPropriete(config, "taille", 16);       // OK
-// definirPropriete(config, "theme", 42);     // ERREUR : 42 n'est pas un string
-// definirPropriete(config, "inexistant", 1); // ERREUR : "inexistant" n'est pas une cle
-```
-
-### Acces indexes `T[K]`
-
-L'acces indexe `T[K]` permet d'obtenir le type d'une propriété spécifique d'un type.
+On peut utiliser les crochets `["..."]` directement sur un type pour en extraire le type d'une propriété :
 
 ```typescript
 interface Formulaire {
   nom: string;
   age: number;
   hobbies: string[];
-  adresse: {
-    rue: string;
-    ville: string;
-    codePostal: string;
-  };
 }
 
-// Types extraits via acces indexe
-type TypeNom = Formulaire["nom"];           // string
-type TypeAge = Formulaire["age"];           // number
-type TypeHobbies = Formulaire["hobbies"];   // string[]
-type TypeAdresse = Formulaire["adresse"];   // { rue: string; ville: string; codePostal: string }
-type TypeRue = Formulaire["adresse"]["rue"]; // string
+type TypeNom = Formulaire["nom"]; // string
+type TypeAge = Formulaire["age"]; // number
+type TypeHobbies = Formulaire["hobbies"]; // string[]
 
-// Acces indexe avec union
+// Avec une union de clés :
 type TypeNomOuAge = Formulaire["nom" | "age"]; // string | number
-
-// Fonction qui extrait des champs specifiques
-function extraire<T, K extends keyof T>(objet: T, ...cles: K[]): Pick<T, K> {
-  const resultat = {} as Pick<T, K>;
-  for (const cle of cles) {
-    resultat[cle] = objet[cle];
-  }
-  return resultat;
-}
-
-const formulaire: Formulaire = {
-  nom: "Alice",
-  age: 30,
-  hobbies: ["lecture", "musique"],
-  adresse: { rue: "12 rue de la Paix", ville: "Paris", codePostal: "75001" },
-};
-
-const extrait = extraire(formulaire, "nom", "age");
-// type: Pick<Formulaire, "nom" | "age"> = { nom: string; age: number }
-console.log(extrait); // { nom: "Alice", age: 30 }
 ```
+
+> 🎯 **Ce qu'il faut retenir** : `keyof` donne les clés, `T[K]` donne le type de la valeur à cette clé. Ensemble, ils permettent un accès 100% type-safe aux propriétés d'un objet.
 
 ---
 
 ## `typeof` dans les types
 
-L'operateur `typeof` en position de type permet d'obtenir le type d'une variable.
+Attention : `typeof` a **deux sens** en TypeScript :
+
+1. En JavaScript (au runtime) : `typeof "hello"` → `"string"` (une string)
+2. En TypeScript (dans les types) : `typeof maVariable` → le **type TypeScript** de cette variable
+
+C'est le 2ème sens qui nous intéresse ici :
 
 ```typescript
 const configuration = {
   apiUrl: "https://api.example.com",
   timeout: 5000,
   debug: false,
-  retries: 3,
 };
 
-// On deduit le type a partir de la valeur
+// typeof configuration extrait le type à partir de la VALEUR
 type Configuration = typeof configuration;
-// Equivalent a :
+// Équivalent à écrire manuellement :
 // type Configuration = {
 //   apiUrl: string;
 //   timeout: number;
 //   debug: boolean;
-//   retries: number;
 // }
 
-// Combiner typeof avec keyof
+// Combo utile : keyof typeof → les clés d'un objet concret
 type CleConfig = keyof typeof configuration;
-// "apiUrl" | "timeout" | "debug" | "retries"
-
-// Utile pour typer des fonctions basees sur des constantes
-function obtenirConfig<K extends keyof typeof configuration>(
-  cle: K
-): (typeof configuration)[K] {
-  return configuration[cle];
-}
-
-const url = obtenirConfig("apiUrl");    // type: string
-const timeout = obtenirConfig("timeout"); // type: number
+// = "apiUrl" | "timeout" | "debug"
 ```
+
+> 💡 **Quand utiliser `typeof` ?** Quand tu as déjà un objet ou une constante et que tu veux en **déduire le type** au lieu de l'écrire à la main. Très pratique pour les configurations, les constantes, etc.
 
 ---
 
-## Parametres de type par defaut
+## Paramètres de type par défaut
 
-Comme les paramètres de fonction, les paramètres de type peuvent avoir des valeurs par defaut.
+Comme les paramètres de fonction peuvent avoir des valeurs par défaut (`function f(x = 10)`), les paramètres de type aussi :
 
 ```typescript
-// T a une valeur par defaut de `string`
+// Si on ne précise pas T, ce sera string par défaut
 interface Conteneur<T = string> {
   valeur: T;
   horodatage: Date;
 }
 
-// On peut omettre le parametre de type
+// Sans préciser T → c'est string
 const c1: Conteneur = { valeur: "Bonjour", horodatage: new Date() };
-// Equivalent a Conteneur<string>
 
-// Ou le specifier explicitement
+// En précisant T → on choisit le type
 const c2: Conteneur<number> = { valeur: 42, horodatage: new Date() };
 const c3: Conteneur<boolean> = { valeur: true, horodatage: new Date() };
 ```
 
-### Parametres par defaut avec contraintes
+> 💡 C'est utile quand un type est utilisé dans la majorité des cas avec le même paramètre. Le défaut évite de le répéter partout.
+
+### Combiner défaut et contrainte
+
+On peut combiner `extends` (contrainte) et `= MonType` (défaut) :
 
 ```typescript
-// T doit etendre `object`, avec `Record<string, unknown>` comme defaut
+// T doit être un objet, et par défaut c'est Record<string, unknown>
 interface Cache<T extends object = Record<string, unknown>> {
   donnees: Map<string, T>;
-  dureeVie: number; // en millisecondes
-
-  obtenir(cle: string): T | undefined;
-  definir(cle: string, valeur: T): void;
-  supprimer(cle: string): boolean;
+  dureeVie: number;
 }
 
-// Classe generique avec defaut
+// Classe avec un type par défaut
 class ListeTriee<T = number> {
   private elements: T[] = [];
 
@@ -692,20 +621,15 @@ class ListeTriee<T = number> {
     this.elements.sort(this.comparateur);
   }
 
-  obtenir(index: number): T | undefined {
-    return this.elements[index];
-  }
-
   versTableau(): T[] {
     return [...this.elements];
   }
 }
 
-// Sans specifier T : c'est number par defaut
+// Sans préciser T → c'est number par défaut
 const nombres = new ListeTriee((a, b) => a - b);
 nombres.ajouter(30);
 nombres.ajouter(10);
-nombres.ajouter(20);
 console.log(nombres.versTableau()); // [10, 20, 30]
 
 // Avec T = string
@@ -716,100 +640,52 @@ mots.ajouter("banane");
 console.log(mots.versTableau()); // ["abricot", "banane", "cerise"]
 ```
 
+> 🎯 **Comment lire `<T extends object = Record<string, unknown>>` ?** → "T doit être un objet (contrainte), et si personne ne précise T, ce sera `Record<string, unknown>` (défaut)".
+
 ---
 
 ## Generics avec unions
 
-Les generics interagissent de manière interessante avec les types union.
+Les generics fonctionnent naturellement avec les types union :
 
 ```typescript
-// Fonction qui filtre un tableau par un predicat type-safe
-function filtrer<T>(
-  tableau: T[],
-  predicat: (element: T) => boolean
-): T[] {
-  return tableau.filter(predicat);
-}
+// Un type "résultat asynchrone" — très courant dans les apps front-end
+type ResultatAsync<TypeDonnee> =
+  | { statut: "chargement" } // pas encore de données
+  | { statut: "succes"; donnees: TypeDonnee } // données reçues
+  | { statut: "erreur"; erreur: string }; // une erreur
 
-// Fonctionne avec des unions
-type Fruit = "pomme" | "banane" | "cerise" | "datte";
-const fruits: Fruit[] = ["pomme", "banane", "cerise", "datte", "pomme"];
-const fruitsAvecE = filtrer(fruits, (f) => f.includes("e"));
-// type: Fruit[] — le type union est preserve
-
-// Resultat generique avec union
-type ResultatAsync<T> =
-  | { statut: "chargement" }
-  | { statut: "succes"; donnees: T }
-  | { statut: "erreur"; erreur: string };
-
+// La fonction traite les 3 cas
 function traiterResultat<T>(resultat: ResultatAsync<T>): string {
   switch (resultat.statut) {
     case "chargement":
       return "Chargement en cours...";
     case "succes":
-      return `Succes : ${JSON.stringify(resultat.donnees)}`;
+      return `Succès : ${JSON.stringify(resultat.donnees)}`;
     case "erreur":
       return `Erreur : ${resultat.erreur}`;
   }
 }
 
+// ResultatAsync<string[]> → les données sont un tableau de strings
 const r1: ResultatAsync<string[]> = { statut: "succes", donnees: ["a", "b"] };
-const r2: ResultatAsync<number> = { statut: "erreur", erreur: "Timeout" };
+console.log(traiterResultat(r1)); // "Succès : ["a","b"]"
 
-console.log(traiterResultat(r1)); // "Succes : [\"a\",\"b\"]"
+// ResultatAsync<number> → les données sont un number
+const r2: ResultatAsync<number> = { statut: "erreur", erreur: "Timeout" };
 console.log(traiterResultat(r2)); // "Erreur : Timeout"
 ```
 
----
-
-## Multiple type parameters
-
-Il est courant d'avoir deux, trois, voire plus de paramètres de type.
-
-```typescript
-// Deux parametres : cle et valeur
-function creerEnregistrement<K extends string, V>(
-  cle: K,
-  valeur: V
-): Record<K, V> {
-  return { [cle]: valeur } as Record<K, V>;
-}
-
-const enr = creerEnregistrement("nom", "Alice");
-// type: Record<"nom", string>
-console.log(enr.nom); // "Alice"
-
-// Trois parametres : transformation d'un type vers un autre
-function mapper<TEntree, TSortie, TCle extends string>(
-  collection: Record<TCle, TEntree>,
-  fn: (valeur: TEntree, cle: TCle) => TSortie
-): Record<TCle, TSortie> {
-  const resultat = {} as Record<TCle, TSortie>;
-  for (const cle in collection) {
-    resultat[cle] = fn(collection[cle], cle);
-  }
-  return resultat;
-}
-
-const prix = { clavier: 49.99, souris: 29.99, ecran: 299.99 };
-const prixTTC = mapper(prix, (p) => +(p * 1.2).toFixed(2));
-// type: Record<"clavier" | "souris" | "ecran", number>
-console.log(prixTTC); // { clavier: 59.99, souris: 35.99, ecran: 359.99 }
-
-const prixFormates = mapper(prix, (p, cle) => `${cle}: ${p.toFixed(2)} EUR`);
-// type: Record<"clavier" | "souris" | "ecran", string>
-console.log(prixFormates);
-```
+> 🎯 **Ce qu'il faut retenir** : Le generic `<TypeDonnee>` ne s'applique qu'au cas `"succes"`. Les autres variantes de l'union (`"chargement"`, `"erreur"`) restent identiques quel que soit le type.
 
 ---
 
 ## Factories génériques
 
-Les factories génériques permettent de créer des instances de manière dynamique tout en conservant le typage.
+Une factory générique permet de **créer des instances** de manière dynamique tout en conservant le typage.
 
 ```typescript
-// Factory simple avec un constructeur
+// `new () => T` signifie "une classe (constructeur) qui produit une instance de type T"
 function creerInstance<T>(Classe: new () => T): T {
   return new Classe();
 }
@@ -827,16 +703,20 @@ class Chat {
 }
 
 const chien = creerInstance(Chien); // type: Chien
-console.log(chien.aboyer());       // "Wouf !"
+console.log(chien.aboyer()); // "Wouf !"
 
-const chat = creerInstance(Chat);   // type: Chat
-console.log(chat.miauler());       // "Miaou !"
+const chat = creerInstance(Chat); // type: Chat
+console.log(chat.miauler()); // "Miaou !"
 ```
+
+> 💡 **Comment lire `new () => T` ?** C'est le type d'un **constructeur**. Ça signifie : "quelque chose qu'on peut appeler avec `new` et qui retourne un `T`".
 
 ### Factory avec paramètres du constructeur
 
+Si le constructeur a des paramètres, on adapte le type :
+
 ```typescript
-// Factory qui accepte des parametres pour le constructeur
+// `new (...args: any[])` → un constructeur qui accepte n'importe quels arguments
 function creerAvecParams<T>(
   Classe: new (...args: any[]) => T,
   ...args: any[]
@@ -855,53 +735,56 @@ const user = creerAvecParams(Utilisateur, "Alice", 30);
 console.log(user.saluer()); // "Bonjour, je suis Alice (30 ans)"
 ```
 
-### Factory pattern complet avec registre
+### Factory avec registre
+
+Un pattern plus avancé : un **registre** qui associe des noms à des classes, pour créer des instances dynamiquement.
 
 ```typescript
-// Registre de factories
 class FabriqueRegistre {
   private static fabriques = new Map<string, new (...args: any[]) => any>();
 
-  // Enregistrer une classe dans le registre
+  // Enregistrer une classe
   static enregistrer<T>(nom: string, Classe: new (...args: any[]) => T): void {
     this.fabriques.set(nom, Classe);
   }
 
-  // Creer une instance a partir du registre
+  // Créer une instance à partir du nom
   static creer<T>(nom: string, ...args: any[]): T {
     const Classe = this.fabriques.get(nom);
     if (!Classe) {
-      throw new Error(`Classe "${nom}" non enregistree dans la fabrique.`);
+      throw new Error(`Classe "${nom}" non enregistrée.`);
     }
     return new Classe(...args) as T;
   }
 }
 
-// Enregistrement
+// On enregistre des classes
 class NotificationEmail {
   constructor(public destinataire: string, public sujet: string) {}
   envoyer(): void {
-    console.log(`Email envoye a ${this.destinataire} : ${this.sujet}`);
+    console.log(`Email à ${this.destinataire} : ${this.sujet}`);
   }
 }
 
 class NotificationSMS {
   constructor(public numero: string, public message: string) {}
   envoyer(): void {
-    console.log(`SMS envoye a ${this.numero} : ${this.message}`);
+    console.log(`SMS à ${this.numero} : ${this.message}`);
   }
 }
 
 FabriqueRegistre.enregistrer("email", NotificationEmail);
 FabriqueRegistre.enregistrer("sms", NotificationSMS);
 
-// Utilisation
+// On crée des instances par leur nom
 const email = FabriqueRegistre.creer<NotificationEmail>("email", "alice@mail.com", "Bonjour");
-email.envoyer(); // "Email envoye a alice@mail.com : Bonjour"
+email.envoyer(); // "Email à alice@mail.com : Bonjour"
 
 const sms = FabriqueRegistre.creer<NotificationSMS>("sms", "0612345678", "Salut !");
-sms.envoyer(); // "SMS envoye a 0612345678 : Salut !"
+sms.envoyer(); // "SMS à 0612345678 : Salut !"
 ```
+
+> 🎯 **Quand utiliser un registre ?** Quand tu veux découpler la création d'objets de leur utilisation (plugins, notifications, stratégies…). Le code qui crée ne connaît pas à l'avance toutes les classes possibles.
 
 ---
 
@@ -909,7 +792,7 @@ sms.envoyer(); // "SMS envoye a 0612345678 : Salut !"
 
 ### Exercice 1 : Fonction générique `grouper`
 
-Ecrivez une fonction générique `grouper` qui prend un tableau d'objets et le nom d'une propriété, puis regroupe les éléments par la valeur de cette propriété.
+Écrivez une fonction générique `grouper` qui prend un tableau d'objets et le nom d'une propriété, puis regroupe les éléments par la valeur de cette propriété.
 
 ```typescript
 // Signature attendue :
@@ -920,11 +803,10 @@ const personnes = [
   { nom: "Alice", ville: "Paris", age: 30 },
   { nom: "Bob", ville: "Lyon", age: 25 },
   { nom: "Charlie", ville: "Paris", age: 35 },
-  { nom: "David", ville: "Lyon", age: 28 },
 ];
 
 const parVille = grouper(personnes, "ville");
-// Map { "Paris" => [{Alice...}, {Charlie...}], "Lyon" => [{Bob...}, {David...}] }
+// Map { "Paris" => [Alice, Charlie], "Lyon" => [Bob] }
 ```
 
 <details>
@@ -947,42 +829,18 @@ function grouper<T, K extends keyof T>(tableau: T[], cle: K): Map<T[K], T[]> {
 
   return groupes;
 }
-
-// Test
-const personnes = [
-  { nom: "Alice", ville: "Paris", age: 30 },
-  { nom: "Bob", ville: "Lyon", age: 25 },
-  { nom: "Charlie", ville: "Paris", age: 35 },
-  { nom: "David", ville: "Lyon", age: 28 },
-  { nom: "Eve", ville: "Paris", age: 22 },
-];
-
-const parVille = grouper(personnes, "ville");
-console.log("Par ville :");
-parVille.forEach((membres, ville) => {
-  console.log(`  ${ville}: ${membres.map((m) => m.nom).join(", ")}`);
-});
-// Par ville :
-//   Paris: Alice, Charlie, Eve
-//   Lyon: Bob, David
-
-const parAge = grouper(personnes, "age");
-console.log("\nPar age :");
-parAge.forEach((membres, age) => {
-  console.log(`  ${age}: ${membres.map((m) => m.nom).join(", ")}`);
-});
 ```
 
 </details>
 
 ### Exercice 2 : Classe générique `Cache<T>`
 
-Creez une classe générique `Cache<T>` avec une duree de vie (TTL) pour les entrees.
+Créez une classe générique `Cache<T>` avec une durée de vie (TTL) pour les entrées.
 
 - `definir(cle: string, valeur: T): void` — stocke une valeur avec un horodatage
-- `obtenir(cle: string): T | undefined` — retourne la valeur si elle n'a pas expire
-- `supprimer(cle: string): boolean` — supprime une entree
-- `nettoyer(): number` — supprime les entrees expirees et retourne le nombre supprime
+- `obtenir(cle: string): T | undefined` — retourne la valeur si elle n'a pas expiré
+- `supprimer(cle: string): boolean` — supprime une entrée
+- `nettoyer(): number` — supprime les entrées expirées et retourne le nombre supprimé
 
 <details>
 <summary>Solution</summary>
@@ -996,8 +854,7 @@ interface EntreeCache<T> {
 class Cache<T> {
   private stockage = new Map<string, EntreeCache<T>>();
 
-  // dureeVie en millisecondes
-  constructor(private dureeVie: number = 60_000) {}
+  constructor(private dureeVie: number = 60_000) {} // durée de vie en ms
 
   definir(cle: string, valeur: T): void {
     this.stockage.set(cle, {
@@ -1010,9 +867,8 @@ class Cache<T> {
     const entree = this.stockage.get(cle);
     if (!entree) return undefined;
 
-    // Verifier si l'entree a expire
     if (Date.now() > entree.expiration) {
-      this.stockage.delete(cle);
+      this.stockage.delete(cle); // expiré → on le supprime
       return undefined;
     }
 
@@ -1026,55 +882,22 @@ class Cache<T> {
   nettoyer(): number {
     const maintenant = Date.now();
     let nbSupprimes = 0;
-
     for (const [cle, entree] of this.stockage) {
       if (maintenant > entree.expiration) {
         this.stockage.delete(cle);
         nbSupprimes++;
       }
     }
-
     return nbSupprimes;
   }
-
-  get taille(): number {
-    return this.stockage.size;
-  }
-
-  possede(cle: string): boolean {
-    return this.obtenir(cle) !== undefined;
-  }
-
-  cles(): string[] {
-    // Ne retourner que les cles non expirees
-    const maintenant = Date.now();
-    const clesValides: string[] = [];
-    for (const [cle, entree] of this.stockage) {
-      if (maintenant <= entree.expiration) {
-        clesValides.push(cle);
-      }
-    }
-    return clesValides;
-  }
 }
-
-// Test
-const cacheUtilisateurs = new Cache<{ nom: string; email: string }>(5000); // 5s TTL
-
-cacheUtilisateurs.definir("alice", { nom: "Alice", email: "alice@mail.com" });
-cacheUtilisateurs.definir("bob", { nom: "Bob", email: "bob@mail.com" });
-
-console.log(cacheUtilisateurs.obtenir("alice")); // { nom: "Alice", email: "alice@mail.com" }
-console.log(cacheUtilisateurs.taille); // 2
-
-// Apres 5 secondes, les entrees auront expire...
 ```
 
 </details>
 
 ### Exercice 3 : Fonction générique `pluck`
 
-Ecrivez une fonction `pluck` qui extrait les valeurs d'une propriété spécifique d'un tableau d'objets.
+Écrivez une fonction `pluck` qui extrait les valeurs d'une propriété spécifique d'un tableau d'objets.
 
 ```typescript
 // Signature attendue :
@@ -1082,7 +905,7 @@ Ecrivez une fonction `pluck` qui extrait les valeurs d'une propriété spécifiq
 
 // Exemple :
 // pluck([{ nom: "Alice", age: 30 }, { nom: "Bob", age: 25 }], "nom")
-// => ["Alice", "Bob"]
+// → ["Alice", "Bob"]
 ```
 
 <details>
@@ -1092,34 +915,23 @@ Ecrivez une fonction `pluck` qui extrait les valeurs d'une propriété spécifiq
 function pluck<T, K extends keyof T>(tableau: T[], cle: K): T[K][] {
   return tableau.map((element) => element[cle]);
 }
-
-// Tests
-const employes = [
-  { nom: "Alice", departement: "IT", salaire: 50000 },
-  { nom: "Bob", departement: "RH", salaire: 45000 },
-  { nom: "Charlie", departement: "IT", salaire: 55000 },
-  { nom: "Diana", departement: "Finance", salaire: 60000 },
-];
-
-const noms = pluck(employes, "nom");
-// type: string[] — valeur: ["Alice", "Bob", "Charlie", "Diana"]
-
-const salaires = pluck(employes, "salaire");
-// type: number[] — valeur: [50000, 45000, 55000, 60000]
-
-const departements = pluck(employes, "departement");
-// type: string[] — valeur: ["IT", "RH", "IT", "Finance"]
-
-console.log("Noms :", noms);
-console.log("Salaires :", salaires);
-console.log("Departements (uniques) :", [...new Set(departements)]);
 ```
 
 </details>
 
-### Exercice 4 : Depot générique en mémoire
+### Exercice 4 : Dépôt générique en mémoire
 
-Implementez un depot générique `DepotEnMemoire<T>` qui implemente l'interface `Depot<T>` definie plus haut dans ce module. Ajoutez une méthode `filtrer(predicat)`.
+Implémentez un `DepotEnMemoire<T>` qui stocke des entités avec un `id`, et expose : `trouverTous()`, `trouverParId()`, `creer()`, `mettreAJour()`, `supprimer()`, `filtrer()`.
+
+```typescript
+// Contrainte : T doit avoir un id
+interface Identifiable {
+  id: string;
+}
+
+// Signature attendue :
+// class DepotEnMemoire<T extends Identifiable> { ... }
+```
 
 <details>
 <summary>Solution</summary>
@@ -1129,17 +941,7 @@ interface Identifiable {
   id: string;
 }
 
-interface DepotGenerique<T extends Identifiable> {
-  trouverTous(): T[];
-  trouverParId(id: string): T | undefined;
-  creer(entite: Omit<T, "id">): T;
-  mettreAJour(id: string, modifications: Partial<Omit<T, "id">>): T | undefined;
-  supprimer(id: string): boolean;
-  filtrer(predicat: (entite: T) => boolean): T[];
-  compter(): number;
-}
-
-class DepotEnMemoire<T extends Identifiable> implements DepotGenerique<T> {
+class DepotEnMemoire<T extends Identifiable> {
   private donnees = new Map<string, T>();
   private compteur = 0;
 
@@ -1166,7 +968,6 @@ class DepotEnMemoire<T extends Identifiable> implements DepotGenerique<T> {
   mettreAJour(id: string, modifications: Partial<Omit<T, "id">>): T | undefined {
     const existant = this.donnees.get(id);
     if (!existant) return undefined;
-
     const misAJour = { ...existant, ...modifications };
     this.donnees.set(id, misAJour);
     return misAJour;
@@ -1190,30 +991,17 @@ interface Article extends Identifiable {
   titre: string;
   contenu: string;
   publie: boolean;
-  tags: string[];
 }
 
-const depotArticles = new DepotEnMemoire<Article>();
+const depot = new DepotEnMemoire<Article>();
+const a1 = depot.creer({ titre: "Intro TS", contenu: "...", publie: true });
+const a2 = depot.creer({ titre: "Generics", contenu: "...", publie: false });
 
-const a1 = depotArticles.creer({
-  titre: "Introduction a TypeScript",
-  contenu: "TypeScript est...",
-  publie: true,
-  tags: ["typescript", "debutant"],
-});
+console.log(depot.compter());                        // 2
+console.log(depot.filtrer((a) => a.publie).length);  // 1
 
-const a2 = depotArticles.creer({
-  titre: "Generics avances",
-  contenu: "Les generics permettent...",
-  publie: false,
-  tags: ["typescript", "avance"],
-});
-
-console.log("Tous :", depotArticles.trouverTous().length); // 2
-console.log("Publies :", depotArticles.filtrer((a) => a.publie).length); // 1
-
-depotArticles.mettreAJour(a2.id, { publie: true });
-console.log("Publies apres MAJ :", depotArticles.filtrer((a) => a.publie).length); // 2
+depot.mettreAJour(a2.id, { publie: true });
+console.log(depot.filtrer((a) => a.publie).length);  // 2
 ```
 
 </details>
@@ -1222,34 +1010,35 @@ console.log("Publies apres MAJ :", depotArticles.filtrer((a) => a.publie).length
 
 ## Récapitulatif
 
-| Concept                     | Syntaxe                                         | Description                                          |
-|-----------------------------|--------------------------------------------------|------------------------------------------------------|
-| Fonction générique          | `function f<T>(arg: T): T`                       | Fonction parametree par un type                       |
-| Interface générique         | `interface I<T> { valeur: T }`                    | Interface parametree par un type                      |
-| Classe générique            | `class C<T> { ... }`                              | Classe parametree par un type                         |
-| Contrainte                  | `<T extends SomeType>`                            | Restreint les types acceptes                          |
-| `keyof`                     | `keyof T`                                         | Union des clés d'un type                              |
-| Acces indexe                | `T[K]`                                            | Type de la propriété K dans T                         |
-| `typeof`                    | `typeof variable`                                 | Deduit le type à partir d'une valeur                  |
-| Type par defaut             | `<T = string>`                                    | Valeur par defaut pour un paramètre de type           |
-| Multi-paramètres            | `<T, U, V>`                                       | Plusieurs paramètres de type                          |
-| Factory générique           | `new (...args) => T`                              | Créer des instances dynamiquement                     |
+| Concept             | Syntaxe                        | Ce que ça fait                                  |
+| ------------------- | ------------------------------ | ----------------------------------------------- |
+| Fonction générique  | `function f<T>(arg: T): T`     | Le type est un paramètre, inféré à l'appel      |
+| Interface générique | `interface I<T> { valeur: T }` | Interface réutilisable avec n'importe quel type |
+| Classe générique    | `class C<T> { ... }`           | Classe réutilisable (Pile, Cache, etc.)         |
+| Contrainte          | `<T extends MonType>`          | Restreint les types acceptés                    |
+| `keyof`             | `keyof T`                      | Union de toutes les clés d'un type              |
+| Accès indexé        | `T[K]`                         | Type de la propriété K dans T                   |
+| `typeof`            | `typeof maVariable`            | Déduit le type à partir d'une valeur            |
+| Par défaut          | `<T = string>`                 | Type par défaut si non précisé                  |
+| Multi-paramètres    | `<T, U, V>`                    | Plusieurs types indépendants                    |
+| Factory             | `new () => T`                  | Créer des instances dynamiquement               |
 
 ---
 
 ## Pour aller plus loin
 
-Dans le **Module 07**, nous approfondirons les generics avec des **patterns avances** : types conditionnels dans les generics, types variadiques, inference avancee avec `infer`, builder pattern type-safe, branded types et bien plus.
+Dans le **Module 07**, nous approfondirons les generics avec des **patterns avancés** : types conditionnels, types variadiques, inférence avancée avec `infer`, builder pattern type-safe, branded types et bien plus.
 
-[Continuer vers le Module 07 : Generics — Patterns avances & Variadics →](./07-generics-avances.md)
+[Continuer vers le Module 07 : Generics — Patterns avancés & Variadics →](./07-generics-avances.md)
 
 ---
 
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 06 generics base](../screencasts/screencast-06-generics-base.md)
 2. **Lab** : [lab-06-generics-base](../labs/lab-06-generics-base/README)
 3. **Visualisation** : [Generics Flow](../visualizations/generics-flow.html)
 4. **Quiz** : [quiz 06 generics base](../quizzes/quiz-06-generics-base.html)
-:::
+   :::

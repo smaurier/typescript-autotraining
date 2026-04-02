@@ -725,7 +725,10 @@ function creerAvecParams<T>(
 }
 
 class Utilisateur {
-  constructor(public nom: string, public age: number) {}
+  constructor(
+    public nom: string,
+    public age: number,
+  ) {}
   saluer(): string {
     return `Bonjour, je suis ${this.nom} (${this.age} ans)`;
   }
@@ -760,14 +763,20 @@ class FabriqueRegistre {
 
 // On enregistre des classes
 class NotificationEmail {
-  constructor(public destinataire: string, public sujet: string) {}
+  constructor(
+    public destinataire: string,
+    public sujet: string,
+  ) {}
   envoyer(): void {
     console.log(`Email à ${this.destinataire} : ${this.sujet}`);
   }
 }
 
 class NotificationSMS {
-  constructor(public numero: string, public message: string) {}
+  constructor(
+    public numero: string,
+    public message: string,
+  ) {}
   envoyer(): void {
     console.log(`SMS à ${this.numero} : ${this.message}`);
   }
@@ -777,10 +786,18 @@ FabriqueRegistre.enregistrer("email", NotificationEmail);
 FabriqueRegistre.enregistrer("sms", NotificationSMS);
 
 // On crée des instances par leur nom
-const email = FabriqueRegistre.creer<NotificationEmail>("email", "alice@mail.com", "Bonjour");
+const email = FabriqueRegistre.creer<NotificationEmail>(
+  "email",
+  "alice@mail.com",
+  "Bonjour",
+);
 email.envoyer(); // "Email à alice@mail.com : Bonjour"
 
-const sms = FabriqueRegistre.creer<NotificationSMS>("sms", "0612345678", "Salut !");
+const sms = FabriqueRegistre.creer<NotificationSMS>(
+  "sms",
+  "0612345678",
+  "Salut !",
+);
 sms.envoyer(); // "SMS à 0612345678 : Salut !"
 ```
 
@@ -965,7 +982,10 @@ class DepotEnMemoire<T extends Identifiable> {
     return nouvelleEntite;
   }
 
-  mettreAJour(id: string, modifications: Partial<Omit<T, "id">>): T | undefined {
+  mettreAJour(
+    id: string,
+    modifications: Partial<Omit<T, "id">>,
+  ): T | undefined {
     const existant = this.donnees.get(id);
     if (!existant) return undefined;
     const misAJour = { ...existant, ...modifications };
@@ -997,11 +1017,11 @@ const depot = new DepotEnMemoire<Article>();
 const a1 = depot.creer({ titre: "Intro TS", contenu: "...", publie: true });
 const a2 = depot.creer({ titre: "Generics", contenu: "...", publie: false });
 
-console.log(depot.compter());                        // 2
-console.log(depot.filtrer((a) => a.publie).length);  // 1
+console.log(depot.compter()); // 2
+console.log(depot.filtrer((a) => a.publie).length); // 1
 
 depot.mettreAJour(a2.id, { publie: true });
-console.log(depot.filtrer((a) => a.publie).length);  // 2
+console.log(depot.filtrer((a) => a.publie).length); // 2
 ```
 
 </details>

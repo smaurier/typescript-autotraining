@@ -36,6 +36,18 @@ Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de c
 
 ---
 
+## Les 3 décisions a prendre avant même de lire les options
+
+Avant de parcourir le détail de `tsconfig.json`, pose-toi d'abord ces trois questions :
+
+1. Dans quel environnement tourne mon code ? Navigateur, Node.js, bundler, monorepo, librairie publiée...
+2. Quel JavaScript je veux produire ? Moderne, rétrocompatible, ESM, CommonJS...
+3. Quel niveau de sécurité je veux imposer ? Typage strict, null checks, initialisation stricte, etc.
+
+Si ces trois réponses sont claires, beaucoup d'options cessent d'être des lignes mystérieuses et deviennent des réglages logiques.
+
+---
+
 ## tsconfig.json : structure complete
 
 ### Vue d'ensemble
@@ -67,6 +79,8 @@ Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de c
 ```
 
 ### Options de compilation : target & module
+
+Ces deux options répondent a la première grande question du module : **qu'est-ce que TypeScript doit générer comme JavaScript, et pour quel système de modules ?**
 
 ```typescript
 // target — Quelle version de JavaScript generer ?
@@ -132,6 +146,8 @@ Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de c
 
 ### moduleResolution
 
+Une fois que tu sais quel style de modules tu émets, il faut encore savoir **comment TypeScript retrouve les imports**. C'est le rôle de `moduleResolution`.
+
 ```typescript
 // moduleResolution — Comment TypeScript TROUVE les modules importes
 {
@@ -164,6 +180,8 @@ Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de c
 ```
 
 ### lib
+
+`lib` répond a une autre question clé : **quelles APIs globales TypeScript doit considérer comme disponibles dans ton environnement ?**
 
 ```typescript
 // lib — Quelles APIs standard sont disponibles ?
@@ -198,6 +216,8 @@ Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de c
 ```
 
 ### strict et ses composants
+
+Si tu ne dois retenir qu'une grande famille d'options de sécurité, retiens celle-ci. `strict` change profondément la qualité du retour que te donne le compilateur.
 
 ```json
 // strict — Le flag le plus important

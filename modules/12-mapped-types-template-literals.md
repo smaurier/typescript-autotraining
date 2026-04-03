@@ -43,6 +43,18 @@ Un mapped type, c'est comme une machine qui reprend le plan d'une maison pièce 
 
 ---
 
+## Comment progresser dans ce module sans te perdre
+
+Le plus simple est de le lire en trois étapes :
+
+1. D'abord les mapped types simples : on garde les mêmes clés et on transforme seulement les valeurs ou les modificateurs.
+2. Ensuite le remapping avec `as` : on commence a changer les noms de propriétés.
+3. Enfin les template literal types : on construit dynamiquement des chaînes, puis on les combine avec les clés.
+
+> 💡 **Repère utile** : tant que tu n'es pas a l'aise avec l'étape 1, ne te force pas a raisonner tout de suite sur `as`, `Capitalize`, `never` et les noms dynamiques en même temps.
+
+---
+
 ## Mapped Types : les bases
 
 ### Syntaxe fondamentale
@@ -404,6 +416,10 @@ type ConfigComplete = DeepRequired<AppConfig>;
 ---
 
 ## Template Literal Types
+
+Jusqu'ici, on a surtout manipulé la **structure** d'un objet. À partir d'ici, on va manipuler directement des **chaînes au niveau des types**.
+
+C'est ce deuxième bloc qui permet ensuite de fabriquer des noms dynamiques comme `getNom`, `onAgeChange` ou `margin-top`.
 
 ### Syntaxe de base
 

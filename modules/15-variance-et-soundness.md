@@ -38,6 +38,70 @@ Si un enclos accepte des `Animal`, il peut accepter un `Chat`. Mais si un enclos
 
 ---
 
+## Trois surprises TypeScript qu'on veut enfin expliquer
+
+Avant de rentrer dans les définitions, voici trois situations très concrètes qui motivent tout le module.
+
+### Surprise 1 : un tableau semble compatible... puis devient dangereux
+
+```typescript
+interface Animal {
+  nom: string;
+}
+
+interface Chat extends Animal {
+  ronronne: boolean;
+}
+
+const chats: Chat[] = [{ nom: "Minou", ronronne: true }];
+const animaux: Animal[] = chats;
+
+// Si on autorisait vraiment tout derrière cette assignation :
+// animaux.push({ nom: "Rex" });
+// On casserait la promesse "ce tableau contient des Chat"
+```
+
+### Surprise 2 : un callback très spécifique n'est pas toujours acceptable
+
+```typescript
+interface Animal {
+  nom: string;
+}
+
+interface Chat extends Animal {
+  ronronne: boolean;
+}
+
+type HandlerAnimal = (animal: Animal) => void;
+
+const gererChatUniquement = (chat: Chat) => {
+  console.log(chat.ronronne);
+};
+
+// Ce serait dangereux de permettre ceci partout :
+// const h: HandlerAnimal = gererChatUniquement;
+// Car quelqu'un pourrait appeler h({ nom: "Rex" })
+```
+
+### Surprise 3 : `readonly` change le niveau de sécurité
+
+```typescript
+interface Animal {
+  nom: string;
+}
+
+interface Chat extends Animal {
+  ronronne: boolean;
+}
+
+const chats: readonly Chat[] = [{ nom: "Minou", ronronne: true }];
+const animaux: readonly Animal[] = chats; // Cette fois, le risque est bien plus faible
+```
+
+> 🎯 **Pourquoi ces trois exemples comptent ?** Parce qu'ils montrent que la compatibilité entre types dépend aussi de la manière dont une valeur est **lue**, **écrite**, **consommée** ou **produite**.
+
+---
+
 ## Sous-typage en TypeScript
 
 ### Le principe fondamental
@@ -112,6 +176,8 @@ Un type générique `F<T>` est **covariant** en `T` si :
 > est un sous-type d'Animal, alors cette usine est aussi une "usine a Animaux".
 > La covariance s'applique aux **positions de sortie** (ce qu'on produit/retourne).
 
+> 💡 **Lecture rapide** : covariance = "si je promets quelque chose de plus précis en sortie, ça reste acceptable là où on attend quelque chose de plus général".
+
 ```typescript
 // Covariance : les types en position de SORTIE (retour)
 type Producteur<T> = () => T;
@@ -134,6 +200,8 @@ const resultat: Animal = produitAnimal(); // On recoit un Chat, qui est un Anima
 ### Covariance dans les tableaux
 
 Les tableaux en TypeScript sont covariants en lecture :
+
+Le point important ici, c'est que le danger n'apparaît pas au moment de la lecture. Il apparaît quand on réutilise cette compatibilité sur une structure **mutable**.
 
 ```typescript
 // Les tableaux sont covariants (ce qui est un trou de soundness !)
@@ -178,6 +246,8 @@ Un type générique `F<T>` est **contravariant** en `T` si :
 > necessairement soigner un Chien. La contravariance s'applique aux **positions
 > d'entree** (ce qu'on consomme/accepte en paramètre).
 
+> 💡 **Lecture rapide** : contravariance = "plus une fonction accepte large en entrée, plus elle peut être réutilisée dans des cas spécifiques".
+
 ```typescript
 // Contravariance : les types en position d'ENTREE (parametres)
 type Consommateur<T> = (item: T) => void;
@@ -209,6 +279,8 @@ const brosseChat: ConsommateurChat = (c: Chat) => {
 
 Le flag `strictFunctionTypes` (inclus dans `strict: true`) active la vérification
 de contravariance pour les paramètres de fonctions.
+
+En pratique, c'est l'une des options qui évite le plus de bugs subtils dans les callbacks.
 
 ```typescript
 // SANS strictFunctionTypes : bivariance (permissif, dangereux)
@@ -255,6 +327,8 @@ Un type générique `F<T>` est **invariant** en `T` si :
 
 > **Analogie de la clé USB** : Un port USB-C n'accepte que des cables USB-C.
 > Pas de USB-A, pas de micro-USB. C'est une relation stricte dans les deux sens.
+
+> 💡 **Lecture rapide** : invariance = "dès qu'un type sert a la fois a lire et a écrire, TypeScript ne peut plus se permettre autant de souplesse".
 
 ```typescript
 // L'invariance apparait quand T est utilise EN ENTREE ET EN SORTIE

@@ -47,6 +47,14 @@ Un mapped type, c'est comme une machine qui reprend le plan d'une maison pièce 
 
 ### Syntaxe fondamentale
 
+La bonne lecture d'un mapped type est :
+
+- `keyof T` = toutes les clés de `T`
+- `K in keyof T` = on parcourt chaque clé
+- `T[K]` = on récupère le type de la valeur associée a cette clé
+
+Autrement dit, un mapped type est une boucle sur les propriétés d'un type objet.
+
 ```typescript
 // Un mapped type itere sur les cles d'un type
 type MonMappedType<T> = {
@@ -58,6 +66,8 @@ type MonMappedType<T> = {
 ```
 
 ### Modifier les valeurs
+
+Dans cette série d'exemples, les clés restent identiques. Ce qui change, c'est uniquement le type des valeurs.
 
 ```typescript
 interface Utilisateur {
@@ -105,6 +115,8 @@ type UtilisateurGetters = Getters<Utilisateur>;
 ## Les modificateurs : readonly et optionnel
 
 ### Ajouter des modificateurs
+
+Ici, on ne change ni le nom des clés ni le type de leur valeur. On change seulement le statut de la propriété : lecture seule ou optionnelle.
 
 ```typescript
 // Ajouter readonly a toutes les proprietes
@@ -184,6 +196,8 @@ type ExpliciteReadonly<T> = {
 
 Depuis TypeScript 4.1, on peut **renommer les clés** dans un mapped type grâce à `as`.
 
+Cette fois, on ne modifie plus seulement la valeur d'une propriété : on fabrique un **nouveau nom de clé**.
+
 ```typescript
 // Syntaxe : [K in keyof T as NouvelleClé]: T[K]
 type RenommerCles<T> = {
@@ -238,6 +252,8 @@ type PersonneHandlers = EvenementHandlers<Personne>;
 ### Filtrer des clés avec `as` et `never`
 
 Le remapping avec `as` permet aussi de **filtrer** des clés : si le nouveau nom est `never`, la propriété est exclue.
+
+> 🎯 **A retenir** : avec `as`, on peut soit renommer une clé, soit la supprimer. `never` veut dire ici : "ne génère aucune propriété".
 
 ```typescript
 // Garder uniquement les proprietes de type string

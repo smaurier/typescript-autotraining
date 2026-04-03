@@ -55,6 +55,18 @@ Dans ce module, il faut moins raisonner en termes de "valeurs" et davantage en t
 
 Introduits dans TypeScript 4.0, les **variadic tuple types** permettent de manipuler des tuples de manière générique, en concatenant, en decoupant et en transformant leurs éléments.
 
+### Pourquoi c'est utile en pratique ?
+
+Un tuple variadique devient utile dès que l'ordre exact des éléments compte autant que leur type.
+
+Cas typiques :
+
+- préserver les paramètres d'une fonction wrapper
+- typer un `pipe`, un `compose`, un `curry` ou un `bind`
+- transformer un tuple sans perdre la position de chaque élément
+
+> 💡 **Repère simple** : `T[]` dit "j'ai des éléments de type T". Un tuple dit "j'ai précisément tel élément, puis tel autre, dans cet ordre".
+
 ### Concatenation de tuples
 
 ```typescript
@@ -72,6 +84,8 @@ type Resultat3 = Concat<[], [string]>;
 ```
 
 ### Fonction avec spread générique
+
+Ici, `...A` et `...B` veulent dire : "reprends la forme exacte de ces deux tuples", pas simplement "deux tableaux quelconques".
 
 ```typescript
 // Fonction qui fusionne les arguments de deux fonctions
@@ -174,6 +188,17 @@ const t = prepend("debut", [1, true, "fin"]);
 
 Le mot-clé `infer` dans les types conditionnels permet d'**extraire** des types depuis des structures complexes. C'est l'outil le plus puissant du système de types de TypeScript.
 
+### Comment lire `infer` simplement ?
+
+Lis `infer` comme : "si la forme correspond, capture la partie qui m'intéresse".
+
+Exemple mental :
+
+- `T extends (...args: any[]) => infer R`
+- signifie : "si `T` ressemble a une fonction, appelle `R` son type de retour"
+
+Le point important est que `infer` ne fonctionne jamais seul : il fonctionne a l'intérieur d'un pattern a reconnaître.
+
 ### Extraire le type de retour d'une fonction
 
 ```typescript
@@ -202,6 +227,8 @@ type PP2 = PremierParam<() => void>;                       // never
 ```
 
 ### Extraire le type d'une promesse
+
+Cet exemple montre une idée centrale du module : on peut combiner `infer` **et** la récursion. Tant qu'on retrouve une `Promise<...>`, on continue a dérouler.
 
 ```typescript
 // Unwrap une Promise (recursif pour les promesses imbriquees)

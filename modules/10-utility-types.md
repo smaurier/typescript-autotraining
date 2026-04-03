@@ -113,7 +113,9 @@ Imagine un formulaire d'inscription ou tout est obligatoire. `Partial` transform
 
 ## Required\<T\>
 
-### Description
+### Le besoin concret
+
+Au départ, certaines propriétés sont optionnelles. Mais après fusion de valeurs par défaut, validation ou normalisation, tu veux garantir que tout est désormais présent.
 
 `Required<T>` est l'inverse de `Partial` : il rend toutes les propriétés **obligatoires**, même celles qui etaient optionnelles.
 
@@ -164,6 +166,8 @@ initialiserApp({
 
 `Required` est souvent utilise pour valider qu'une configuration est **complete** avant de l'utiliser, par exemple après avoir fusionne des valeurs par defaut avec des valeurs utilisateur.
 
+> 💡 **Comment lire `Required<ConfigurationApp>` ?** Comme "une version entièrement renseignée de `ConfigurationApp`".
+
 ```typescript
 // Valeurs par defaut
 const defauts: ConfigurationApp = {
@@ -189,7 +193,9 @@ const configFinale: Required<ConfigurationApp> = {
 
 ## Readonly\<T\>
 
-### Description
+### Le besoin concret
+
+Tu veux autoriser la lecture d'un objet, mais empêcher sa modification directe.
 
 `Readonly<T>` rend toutes les propriétés d'un type **en lecture seule**. Toute tentative de modification sera une erreur de compilation.
 
@@ -239,6 +245,8 @@ function reducer(etat: Readonly<EtatApplication>, action: any): EtatApplication 
 
 ### Attention : Readonly est superficiel
 
+Point important : `Readonly` protège la propriété elle-même, pas forcément tout ce qu'elle contient profondément.
+
 ```typescript
 interface Commande {
   id: number;
@@ -262,7 +270,9 @@ commande.articles.push({ nom: "Cahier", quantite: 1 }); // Pas d'erreur !
 
 ## Record\<K, T\>
 
-### Description
+### Le besoin concret
+
+Tu veux décrire un objet-dictionnaire sans écrire chaque clé a la main, tout en imposant le type des clés et celui des valeurs.
 
 `Record<K, T>` construit un type objet dont les **clés** sont de type `K` et les **valeurs** de type `T`.
 
@@ -325,7 +335,9 @@ const messagesErreur: Record<CodeErreur, string> = {
 
 ## Pick\<T, K\>
 
-### Description
+### Le besoin concret
+
+Tu pars d'un gros type, mais tu n'as besoin que de quelques propriétés bien précises.
 
 `Pick<T, K>` créé un type en ne selectionnant que **certaines propriétés** d'un type existant.
 
@@ -386,7 +398,9 @@ function creerArticle(donnees: CreerArticleDTO): Article {
 
 ## Omit\<T, K\>
 
-### Description
+### Le besoin concret
+
+Cette fois, tu veux presque tout garder, sauf quelques propriétés gênantes comme un `id`, un mot de passe ou des champs internes.
 
 `Omit<T, K>` est l'inverse de `Pick` : il créé un type en **excluant** certaines propriétés.
 
@@ -430,6 +444,8 @@ function inscrire(donnees: NouvelUtilisateur): UtilisateurPublic {
 
 ### Pick vs Omit : quand utiliser lequel ?
 
+La bonne question a se poser est simple : est-ce que la liste la plus courte est celle des propriétés a garder ou celle des propriétés a retirer ?
+
 ```typescript
 // Regle simple :
 // - Pick quand on veut QUELQUES proprietes d'un type avec BEAUCOUP de proprietes
@@ -446,7 +462,9 @@ type Presque = Omit<GrosType, "x" | "y" | "z">;
 
 ## Exclude\<T, U\>
 
-### Description
+### Le besoin concret
+
+Tu travailles sur une union et tu veux en retirer certains cas.
 
 `Exclude<T, U>` supprime d'un type union les membres qui sont assignables a `U`. Il travaille sur des **unions de types**, pas sur des propriétés d'objets.
 
@@ -487,6 +505,8 @@ type ClesTextuelles = {
 ```
 
 ### Comment fonctionne la distribution ?
+
+`Exclude` est un excellent exemple pour comprendre la distributivité : TypeScript teste chaque membre de l'union séparément, puis recompose l'union finale.
 
 ```typescript
 // Exclude distribue le conditional type sur chaque membre de l'union

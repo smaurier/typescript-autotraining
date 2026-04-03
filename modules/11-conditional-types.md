@@ -112,6 +112,10 @@ type T6 = TypeDe<{ a: 1 }>;     // "objet"
 
 Quand un conditional type est applique à une **union**, il se **distribue** automatiquement sur chaque membre de l'union. C'est l'un des comportements les plus importants (et parfois deroutants) de TypeScript.
 
+### Comment le lire sans te perdre ?
+
+Quand tu vois un conditional type appliqué a une union, imagine une boucle mentale : TypeScript prend chaque membre un par un, applique le test, puis reconstruit le résultat final.
+
 ```typescript
 type EstChaine<T> = T extends string ? true : false;
 
@@ -171,6 +175,8 @@ type R2 = NonDistributif<string | number>; // "non"
 
 ### Avec la technique du tuple
 
+L'astuce du tuple sert a dire a TypeScript : "n'examine pas chaque membre séparément, regarde tout le type comme un bloc".
+
 ```typescript
 // Parfois on veut evaluer l'union ENTIERE, pas chaque membre
 type EstJamais<T> = T extends never ? true : false;
@@ -219,11 +225,19 @@ type U3 = EstUnion<1 | 2 | 3>;        // true
 
 Le mot-clé `infer` permet de **capturer** (extraire) un sous-type a l'interieur d'une condition `extends`. C'est comme declarer une variable de type qui sera automatiquement remplie par TypeScript.
 
+> 💡 **Repère simple** : `infer` ne devine pas dans le vide. Il capture une partie d'un type seulement si tu lui proposes une forme a faire correspondre.
+
 ### Analogie
 
 Pensez a `infer` comme à un **trou dans un puzzle** : vous presentez votre type au puzzle (la condition `extends`), et si la forme correspond, TypeScript remplit le trou avec le type qui manquait.
 
 ### Syntaxe de base
+
+Le pattern a retenir est toujours le même :
+
+- tu proposes une forme cible
+- si `T` correspond a cette forme, `infer` récupère la partie utile
+- sinon tu tombes dans la branche de repli
 
 ```typescript
 // infer R declare une "variable de type" R dans la branche true

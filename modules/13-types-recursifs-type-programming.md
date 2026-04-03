@@ -47,6 +47,15 @@ Imagine un correcteur extrêmement avancé : il ne se contente pas de vérifier 
 
 Un type récursif est un type qui se **référence lui-même** dans sa définition. C'est l'équivalent au niveau des types d'une fonction recursive.
 
+### Comment le lire correctement ?
+
+Le bon réflexe est le même qu'avec une fonction récursive :
+
+- repérer le cas général qui se répète
+- repérer le cas d'arrêt qui met fin a la descente
+
+Sans cas d'arrêt, la structure n'a pas de point de sortie logique.
+
 ```typescript
 // Un arbre binaire : chaque noeud contient une valeur
 // et peut avoir un sous-arbre gauche et un sous-arbre droit
@@ -112,6 +121,8 @@ type MaListe = ListeHeterogene<[string, number, boolean]>;
 
 ### JSON récursif
 
+Le type JSON est un très bon exemple de récursion naturelle : une valeur JSON peut contenir d'autres valeurs JSON, qui peuvent elles-mêmes contenir d'autres valeurs JSON.
+
 ```typescript
 // Le type JSON est naturellement recursif
 type JsonValue =
@@ -148,6 +159,13 @@ const exemple: JsonValue = {
 ## Recursive conditional types
 
 ### Aplatir un type profondement imbrique
+
+Cette section est centrale : elle montre qu'un conditional type peut se rappeler lui-même tant qu'il retrouve la forme attendue.
+
+Lis ce genre de définition comme :
+
+- "si je vois encore un tableau, je continue"
+- "sinon, j'ai atteint la valeur finale"
 
 ```typescript
 // Aplatir un type tableau profondement imbrique
@@ -225,6 +243,10 @@ type CR1 = CompterRecursif<[1, 2, 3, 4]>; // 4
 ## Arithmetique au niveau des types
 
 TypeScript ne supporte pas les operations arithmetiques nativement au niveau des types. Mais on peut les **simuler** en utilisant des tuples comme representation des nombres.
+
+### Pourquoi cette idée fonctionne ?
+
+Parce qu'un tuple a une longueur connue au niveau du type. Donc représenter un nombre par un tuple de cette longueur permet ensuite d'utiliser des opérations sur tuples pour simuler des calculs.
 
 ### Le principe : les nombres comme tuples
 

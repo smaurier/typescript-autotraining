@@ -11,19 +11,47 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les conditional types existent ?
 
-Les **conditional types** sont l'équivalent des instructions `if/else` au niveau des types. Ils permettent de choisir un type en fonction d'une condition, ce qui ouvre la porte à une programmation de types extremement puissante.
+### Le problème qu'on cherche à résoudre
+
+Avec les generics et les utility types, on sait déjà représenter beaucoup de choses. Mais il manque encore une capacité essentielle : choisir un type en fonction d'un autre.
+
+Exemples typiques :
+
+- si l'entrée est un tableau, je veux un type ; sinon un autre
+- si je reçois une fonction, je veux récupérer son type de retour
+- si une union contient certains membres, je veux les garder ou les retirer
+
+Sans conditional types, ces transformations deviennent vite impossibles ou très verbeuses.
+
+### La solution : des `if / else` au niveau des types
+
+Les conditional types sont exactement cela : des branchements dans le système de types.
+
+La lecture de base est simple :
+
+`T extends U ? X : Y`
+
+Cela signifie : "si `T` est compatible avec `U`, alors le résultat est `X`, sinon c'est `Y`".
 
 ### Analogie
 
-Imaginez un **aiguillage de train** : selon les caracteristiques du train (type, destination, poids), l'aiguillage l'oriente sur une voie ou une autre. Les conditional types font la même chose avec les types : selon qu'un type satisfait une condition, on obtient un type ou un autre.
+Imagine un aiguillage de train : selon la nature du train, on l'envoie sur une voie ou sur une autre. Les conditional types font la même chose avec les types.
+
+> 💡 **Conseil de lecture** : lis toujours un conditional type a voix haute. Tant que tu ne peux pas le paraphraser en français simple, il restera flou.
 
 ---
 
 ## Syntaxe de base
 
 ### La forme fondamentale
+
+Avant même d'écrire des cas complexes, il faut vraiment fixer la lecture de cette forme :
+
+- `T extends U` = "est-ce que `T` est assignable a `U` ?"
+- `? X` = "si oui, prends `X`"
+- `: Y` = "sinon, prends `Y`"
 
 ```typescript
 // Syntaxe : T extends U ? X : Y

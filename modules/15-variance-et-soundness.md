@@ -1,29 +1,40 @@
 # 15 — Variance, Covariance & Soundness du Type System
 
-| Metadata     | Valeur                                                                 |
-|-------------|------------------------------------------------------------------------|
-| **Duree**       | 4 heures                                                              |
-| **Difficulte**  | 5/5                                                                    |
-| **Prérequis**   | Modules 1-14, generics avances, types conditionnels, mapped types     |
-| **Objectifs**   | Comprendre la variance, identifier les trous de soundness, écrire du code type-safe |
+> **Duree estimee** : 4 heures
+> **Difficulte** : 5/5
+> **Prérequis** : Modules 1 a 14, generics avances, conditional types, mapped types
+> **Objectifs** :
+>
+> - Comprendre la variance et les positions d'entrée/sortie
+> - Identifier les zones d'insécurité volontaire de TypeScript
+> - Savoir pourquoi certaines assignations sont autorisées ou refusées
+> - Écrire du code plus sûr autour des fonctions, collections et callbacks
 
 ---
 
 > **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
-## Introduction
+## Introduction — Pourquoi ce module semble théorique mais sert partout ?
 
-Bienvenue dans l'un des modules les plus profonds de ce cours. Ici, nous allons
-plonger dans les **fondements théoriques** du système de types de TypeScript.
-Comprendre la variance, c'est comprendre *pourquoi* certaines assignations de types
-sont autorisees et d'autres non. C'est la clé pour écrire du code veritablement
-type-safe.
+### Le problème qu'on cherche à résoudre
 
-> **Analogie du zoo** : Imaginez un zoo ou chaque enclos à une etiquette.
-> L'enclos "Animal" peut-il accueillir un "Chat" ? Oui, car un Chat *est* un Animal.
-> Mais un enclos "Chat" peut-il accueillir n'importe quel Animal ? Non, car un Chien
-> n'est pas un Chat. La variance, c'est exactement cette logique appliquee aux types
-> génériques.
+Tu as sans doute déjà vu des cas déroutants en TypeScript :
+
+- une assignation parait logique mais est refusée
+- une autre parait risquée mais passe quand même
+- certains callbacks acceptent plus ou moins que ce qu'on imaginait
+
+Derrière ces comportements, il y a la **variance** et la **soundness**.
+
+### La solution : raisonner sur le sens des types, pas seulement sur leur forme
+
+Ce module sert a comprendre pourquoi un type générique ou une fonction peut être plus général, plus spécifique, ou parfois seulement "assez compatible" pour TypeScript.
+
+### Analogie du zoo
+
+Si un enclos accepte des `Animal`, il peut accepter un `Chat`. Mais si un enclos est prévu uniquement pour des `Chat`, on ne peut pas y mettre n'importe quel `Animal`. La variance, c'est cette logique appliquée aux types génériques, surtout quand ils consomment ou produisent des valeurs.
+
+> 💡 **Ce qu'il faut retenir** : ici, le but n'est pas de faire de la théorie pour la théorie. Le but est de comprendre les comportements parfois surprenants du compilateur.
 
 ---
 

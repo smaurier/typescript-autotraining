@@ -11,21 +11,45 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les utility types changent vraiment la vie ?
 
-TypeScript fournit un ensemble d'**utility types** integres qui permettent de transformer des types existants sans les redefinir manuellement. Ce sont des outils puissants qui evitent la duplication et rendent le code plus expressif.
+### Le problème qu'on cherche à résoudre
 
-Pensez aux utility types comme à une **boite a outils de menuisier** : chaque outil à un usage précis, et c'est en les combinant qu'on construit des meubles complexes. Un marteau seul ne suffit pas, mais avec une scie, des vis et de la colle, on peut tout construire.
+Dans un projet réel, on repart souvent d'un type existant pour fabriquer une variante :
 
-Dans ce module, nous allons explorer **chaque utility type natif**, comprendre son implementation interne, et voir des cas d'usage concrets.
+- une version "mise a jour partielle" d'un objet
+- une version "complète" après fusion des valeurs par défaut
+- une version "sans certaines clés"
+- une version "avec seulement deux propriétés"
+
+Si on écrit toutes ces variantes a la main, on duplique vite les types et on crée des écarts entre eux.
+
+### La solution : transformer les types au lieu de les recopier
+
+Les utility types sont des briques déjà prêtes qui permettent de dire :
+
+- "rends tout optionnel"
+- "rends tout obligatoire"
+- "garde seulement ces propriétés"
+- "retire celles-ci"
+
+Autrement dit, au lieu de réécrire un type, on le **transforme**.
+
+### Analogie : la boite a outils
+
+Pense aux utility types comme a une boite a outils : chaque outil a un usage simple, mais c'est leur combinaison qui te fait gagner un temps énorme et t'évite des erreurs de maintenance.
+
+> 🎯 **Ce qu'il faut retenir** : dans ce module, l'important n'est pas d'apprendre une liste par coeur. L'important est de reconnaître le besoin métier auquel chaque utility type répond.
 
 ---
 
 ## Partial\<T\>
 
-### Description
+### Le besoin concret
 
-`Partial<T>` rend toutes les propriétés d'un type **optionnelles**. C'est l'un des utility types les plus utilises.
+Tu as un type complet, mais pour une mise a jour tu ne veux pas obliger l'appelant a renvoyer tous les champs.
+
+`Partial<T>` répond exactement a ce cas : il rend toutes les propriétés d'un type **optionnelles**.
 
 ### Implementation interne
 
@@ -81,7 +105,9 @@ const resultat = mettreAJour(1, { nom: "Alice Dupont", age: 31 });
 
 ### Analogie
 
-Imaginez un formulaire d'inscription ou tous les champs sont obligatoires. `Partial` transforme ce formulaire en un formulaire de modification ou **aucun champ n'est obligatoire** : on ne remplit que ce qu'on veut changer.
+Imagine un formulaire d'inscription ou tout est obligatoire. `Partial` transforme ce formulaire en formulaire de modification : on ne remplit que ce qu'on veut changer.
+
+> 💡 **Comment lire `Partial<Utilisateur>` ?** Comme "une version incomplète mais autorisée de `Utilisateur`".
 
 ---
 

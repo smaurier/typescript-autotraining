@@ -14,13 +14,30 @@
 
 > **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
-## Introduction
+## Introduction — Qu'est-ce qu'on fait vraiment dans ce module ?
 
-Le **type-level programming** consiste à écrire des programmes qui s'executent **au moment de la compilation**, dans le système de types. TypeScript, bien qu'il ne soit pas concu pour cela, possede un système de types suffisamment puissant pour permettre des calculs complexes.
+### Le problème qu'on cherche à résoudre
+
+Jusqu'ici, on a surtout utilisé les types pour **décrire** des données. Ici, on commence a les utiliser pour **calculer** d'autres types.
+
+Par exemple :
+
+- descendre récursivement dans un objet profond
+- transformer une structure imbriquée niveau par niveau
+- parser une chaîne au niveau du système de types
+- faire dépendre un type du résultat d'un autre calcul de type
+
+Dit autrement : on ne se contente plus d'annoter du code, on fait travailler le système de types lui-même.
+
+### La solution : penser les types comme des structures qui se transforment
+
+Le type-level programming consiste a écrire des règles qui s'exécutent pendant la compilation. Ce ne sont pas des programmes runtime : ce sont des programmes pour le compilateur.
 
 ### Analogie
 
-Imaginez que vous ecrivez un livre (votre programme). Le **type-level programming**, c'est comme écrire des regles de grammaire et d'orthographe si sophistiquees que le correcteur orthographique peut non seulement vérifier votre texte, mais aussi **générer de nouveaux mots** selon des regles complexes, vérifier la coherence logique de votre recit, et même résoudre des equations mathematiques — tout cela avant que quiconque ne lise le livre.
+Imagine un correcteur extrêmement avancé : il ne se contente pas de vérifier ton texte, il reconstruit aussi sa grammaire, ses motifs et ses dépendances avant même l'exécution. C'est l'idée générale du module.
+
+> ⚠️ **Repère important** : ce module est difficile non parce que la syntaxe est longue, mais parce qu'il faut changer de point de vue. On manipule moins des valeurs que des formes de types.
 
 ---
 

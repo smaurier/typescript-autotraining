@@ -13,17 +13,33 @@
 
 > **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
 
-## Introduction
+## Introduction — Pourquoi ces deux notions vont ensemble ?
 
-Les **mapped types** et les **template literal types** sont deux mécanismes complementaires :
-- Les **mapped types** permettent de transformer la structure d'un type objet (ajouter/retirer des modificateurs, renommer des clés, filtrer des propriétés)
-- Les **template literal types** permettent de manipuler des types string (construction, decomposition, transformation)
+### Le problème qu'on cherche à résoudre
+
+À ce stade, on veut souvent automatiser des transformations de types au lieu de les écrire a la main :
+
+- rendre toutes les propriétés readonly ou optionnelles
+- fabriquer des getters a partir des clés d'un objet
+- renommer des clés selon une convention
+- produire des noms d'événements ou de méthodes a partir de chaînes
+
+Le problème, c'est que ces transformations paraissent vite "magiques" si on ne voit pas le mécanisme derrière.
+
+### La solution : transformer soit les clés, soit les chaînes, soit les deux
+
+Dans ce module, on combine deux familles d'outils :
+
+- les **mapped types** pour parcourir et transformer les propriétés d'un type objet
+- les **template literal types** pour construire et transformer des types string
+
+La vraie puissance arrive quand on combine les deux.
 
 ### Analogie
 
-Pensez aux mapped types comme à une **machine de duplication avec modification** : vous inserez un plan de maison (un type objet), et la machine produit un nouveau plan ou chaque piece a ete modifiee selon vos instructions (agrandie, verrouillée, renommee...).
+Un mapped type, c'est comme une machine qui reprend le plan d'une maison pièce par pièce pour le modifier. Un template literal type, c'est comme assembler des étiquettes mot par mot. Ensemble, ils permettent de reconstruire a la fois la structure et les noms.
 
-Les template literal types, eux, sont comme un **jeu de Scrabble** : vous assemblez des lettres et des mots pour former de nouveaux mots, avec des regles de transformation (majuscules, minuscules, etc.).
+> 💡 **Conseil de lecture** : quand un exemple te semble abstrait, demande-toi toujours "qu'est-ce qui change ici : la valeur, la clé, ou le nom sous forme de string ?"
 
 ---
 

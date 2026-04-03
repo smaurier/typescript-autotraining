@@ -18,15 +18,33 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les modules deviennent vite un sujet central ?
 
-Dans un projet TypeScript moderne, le code est organise en **modules**. Chaque fichier TypeScript peut etre un module qui exporte des types, des fonctions, des classes et des constantes, et qui importe ceux d'autres modules.
+### Le problème qu'on cherche à résoudre
 
-La gestion des modules est l'un des aspects les plus concrets du développement TypeScript au quotidien : elle déterminé comment vous structurez votre projet, comment vous partagez du code entre fichiers et comment TypeScript trouve les définitions de types.
+Au début, un projet tient dans quelques fichiers. Puis très vite apparaissent des questions concrètes :
+
+- où ranger les fonctions partagées ?
+- comment exporter proprement une classe ou un type ?
+- pourquoi tel import marche dans un projet mais casse dans un autre ?
+- pourquoi Node, Vite et TypeScript ne résolvent pas toujours les fichiers de la même manière ?
+
+Le sujet n'est pas seulement "comment écrire `import` et `export`". Le vrai sujet, c'est comment un projet se structure et comment les outils comprennent cette structure.
+
+### La solution : comprendre a la fois la syntaxe et la résolution
+
+Dans ce module, on va séparer deux idées qu'on mélange souvent :
+
+- **les modules** : ce qu'un fichier expose et consomme
+- **la résolution** : la manière dont TypeScript trouve réellement ce qu'on importe
+
+Quand cette distinction devient claire, beaucoup d'erreurs d'import deviennent logiques au lieu d'être frustrantes.
 
 ### Analogie : les modules comme des briques LEGO
 
-Imaginez chaque module comme une **brique LEGO** avec des tenons (exports) et des trous (imports). Chaque brique expose certaines pieces que d'autres briques peuvent utiliser. L'ensemble forme une construction solide, ou chaque piece a sa place et son role.
+Imagine chaque module comme une brique LEGO avec des tenons (`exports`) et des emplacements (`imports`). Mais il ne suffit pas d'avoir les bonnes briques : il faut aussi savoir dans quelle boite les retrouver. C'est précisément le rôle de la résolution de modules.
+
+> 💡 **Conseil de lecture** : si une option de résolution te parait abstraite, rattache-la toujours a une question concrète : "quand j'écris cet import, comment TypeScript retrouve-t-il le bon fichier ?"
 
 ---
 

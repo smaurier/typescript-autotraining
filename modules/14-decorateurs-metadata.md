@@ -13,15 +13,25 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les décorateurs existent ?
 
-Les **decorateurs** sont un mécanisme de **metaprogrammation** qui permet de modifier ou d'enrichir le comportement de classes, méthodes, propriétés et accesseurs a l'aide d'une syntaxe declarative `@decorator`.
+### Le problème qu'on cherche à résoudre
+
+Il arrive souvent qu'on veuille ajouter le même comportement a plusieurs classes ou méthodes : journaliser, valider, enregistrer des métadonnées, brancher de l'injection de dépendances, sécuriser un accès.
+
+Le faire a la main partout fonctionne, mais répète la même logique et disperse l'intention dans le code.
+
+### La solution : déclarer l'intention au plus près du code concerné
+
+Les décorateurs permettent justement d'attacher un comportement ou une information a une classe, une méthode, une propriété ou un accesseur avec une syntaxe déclarative en `@...`.
 
 ### Analogie
 
-Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration** que vous ajoutez par-dessus : du glaçage, des bougies, des fruits. Le gateau reste le même en dessous, mais son apparence et parfois son gout changent. De la même façon, un decorateur enrichit une classe sans modifier son code source interne.
+Imagine un gâteau. Le décorateur n'en change pas la base, mais il ajoute une couche de présentation ou de comportement reconnaissable de l'extérieur. En code, on enrichit sans recopier la même logique partout.
 
-### Historique : experimentaux vs Stage 3
+> 💡 **Ce qu'il faut garder en tête** : un décorateur ne remplace pas la logique métier. Il sert surtout a brancher proprement des comportements transverses.
+
+### Historique : expérimentaux vs Stage 3
 
 ```typescript
 // Les decorateurs ont une histoire compliquee en TypeScript :
@@ -69,7 +79,7 @@ Imaginez un gateau (votre classe). Un decorateur, c'est comme une **decoration**
 }
 ```
 
-> **Important** : Les deux systèmes sont **incompatibles**. Un projet utilise l'un ou l'autre, jamais les deux.
+> 🎯 **Point clé** : avant d'écrire le moindre décorateur, il faut savoir quel système ton projet utilise. C'est la première source de confusion sur ce sujet.
 
 ---
 

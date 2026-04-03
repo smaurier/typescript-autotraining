@@ -1,24 +1,32 @@
 # 19 — Projet final — Bibliotheque utilitaire type-safe
 
-| Metadata     | Valeur                                                                 |
-|-------------|------------------------------------------------------------------------|
-| **Duree**       | 6 heures                                                              |
-| **Difficulte**  | 5/5                                                                    |
-| **Prérequis**   | Modules 1-18, tous les concepts du cours                              |
-| **Objectifs**   | Créer une bibliotheque TypeScript complete, testee, documentee et publiable |
+> **Duree estimee** : 6 heures
+> **Difficulte** : 5/5
+> **Prérequis** : Modules 1 a 18, ensemble des concepts du parcours
+> **Objectifs** :
+>
+> - Réinvestir les concepts du cours dans un vrai projet cohérent
+> - Concevoir une petite bibliothèque TypeScript propre, testée et documentée
+> - Travailler la structure, le build, les types, les tests et la publication
+> - Produire un résultat réutilisable au-delà du module lui-même
 
 ---
 
-## Introduction
+## Introduction — Pourquoi finir par un projet complet ?
 
-Ce module final est un **projet complet**. Vous allez construire `@student/ts-toolkit`,
-une bibliotheque utilitaire TypeScript qui regroupe les patterns et techniques
-appris tout au long du cours.
+### Le problème qu'on cherche à résoudre
 
-> **Analogie de la boite a outils** : Imaginez un artisan qui fabrique sa propre
-> boite a outils. Chaque outil est soigneusement concu, teste, et documente.
-> A la fin, il à un kit complet qu'il peut réutiliser dans tous ses projets.
-> C'est exactement ce que nous allons faire avec TypeScript.
+On peut comprendre chaque notion séparément sans réussir a les combiner dans un vrai projet. Or c'est justement là que les questions sérieuses apparaissent : organisation, cohérence des types, qualité du build, tests, ergonomie d'API, documentation.
+
+### La solution : construire une bibliothèque qui oblige a relier tous les modules
+
+Ce projet final sert a reconnecter tout le parcours. Tu ne vas pas seulement écrire du code "qui compile" : tu vas concevoir une bibliothèque qui expose une API, transporte des types propres, se teste, se build et pourrait réellement être publiée.
+
+### Analogie de la boite a outils
+
+Imagine un artisan qui fabrique sa propre boite a outils. Chaque outil doit être utile seul, mais aussi cohérent avec les autres. C'est exactement l'objectif de ce projet.
+
+> 💡 **Ce qu'il faut retenir** : ce module n'est pas une simple suite d'exercices. C'est la mise en pratique globale du parcours.
 
 ### Ce que nous allons construire
 

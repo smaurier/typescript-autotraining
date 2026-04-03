@@ -16,17 +16,39 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi ces types existent-ils ?
 
-TypeScript possede plusieurs types "speciaux" qui jouent des roles fondamentaux dans le système de types. Ce module explore ces types en profondeur : les **enums** pour les ensembles de constantes, les **tuples** pour les tableaux a structure fixe, et les types `never`, `unknown` et `void` qui forment la colonne vertebrale du système de types.
+### Le problème qu'on cherche à résoudre
+
+Les types vus jusque-la couvrent la majorité des cas, mais pas tous. Certaines situations demandent des outils plus précis :
+
+- représenter une liste fermée de valeurs possibles
+- décrire un tableau dont l'ordre et la taille comptent vraiment
+- exprimer qu'une valeur est inconnue pour l'instant
+- exprimer qu'un cas est impossible
+- distinguer une fonction qui ne retourne rien d'une fonction qui retourne réellement une valeur
+
+Sans ces types spéciaux, on finit par utiliser des types trop larges, donc moins sûrs.
+
+### La solution : des types spécialisés
+
+Ce module présente justement ces outils particuliers :
+
+- les `enum` pour nommer un ensemble de constantes
+- les tuples pour dire "a l'index 0 j'ai ceci, a l'index 1 j'ai cela"
+- `unknown` pour rester prudent face a une donnée non vérifiée
+- `never` pour représenter l'impossible
+- `void` pour modéliser l'absence de valeur utile
 
 ### Analogie : les roles dans un theatre
 
-Chaque type special joue un **role précis** dans la piece qu'est votre programme :
-- **`never`** : l'acteur qui ne monte jamais sur scene (le type impossible)
-- **`unknown`** : l'acteur masque dont on ne connait pas l'identite (il faut le devoiler)
-- **`void`** : l'acteur silencieux qui joue mais ne dit rien (aucune valeur retournee)
-- **`any`** : l'acteur qui accepte tous les roles (dangereux, pas de vérification)
+Chaque type spécial joue un role précis dans la pièce qu'est ton programme :
+- `never` : l'acteur qui ne monte jamais sur scène
+- `unknown` : l'acteur masqué dont il faut vérifier l'identité
+- `void` : l'acteur silencieux qui agit sans rien rendre d'utile
+- `any` : l'acteur qui improvise tout, donc qu'on contrôle mal
+
+> 🎯 **Ce qu'il faut retenir** : ces types ne sont pas "exotiques". Ils servent a exprimer des cas réels que les types classiques décrivent mal.
 
 ---
 

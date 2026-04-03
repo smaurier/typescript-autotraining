@@ -1,25 +1,38 @@
 # 17 — Configuration avancee & Performance du compilateur
 
-| Metadata     | Valeur                                                                 |
-|-------------|------------------------------------------------------------------------|
-| **Duree**       | 3h30                                                                  |
-| **Difficulte**  | 4/5                                                                    |
-| **Prérequis**   | Modules 1-16, experience avec npm/yarn, notions de build tools        |
-| **Objectifs**   | Maîtriser tsconfig.json, optimiser la compilation, configurer un monorepo |
+> **Duree estimee** : 3h30
+> **Difficulte** : 4/5
+> **Prérequis** : Modules 1 a 16, expérience avec npm/yarn, notions de build tools
+> **Objectifs** :
+>
+> - Comprendre le rôle réel de `tsconfig.json`
+> - Choisir les options de compilation adaptées au contexte
+> - Éviter les erreurs classiques de résolution et de configuration
+> - Optimiser la compilation et préparer les projets multi-packages
 
 ---
 
-## Introduction
+## Introduction — Pourquoi `tsconfig.json` est souvent mal compris ?
 
-Le fichier `tsconfig.json` est le coeur de tout projet TypeScript. Il dicte comment
-le compilateur analyse, vérifié et transforme votre code. Une bonne configuration
-fait la différence entre un projet rapide et agreable à utiliser, et un projet ou
-la compilation prend des minutes et les erreurs de type sont incomprehensibles.
+### Le problème qu'on cherche à résoudre
 
-> **Analogie du tableau de bord** : `tsconfig.json` est comme le tableau de bord
-> d'un avion. Chaque option est un bouton ou un cadran. Mal configurer un seul
-> paramètre peut faire devier tout le projet. Mais une fois maîtrise, vous avez
-> un controle total sur la compilation.
+Beaucoup de développeurs copient un `tsconfig.json` sans vraiment savoir ce que font les options. Tant que tout marche, ce n'est pas visible. Mais dès qu'un projet change de cible, de bundler, de runtime ou de structure, les problèmes arrivent : imports cassés, compilation lente, erreurs bizarres, comportements différents entre IDE et build.
+
+### La solution : comprendre les grandes familles d'options
+
+Le but de ce module n'est pas de mémoriser une liste d'options. Le but est de comprendre les grandes questions auxquelles `tsconfig.json` répond :
+
+- quel JavaScript on génère
+- comment les modules sont résolus
+- quelles APIs sont considérées comme disponibles
+- quels fichiers sont compilés
+- comment accélérer ou découper la compilation
+
+### Analogie du tableau de bord
+
+`tsconfig.json` est comme un tableau de bord : il ne pilote pas l'avion a ta place, mais il règle la manière dont l'avion réagit. Si tu comprends les instruments principaux, le reste devient beaucoup plus lisible.
+
+> 💡 **Conseil de lecture** : pour chaque option, pose-toi toujours la question "qu'est-ce que ça change concrètement dans mon projet ?".
 
 ---
 

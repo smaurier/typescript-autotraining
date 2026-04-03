@@ -15,13 +15,39 @@
 
 ---
 
-## Introduction
+## Introduction — Pourquoi aller plus loin que les generics de base ?
 
-Le Module 06 a pose les bases des generics. Dans ce module, nous allons explorer des **patterns avances** qui tirent pleinement parti du système de types de TypeScript. Ces techniques sont utilisees dans les bibliotheques les plus populaires (Zod, tRPC, Prisma, etc.) pour offrir une experience développeur exceptionnelle.
+### Le problème qu'on cherche à résoudre
+
+Le module 06 t'a appris a écrire des generics solides. Mais dans la vraie vie, on tombe vite sur des besoins plus subtils :
+
+- typer une fonction qui enchaine plusieurs transformations
+- récupérer automatiquement les paramètres ou le type de retour d'une fonction
+- construire des API fluides sans perdre le typage au fil des appels
+- empêcher certains mélanges de valeurs pourtant "compatibles" au runtime
+
+Avec les generics de base, on arrive vite a des types soit trop vagues, soit trop répétitifs.
+
+### La solution : des patterns avancés
+
+Les generics avances servent a faire passer TypeScript de "je vérifie quelques types" a "je modélise précisément les relations entre les types".
+
+Autrement dit : on ne dit plus seulement "cette valeur est un tableau". On dit aussi "ce tableau garde exactement cet ordre d'arguments", ou "ce type de retour doit être extrait automatiquement", ou encore "ces deux valeurs ont la même forme mais n'ont pas le droit d'être confondues".
 
 ### Analogie : de l'artisan au maitre horloger
 
-Si les generics fondamentaux sont les outils d'un **artisan** (marteau, tournevis), les generics avances sont les outils d'un **maitre horloger** : précis, sophistiques, et capables de créer des mécanismes d'une complexite remarquable. Chaque rouage (type) s'emboite parfaitement dans l'ensemble.
+Si les generics fondamentaux sont les outils d'un artisan, les generics avances sont ceux d'un horloger : tout est plus fin, plus précis, et chaque piece doit s'emboiter exactement au bon endroit.
+
+### Comment aborder ce module
+
+Dans ce module, il faut moins raisonner en termes de "valeurs" et davantage en termes de "relations entre types".
+
+- les tuples variadiques servent a conserver la forme exacte d'une liste d'arguments
+- `infer` sert a extraire un sous-type enfoui dans un autre
+- les builders et le currying montrent comment garder l'information de type au fil de plusieurs étapes
+- les branded types servent a distinguer des valeurs qui ont la même représentation mais pas le même sens
+
+> 💡 **Conseil de lecture** : ne cherche pas a tout mémoriser d'un coup. Cherche d'abord a comprendre le problème concret que chaque pattern résout.
 
 ---
 

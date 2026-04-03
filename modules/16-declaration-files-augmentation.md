@@ -1,25 +1,34 @@
 # 16 — Declaration Files (.d.ts) & Module Augmentation
 
-| Metadata     | Valeur                                                                 |
-|-------------|------------------------------------------------------------------------|
-| **Duree**       | 3h30                                                                  |
-| **Difficulte**  | 4/5                                                                    |
-| **Prérequis**   | Modules 1-15, système de modules, generics, variance                  |
-| **Objectifs**   | Maîtriser les fichiers .d.ts, l'augmentation de modules, le merging   |
+> **Duree estimee** : 3h30
+> **Difficulte** : 4/5
+> **Prérequis** : Modules 1 a 15, système de modules, generics, variance
+> **Objectifs** :
+>
+> - Comprendre le rôle réel des fichiers `.d.ts`
+> - Savoir typer une bibliothèque JavaScript existante
+> - Maîtriser les déclarations ambiantes et l'augmentation de modules
+> - Comprendre le declaration merging et ses cas d'usage
 
 ---
 
-## Introduction
+## Introduction — Pourquoi les `.d.ts` sont partout sans qu'on les voie ?
 
-Quand on travaille avec TypeScript, on finit inevitablement par utiliser des
-bibliotheques JavaScript qui n'ont pas ete ecrites en TypeScript. Comment TypeScript
-sait-il quels types ces bibliotheques exposent ? Grace aux **fichiers de declaration**
-(`.d.ts`).
+### Le problème qu'on cherche à résoudre
 
-> **Analogie du dictionnaire** : Un fichier `.d.ts` est comme un dictionnaire
-> bilingue. Le code JavaScript est la "langue etrangere", et le fichier `.d.ts`
-> est la traduction en "TypeScript". Il ne contient aucune logique, juste les
-> définitions de types qui permettent a TypeScript de comprendre la forme du code JS.
+Dans beaucoup de projets, tu consommes du JavaScript déjà existant : bibliothèques npm, globals du navigateur, modules spéciaux, plugins, fichiers CSS typés, etc.
+
+Le problème est simple : si TypeScript ne connaît pas leur forme, il ne peut ni t'aider, ni vérifier quoi que ce soit.
+
+### La solution : décrire le code sans l'implémenter
+
+Un fichier `.d.ts` sert précisément a ça : décrire des types sans écrire la logique runtime.
+
+### Analogie du dictionnaire
+
+Le JavaScript est la langue parlée. Le `.d.ts` est le dictionnaire qui permet au compilateur de comprendre ce qui existe, ce que ça expose, et comment l'utiliser.
+
+> 🎯 **Ce qu'il faut retenir** : un `.d.ts` n'ajoute pas du comportement. Il ajoute de la compréhension côté compilateur.
 
 ---
 

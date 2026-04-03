@@ -1,27 +1,32 @@
 # 18 — Patterns de conception en TypeScript
 
-| Metadata     | Valeur                                                                 |
-|-------------|------------------------------------------------------------------------|
-| **Duree**       | 4 heures                                                              |
-| **Difficulte**  | 4/5                                                                    |
-| **Prérequis**   | Modules 1-17, generics avances, types conditionnels, variance         |
-| **Objectifs**   | Adapter les patterns GoF et fonctionnels au système de types TypeScript |
+> **Duree estimee** : 4 heures
+> **Difficulte** : 4/5
+> **Prérequis** : Modules 1 a 17, generics avances, conditional types, variance
+> **Objectifs** :
+>
+> - Comprendre pourquoi certains patterns changent en TypeScript
+> - Adapter les patterns classiques au typage avancé du langage
+> - Choisir entre approche orientée objet et approche plus fonctionnelle
+> - Concevoir des abstractions réutilisables et type-safe
 
 ---
 
-## Introduction
+## Introduction — Pourquoi revoir les design patterns en TypeScript ?
 
-Les patterns de conception (design patterns) sont des solutions eprouvees a des
-problèmes récurrents en programmation. Cependant, les patterns classiques du
-Gang of Four (GoF) ont ete concus pour des langages comme Java et C++. En TypeScript,
-le système de types avance et les fonctionnalites fonctionnelles permettent
-d'implementer ces patterns de manière plus elegante et plus type-safe.
+### Le problème qu'on cherche à résoudre
 
-> **Analogie des recettes de cuisine** : Les patterns sont comme des recettes.
-> La recette originale (GoF) utilise des ingredients de base (classes, interfaces).
-> En TypeScript, on a des ingredients "premium" (generics, types conditionnels,
-> template literals) qui permettent de realiser les memes plats avec plus de
-> finesse et de sécurité.
+Les design patterns classiques ont été pensés pour des langages orientés objet plus rigides. Si on les recopie tels quels en TypeScript, on obtient souvent du code plus lourd que nécessaire.
+
+### La solution : garder l'intention du pattern, pas sa forme historique
+
+En TypeScript, un pattern n'est pas une recette a recopier mot pour mot. C'est une intention de conception qu'on peut implémenter autrement grâce aux unions, generics, conditional types et fonctions d'ordre supérieur.
+
+### Analogie des recettes
+
+Un pattern, c'est comme une recette. Le plat final reste le même, mais les ingrédients disponibles en TypeScript permettent parfois de cuisiner plus simplement, plus précisément, et avec moins de code cérémoniel.
+
+> 🎯 **Ce qu'il faut retenir** : ici, on ne cherche pas a "faire du GoF pour faire du GoF". On cherche a résoudre proprement des problèmes de conception avec les outils modernes de TypeScript.
 
 ---
 

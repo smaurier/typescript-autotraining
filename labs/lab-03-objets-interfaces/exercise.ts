@@ -22,10 +22,7 @@ const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } =
 //   - email: string
 //   - age: number
 interface User {
-  id: number;
-  nom: string;
-  email: string;
-  age: number;
+  // a completer
 }
 
 // TODO: Definissez l'interface Product avec les proprietes :
@@ -34,27 +31,14 @@ interface User {
 //   - prix: number
 //   - categorie: string
 interface Product {
-  id: number;
-  nom: string;
-  prix: number;
-  categorie: string;
+  // a completer
 }
 
 // TODO: Creez un objet 'utilisateur' qui respecte l'interface User
-const utilisateur: User = {
-  id: 1,
-  nom: "Sylvain",
-  email: "sylvain.maurier@gmail.com",
-  age: 36,
-};
+const utilisateur: User = {} as User; // TODO: remplissez les proprietes
 
 // TODO: Creez un objet 'produit' qui respecte l'interface Product
-const produit: Product = {
-  id: 1,
-  nom: "SuperGo",
-  prix: 12,
-  categorie: "Super Produit",
-};
+const produit: Product = {} as Product; // TODO: remplissez les proprietes
 
 // =============================================================================
 // Exercice 2 : Proprietes optionnelles
@@ -65,31 +49,17 @@ const produit: Product = {
 //   - rue: string
 //   - ville: string
 //   - codePostal: string
-//   - pays: string (optionnel, par defaut on suppose France)
+//   - pays: string (optionnel)
 //   - complement: string (optionnel)
 interface Adresse {
-  rue: string;
-  ville: string;
-  codePostal: string;
-  pays?: string;
-  complement?: string;
+  // a completer
 }
 
 // TODO: Creez une adresse sans les champs optionnels
-const adresseSansPays: Adresse = {
-  rue: "14 rue des fleurs",
-  ville: "JeuneChamp",
-  codePostal: "49491",
-};
+const adresseSansPays: Adresse = {} as Adresse; // TODO: remplissez rue, ville, codePostal
 
 // TODO: Creez une adresse avec tous les champs
-const adresseComplete: Adresse = {
-  rue: "14 rue des fleurs",
-  ville: "JeuneChamp",
-  codePostal: "49491",
-  pays: "France",
-  complement: "ne sais pas",
-};
+const adresseComplete: Adresse = {} as Adresse; // TODO: remplissez tous les champs
 
 // =============================================================================
 // Exercice 3 : Readonly
@@ -100,32 +70,25 @@ const adresseComplete: Adresse = {
 //   - readonly apiUrl: string
 //   - readonly port: number
 //   - readonly debug: boolean
-
 interface Config {
-  readonly apiUrl: string;
-  readonly port: number;
-  readonly debug: boolean;
+  // a completer
 }
 
 // TODO: Creez un objet config
-const config: Config = {
-  apiUrl: "http:/api.com",
-  port: 4000,
-  debug: true,
-};
+const config: Config = {} as Config; // TODO: remplissez apiUrl, port, debug
 
 // TODO: Definissez l'interface Point avec x et y en readonly
 //   - readonly x: number
 //   - readonly y: number
 interface Point {
-  readonly x: number;
-  readonly y: number;
+  // a completer
 }
 
 // TODO: Implementez une fonction 'deplacerPoint' qui prend un Point
 // et des deltas (dx, dy) et retourne un NOUVEAU Point (sans modifier l'original)
 function deplacerPoint(point: Point, dx: number, dy: number): Point {
-  return { x: point.x + dx, y: point.y + dy };
+  // TODO: retournez { x: point.x + dx, y: point.y + dy }
+  return undefined as any;
 }
 
 // =============================================================================
@@ -138,9 +101,7 @@ function deplacerPoint(point: Point, dx: number, dy: number): Point {
 //   - creeLe: Date
 //   - misAJourLe: Date
 interface Entite {
-  id: number;
-  creeLe: Date;
-  misAJourLe: Date;
+  // a completer
 }
 
 // TODO: Definissez UserAvance qui etend Entite avec :
@@ -148,28 +109,18 @@ interface Entite {
 //   - email: string
 //   - role: 'admin' | 'utilisateur' | 'moderateur'
 interface UserAvance extends Entite {
-  nom: string;
-  email: string;
-  role: "admin" | "utilisateur" | "moderateur";
+  // a completer
 }
 
 // TODO: Definissez AdminUser qui etend UserAvance avec :
 //   - permissions: string[]
 interface AdminUser extends UserAvance {
-  permissions: string[];
+  // a completer
 }
 
 // TODO: Creez un objet admin qui respecte AdminUser
 const maintenant = new Date();
-const admin: AdminUser = {
-  id: 1,
-  nom: "Jojo",
-  email: "jojo@lapatate.com",
-  role: "admin",
-  creeLe: maintenant,
-  misAJourLe: maintenant,
-  permissions: ["read", "write", "delete", "manage-user"],
-};
+const admin: AdminUser = {} as AdminUser; // TODO: remplissez toutes les proprietes
 
 // =============================================================================
 // Exercice 5 : Index signatures
@@ -180,38 +131,23 @@ const admin: AdminUser = {
 //   - Cle: string, Valeur: string
 //   [cle: string]: string
 interface Dictionnaire {
-  [cle: string]: string;
+  // a completer
 }
 
 // TODO: Creez un dictionnaire francais-anglais
-const dictionnaire: Dictionnaire = {
-  bonjour: "hello",
-  vite: "quick",
-  rapide: "fast",
-  assez: "enough",
-};
+const dictionnaire: Dictionnaire = {} as Dictionnaire; // TODO: ajoutez au moins 3 paires
 
 // TODO: Definissez l'interface ScoreBoard avec :
 //   - une index signature [joueur: string]: number
 //   - une propriete readonly 'meilleurScore': number
 interface ScoreBoard {
-  [joueur: string]: number;
-  readonly meilleurScore: number;
+  // a completer
 }
 
 // TODO: Implementez une fonction qui retourne le joueur avec le meilleur score
 function meilleurJoueur(scores: ScoreBoard): string {
-  let meilleur = "";
-  let max = -Infinity;
-  for (const joueur in scores) {
-    if (joueur === "meilleurScore") continue;
-    const score = scores[joueur];
-    if (typeof score === "number" && score > max) {
-      max = score;
-      meilleur = joueur;
-    }
-  }
-  return meilleur;
+  // TODO: parcourez scores, ignorez la cle 'meilleurScore', retournez le joueur avec le max
+  return undefined as any;
 }
 
 // =============================================================================
@@ -223,14 +159,11 @@ function meilleurJoueur(scores: ScoreBoard): string {
 // interface Coordonnees { x: number; y: number }
 // interface Coordonnees3D { x: number; y: number; z: number }
 interface Coordonnees {
-  x: number;
-  y: number;
+  // a completer
 }
 
 interface Coordonnees3D {
-  x: number;
-  y: number;
-  z: number;
+  // a completer (x, y, z)
 }
 
 // TODO: Implementez cette fonction qui accepte un objet avec x et y
@@ -238,7 +171,7 @@ interface Coordonnees3D {
 function distanceOrigine(point: Coordonnees): number {
   // TODO: Calculez la distance par rapport a l'origine (0,0)
   // Formule : Math.sqrt(x^2 + y^2)
-  return Math.sqrt(point.x ** 2 + point.y ** 2);
+  return undefined as any;
 }
 
 // =============================================================================
@@ -251,24 +184,17 @@ function distanceOrigine(point: Coordonnees): number {
 //   - quantite: number
 //   - readonly sousTotal: number
 interface LigneCommande {
-  produit: Product;
-  quantite: number;
-  readonly sousTotal: number;
+  // a completer
 }
 
 // TODO: Definissez l'interface Commande avec :
 //   - readonly id: number
-//   - client: User (reutilisez votre interface de l'Ex1)
+//   - client: User
 //   - lignes: LigneCommande[]
 //   - readonly total: number
 //   - statut: 'en_attente' | 'validee' | 'expediee' | 'livree'
-
 interface Commande {
-  readonly id: number;
-  client: User;
-  lignes: LigneCommande[];
-  readonly total: number;
-  statut: "en_attente" | "validee" | "expediee" | "livree";
+  // a completer
 }
 
 // TODO: Implementez cette fonction qui cree une commande
@@ -277,21 +203,15 @@ function creerCommande(
   client: User,
   lignes: LigneCommande[],
 ): Commande {
-  // TODO: Calculez le total a partir des lignes
-  // Retournez un objet Commande complet avec statut 'en_attente'
-  return {
-    id: id,
-    client: client,
-    lignes: lignes,
-    total: calculerTotal(lignes),
-    statut: "en_attente",
-  };
+  // TODO: retournez un objet Commande complet avec statut 'en_attente'
+  // et total calcule a partir des lignes
+  return undefined as any;
 }
 
 // TODO: Implementez cette fonction qui calcule le montant total
 function calculerTotal(lignes: LigneCommande[]): number {
-  // TODO: Sommez les sous-totaux de chaque ligne
-  return lignes.reduce((acc, curr) => acc + curr.sousTotal, 0);
+  // TODO: retournez la somme des sousTotal de chaque ligne
+  return 0;
 }
 
 // =============================================================================

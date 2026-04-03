@@ -4,6 +4,7 @@
 > **Difficulte** : 3/5
 > **Prérequis** : Generics, types de base, interfaces, unions et intersections
 > **Objectifs** :
+>
 > - Maîtriser tous les utility types natifs de TypeScript
 > - Comprendre leur implementation interne
 > - Savoir quand et pourquoi les utiliser
@@ -86,7 +87,10 @@ type MiseAJourUtilisateur = Partial<Utilisateur>;
 // }
 
 // Cas d'usage typique : une fonction de mise a jour
-function mettreAJour(id: number, modifications: Partial<Utilisateur>): Utilisateur {
+function mettreAJour(
+  id: number,
+  modifications: Partial<Utilisateur>,
+): Utilisateur {
   const utilisateurExistant: Utilisateur = {
     id: 1,
     nom: "Alice",
@@ -236,7 +240,10 @@ interface EtatApplication {
 }
 
 // L'etat est immutable
-function reducer(etat: Readonly<EtatApplication>, action: any): EtatApplication {
+function reducer(
+  etat: Readonly<EtatApplication>,
+  action: any,
+): EtatApplication {
   // etat.chargement = true; // Erreur !
   // On doit retourner un nouvel objet
   return { ...etat, chargement: true };
@@ -426,7 +433,10 @@ interface UtilisateurBDD {
 type UtilisateurPublic = Omit<UtilisateurBDD, "motDePasse">;
 
 // Pour la creation, on n'a ni id ni dates (generes automatiquement)
-type NouvelUtilisateur = Omit<UtilisateurBDD, "id" | "dateInscription" | "dernierLogin">;
+type NouvelUtilisateur = Omit<
+  UtilisateurBDD,
+  "id" | "dateInscription" | "dernierLogin"
+>;
 
 function inscrire(donnees: NouvelUtilisateur): UtilisateurPublic {
   const nouvelUtilisateur: UtilisateurBDD = {
@@ -484,8 +494,17 @@ type PrimitifNonNul = Exclude<Primitif, null | undefined>;
 // Resultat : string | number | boolean
 
 // Filtrer des evenements
-type Evenement = "click" | "scroll" | "keydown" | "keyup" | "mousemove" | "mouseenter";
-type EvenementClavier = Exclude<Evenement, "click" | "scroll" | "mousemove" | "mouseenter">;
+type Evenement =
+  | "click"
+  | "scroll"
+  | "keydown"
+  | "keyup"
+  | "mousemove"
+  | "mouseenter";
+type EvenementClavier = Exclude<
+  Evenement,
+  "click" | "scroll" | "mousemove" | "mouseenter"
+>;
 // Resultat : "keydown" | "keyup"
 
 // Combiner avec keyof pour filtrer des cles
@@ -614,8 +633,11 @@ type DonneesCertaines = NonNullable<Reponse["donnees"]>;
 ### Implementation interne
 
 ```typescript
-type MonParameters<T extends (...args: any) => any> =
-  T extends (...args: infer P) => any ? P : never;
+type MonParameters<T extends (...args: any) => any> = T extends (
+  ...args: infer P
+) => any
+  ? P
+  : never;
 ```
 
 ### Exemple concret
@@ -632,7 +654,7 @@ type ParamsCreer = Parameters<typeof creerUtilisateur>;
 // Utile pour creer des wrappers
 function avecLog<T extends (...args: any) => any>(
   fn: T,
-  nom: string
+  nom: string,
 ): (...args: Parameters<T>) => ReturnType<T> {
   return (...args: Parameters<T>) => {
     console.log(`Appel de ${nom} avec`, args);
@@ -674,7 +696,7 @@ class Vehicule {
     public marque: string,
     public modele: string,
     public annee: number,
-    public couleur?: string
+    public couleur?: string,
   ) {}
 }
 
@@ -682,7 +704,9 @@ type ParamsVehicule = ConstructorParameters<typeof Vehicule>;
 // Resultat : [marque: string, modele: string, annee: number, couleur?: string]
 
 // Utile pour des factories
-function creerVehicule(...args: ConstructorParameters<typeof Vehicule>): Vehicule {
+function creerVehicule(
+  ...args: ConstructorParameters<typeof Vehicule>
+): Vehicule {
   return new Vehicule(...args);
 }
 
@@ -690,7 +714,10 @@ const voiture = creerVehicule("Renault", "Clio", 2023, "rouge");
 
 // Avec des classes abstraites
 abstract class FormeGeometrique {
-  constructor(public nom: string, public cotes: number) {}
+  constructor(
+    public nom: string,
+    public cotes: number,
+  ) {}
   abstract aire(): number;
 }
 
@@ -709,8 +736,11 @@ type ParamsForme = ConstructorParameters<typeof FormeGeometrique>;
 ### Implementation interne
 
 ```typescript
-type MonReturnType<T extends (...args: any) => any> =
-  T extends (...args: any) => infer R ? R : any;
+type MonReturnType<T extends (...args: any) => any> = T extends (
+  ...args: any
+) => infer R
+  ? R
+  : any;
 ```
 
 ### Exemple concret
@@ -816,15 +846,16 @@ service.connecter("alice@example.com", "motdepasse");
 ### Implementation interne
 
 ```typescript
-type MonThisParameterType<T> =
-  T extends (this: infer U, ...args: never) => any ? U : unknown;
+type MonThisParameterType<T> = T extends (this: infer U, ...args: never) => any
+  ? U
+  : unknown;
 
 type MonOmitThisParameter<T> =
   unknown extends ThisParameterType<T>
     ? T
     : T extends (...args: infer A) => infer R
-    ? (...args: A) => R
-    : T;
+      ? (...args: A) => R
+      : T;
 ```
 
 ### Exemple concret
@@ -858,10 +889,9 @@ console.log(getNom()); // "Jean Dupont"
 ### Implementation interne simplifiee
 
 ```typescript
-type MonAwaited<T> =
-  T extends null | undefined
-    ? T
-    : T extends object & { then(onfulfilled: infer F, ...args: infer _): any }
+type MonAwaited<T> = T extends null | undefined
+  ? T
+  : T extends object & { then(onfulfilled: infer F, ...args: infer _): any }
     ? F extends (value: infer V, ...args: infer _) => any
       ? MonAwaited<V>
       : never
@@ -1030,6 +1060,7 @@ type ChampsTextuels = Pick<Modele, ClesDeType<Modele, string>>;
 ### Exercice 1 : Créer un type pour une réponse API
 
 Creez un type générique `ReponseAPI<T>` qui a :
+
 - `donnees` de type `T` (optionnel)
 - `erreur` de type `string` (optionnel)
 - `statut` de type `number` (obligatoire)
@@ -1070,6 +1101,7 @@ const echec: ReponseEchouee = {
   timestamp: new Date(),
 };
 ```
+
 </details>
 
 ### Exercice 2 : Reimplementer Readonly, Partial et Required
@@ -1112,6 +1144,7 @@ type TestPartial = MonPartial<Test>;
 type TestRequired = MonRequired<Test>;
 // { a: string; b: number; c: boolean }
 ```
+
 </details>
 
 ### Exercice 3 : Créer un type Mutable (inverse de Readonly)
@@ -1145,6 +1178,7 @@ const config: ConfigModifiable = {
 
 config.nom = "MonAppV2"; // OK, plus de readonly !
 ```
+
 </details>
 
 ### Exercice 4 : DeepPartial et DeepReadonly
@@ -1220,6 +1254,7 @@ const configGelee: ConfigGelee = {
 
 // configGelee.serveur.ssl.actif = false; // Erreur ! Readonly en profondeur
 ```
+
 </details>
 
 ### Exercice 5 : Créer un type FonctionVersObjet
@@ -1260,31 +1295,32 @@ type InfoCharger = FonctionVersObjet<typeof charger>;
 //   estAsync: true;
 // }
 ```
+
 </details>
 
 ---
 
 ## Résumé
 
-| Utility Type            | Role                                                    |
-| ----------------------- | ------------------------------------------------------- |
-| `Partial<T>`            | Rend toutes les propriétés optionnelles                 |
-| `Required<T>`           | Rend toutes les propriétés obligatoires                 |
-| `Readonly<T>`           | Rend toutes les propriétés en lecture seule              |
-| `Record<K, T>`          | Cree un objet avec clés K et valeurs T                  |
-| `Pick<T, K>`            | Selectionne certaines propriétés                        |
-| `Omit<T, K>`            | Exclut certaines propriétés                             |
-| `Exclude<T, U>`         | Supprime des membres d'une union                        |
-| `Extract<T, U>`         | Garde certains membres d'une union                      |
-| `NonNullable<T>`        | Supprime null et undefined                              |
-| `Parameters<T>`         | Extrait les types des paramètres d'une fonction         |
-| `ConstructorParameters`  | Extrait les types des params d'un constructeur          |
-| `ReturnType<T>`         | Extrait le type de retour d'une fonction                |
-| `InstanceType<T>`       | Extrait le type d'instance d'une classe                 |
-| `ThisParameterType<T>`  | Extrait le type du paramètre this                       |
-| `OmitThisParameter<T>`  | Supprime le paramètre this                              |
-| `Awaited<T>`            | Decompresse les Promises                                |
-| `NoInfer<T>`            | Empeche l'inference depuis une position                 |
+| Utility Type            | Role                                            |
+| ----------------------- | ----------------------------------------------- |
+| `Partial<T>`            | Rend toutes les propriétés optionnelles         |
+| `Required<T>`           | Rend toutes les propriétés obligatoires         |
+| `Readonly<T>`           | Rend toutes les propriétés en lecture seule     |
+| `Record<K, T>`          | Cree un objet avec clés K et valeurs T          |
+| `Pick<T, K>`            | Selectionne certaines propriétés                |
+| `Omit<T, K>`            | Exclut certaines propriétés                     |
+| `Exclude<T, U>`         | Supprime des membres d'une union                |
+| `Extract<T, U>`         | Garde certains membres d'une union              |
+| `NonNullable<T>`        | Supprime null et undefined                      |
+| `Parameters<T>`         | Extrait les types des paramètres d'une fonction |
+| `ConstructorParameters` | Extrait les types des params d'un constructeur  |
+| `ReturnType<T>`         | Extrait le type de retour d'une fonction        |
+| `InstanceType<T>`       | Extrait le type d'instance d'une classe         |
+| `ThisParameterType<T>`  | Extrait le type du paramètre this               |
+| `OmitThisParameter<T>`  | Supprime le paramètre this                      |
+| `Awaited<T>`            | Decompresse les Promises                        |
+| `NoInfer<T>`            | Empeche l'inference depuis une position         |
 
 ### Points clés à retenir
 
@@ -1305,7 +1341,8 @@ Dans le prochain module, **[11 — Conditional Types & infer](./11-conditional-t
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 10 utility types](../screencasts/screencast-10-utility-types.md)
 2. **Lab** : [lab-10-utility-types](../labs/lab-10-utility-types/README)
 3. **Quiz** : [quiz 10 utility types](../quizzes/quiz-10-utility-types.html)
-:::
+   :::

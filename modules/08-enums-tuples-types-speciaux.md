@@ -43,6 +43,7 @@ Ce module présente justement ces outils particuliers :
 ### Analogie : les roles dans un theatre
 
 Chaque type spécial joue un role précis dans la pièce qu'est ton programme :
+
 - `never` : l'acteur qui ne monte jamais sur scène
 - `unknown` : l'acteur masqué dont il faut vérifier l'identité
 - `void` : l'acteur silencieux qui agit sans rien rendre d'utile
@@ -63,16 +64,16 @@ Par defaut, les enums sont numériques. Les valeurs commencent a 0 et s'incremen
 ```typescript
 // Enum numerique basique
 enum Direction {
-  Nord,    // 0
-  Est,     // 1
-  Sud,     // 2
-  Ouest,   // 3
+  Nord, // 0
+  Est, // 1
+  Sud, // 2
+  Ouest, // 3
 }
 
 const maDirection: Direction = Direction.Nord;
-console.log(maDirection);            // 0
-console.log(Direction.Sud);          // 2
-console.log(Direction[2]);           // "Sud" (reverse mapping)
+console.log(maDirection); // 0
+console.log(Direction.Sud); // 2
+console.log(Direction[2]); // "Sud" (reverse mapping)
 
 // Enum avec valeurs personnalisees
 enum CodeHTTP {
@@ -98,7 +99,7 @@ function traiterReponse(code: CodeHTTP): string {
   }
 }
 
-console.log(traiterReponse(CodeHTTP.OK));       // "Succes !"
+console.log(traiterReponse(CodeHTTP.OK)); // "Succes !"
 console.log(traiterReponse(CodeHTTP.NotFound)); // "Ressource introuvable."
 ```
 
@@ -140,7 +141,7 @@ const tshirt: Vetement = {
 
 // Les enums string sont lisibles dans les logs
 console.log(tshirt.couleur); // "BLEU"
-console.log(tshirt.taille);  // "medium"
+console.log(tshirt.taille); // "medium"
 ```
 
 ### Enums heterogenes (deconseilles)
@@ -176,7 +177,7 @@ function estUrgent(priorite: Priorite): boolean {
 }
 
 console.log(estUrgent(Priorite.Critique)); // true
-console.log(estUrgent(Priorite.Basse));    // false
+console.log(estUrgent(Priorite.Basse)); // false
 ```
 
 > **Attention** : les `const enum` ne supportent pas le reverse mapping et ne fonctionnent pas bien avec `--isolatedModules` (utilise par Babel, Vite, etc.). Preferez les objets `as const` dans ce cas.
@@ -216,7 +217,12 @@ enum StatutCommande {
 }
 
 // Option 2 : Union de litteraux
-type StatutCommandeUnion = "EN_ATTENTE" | "VALIDEE" | "EXPEDIEE" | "LIVREE" | "ANNULEE";
+type StatutCommandeUnion =
+  | "EN_ATTENTE"
+  | "VALIDEE"
+  | "EXPEDIEE"
+  | "LIVREE"
+  | "ANNULEE";
 
 // Option 3 : Objet as const (recommande dans beaucoup de cas)
 const STATUT_COMMANDE = {
@@ -227,20 +233,21 @@ const STATUT_COMMANDE = {
   Annulee: "ANNULEE",
 } as const;
 
-type StatutCommandeConst = typeof STATUT_COMMANDE[keyof typeof STATUT_COMMANDE];
+type StatutCommandeConst =
+  (typeof STATUT_COMMANDE)[keyof typeof STATUT_COMMANDE];
 // "EN_ATTENTE" | "VALIDEE" | "EXPEDIEE" | "LIVREE" | "ANNULEE"
 ```
 
 #### Tableau comparatif
 
-| Critere                     | Enum                | Union litterale       | Objet `as const`      |
-|-----------------------------|---------------------|-----------------------|-----------------------|
-| Existe au runtime           | Oui                 | Non                   | Oui                   |
-| Taille du bundle            | Plus grand          | Zero                  | Petit                 |
-| Reverse mapping             | Oui (numérique)     | Non                   | Non                   |
-| Tree-shakable               | Non (sauf const)    | Oui                   | Oui                   |
-| Iteration sur les valeurs   | Oui                 | Non (au runtime)      | Oui                   |
-| Compatible isolatedModules  | Partiel             | Oui                   | Oui                   |
+| Critere                    | Enum             | Union litterale  | Objet `as const` |
+| -------------------------- | ---------------- | ---------------- | ---------------- |
+| Existe au runtime          | Oui              | Non              | Oui              |
+| Taille du bundle           | Plus grand       | Zero             | Petit            |
+| Reverse mapping            | Oui (numérique)  | Non              | Non              |
+| Tree-shakable              | Non (sauf const) | Oui              | Oui              |
+| Iteration sur les valeurs  | Oui              | Non (au runtime) | Oui              |
+| Compatible isolatedModules | Partiel          | Oui              | Oui              |
 
 > **Recommandation** : Pour les nouveaux projets, preferez les **unions de litteraux** ou les **objets `as const`**. N'utilisez les enums que si vous avez besoin du reverse mapping ou de la valeur au runtime de manière spécifique.
 
@@ -259,9 +266,9 @@ let coordonnees: [number, number] = [48.8566, 2.3522]; // latitude, longitude
 // Chaque position a son propre type
 let utilisateur: [string, number, boolean] = ["Alice", 30, true];
 
-const nom: string = utilisateur[0];     // OK : string
-const age: number = utilisateur[1];     // OK : number
-const actif: boolean = utilisateur[2];  // OK : boolean
+const nom: string = utilisateur[0]; // OK : string
+const age: number = utilisateur[1]; // OK : number
+const actif: boolean = utilisateur[2]; // OK : boolean
 
 // utilisateur[3]; // ERREUR : Tuple type '[string, number, boolean]' of length '3' has no element at index '3'
 
@@ -324,19 +331,20 @@ function distance(pointA: Coordonnees, pointB: Coordonnees): number {
 
   // Formule de Haversine simplifiee
   const R = 6371; // Rayon de la Terre en km
-  const dLat = (latB - latA) * Math.PI / 180;
-  const dLon = (lonB - lonA) * Math.PI / 180;
+  const dLat = ((latB - latA) * Math.PI) / 180;
+  const dLon = ((lonB - lonA) * Math.PI) / 180;
 
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(latA * Math.PI / 180) *
-    Math.cos(latB * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((latA * Math.PI) / 180) *
+      Math.cos((latB * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 const paris: Coordonnees = [48.8566, 2.3522];
-const lyon: Coordonnees = [45.7640, 4.8357];
+const lyon: Coordonnees = [45.764, 4.8357];
 console.log(`Distance Paris-Lyon : ${distance(paris, lyon).toFixed(0)} km`);
 ```
 
@@ -479,6 +487,7 @@ type SousObjetString = Pick<Utilisateur, ProprietesDeType<Utilisateur, string>>;
 ### Analogie : `never` comme le zero en mathematiques
 
 `never` est comme le **zero** en mathematiques pour la multiplication :
+
 - `T | never` = `T` (union avec `never` ne change rien, comme `n + 0 = n`)
 - `T & never` = `never` (intersection avec `never` donne `never`, comme `n * 0 = 0`)
 
@@ -496,8 +505,8 @@ C'est l'élément **absorbant** de l'intersection et l'élément **neutre** de l
 // `any` — le cow-boy : tout est permis (DANGEREUX)
 let valeurAny: any = "Bonjour";
 valeurAny.methodeInexistante(); // PAS d'erreur TypeScript ! Crash au runtime.
-valeurAny.trim();               // PAS d'erreur, meme si c'est un nombre
-const n: number = valeurAny;   // PAS d'erreur, assignation directe
+valeurAny.trim(); // PAS d'erreur, meme si c'est un nombre
+const n: number = valeurAny; // PAS d'erreur, assignation directe
 
 // `unknown` — le prudent : rien n'est permis sans verification
 let valeurUnknown: unknown = "Bonjour";
@@ -558,11 +567,11 @@ function traiterValeur(valeur: unknown): string {
 }
 
 // Tests
-console.log(traiterValeur("hello"));           // "String de longueur 5"
-console.log(traiterValeur(3.14159));            // "Nombre : 3.14"
-console.log(traiterValeur(true));               // "Vrai"
-console.log(traiterValeur(new Date()));         // "Date : 08/03/2026"
-console.log(traiterValeur({ nom: "Alice" }));   // "Objet avec nom : Alice"
+console.log(traiterValeur("hello")); // "String de longueur 5"
+console.log(traiterValeur(3.14159)); // "Nombre : 3.14"
+console.log(traiterValeur(true)); // "Vrai"
+console.log(traiterValeur(new Date())); // "Date : 08/03/2026"
+console.log(traiterValeur({ nom: "Alice" })); // "Objet avec nom : Alice"
 ```
 
 ### `unknown` dans la gestion d'erreurs
@@ -728,19 +737,19 @@ if (resultat !== null) {
 }
 
 // Optional chaining avec null
-console.log(resultat?.nom);       // undefined si null
+console.log(resultat?.nom); // undefined si null
 console.log(resultat?.nom ?? "Inconnu"); // "Inconnu" si null
 ```
 
 ### Convention : `null` vs `undefined`
 
-| Situation                            | Recommandation       |
-|--------------------------------------|----------------------|
-| Propriété optionnelle                | `undefined` (`?`)    |
-| Absence de résultat intentionnelle   | `null`               |
-| Paramètre non fourni                 | `undefined`          |
-| Valeur pas encore initialisee        | `undefined`          |
-| Valeur volontairement vide           | `null`               |
+| Situation                          | Recommandation    |
+| ---------------------------------- | ----------------- |
+| Propriété optionnelle              | `undefined` (`?`) |
+| Absence de résultat intentionnelle | `null`            |
+| Paramètre non fourni               | `undefined`       |
+| Valeur pas encore initialisee      | `undefined`       |
+| Valeur volontairement vide         | `null`            |
 
 ---
 
@@ -898,7 +907,7 @@ const directionsConst = ["nord", "sud", "est", "ouest"] as const;
 // type: readonly ["nord", "sud", "est", "ouest"]
 
 // Utile pour extraire un type union
-type Direction = typeof directionsConst[number];
+type Direction = (typeof directionsConst)[number];
 // "nord" | "sud" | "est" | "ouest"
 
 // Objet as const
@@ -908,7 +917,7 @@ const CONFIG = {
   MODES: ["dev", "staging", "prod"],
 } as const;
 
-type Mode = typeof CONFIG.MODES[number]; // "dev" | "staging" | "prod"
+type Mode = (typeof CONFIG.MODES)[number]; // "dev" | "staging" | "prod"
 ```
 
 ---
@@ -993,7 +1002,7 @@ type ResultatParsing<T> =
 // Fonction de parsing generique
 function parserJSON<T>(
   json: string,
-  validateur: (valeur: unknown) => valeur is T
+  validateur: (valeur: unknown) => valeur is T,
 ): ResultatParsing<T> {
   try {
     const parsed: unknown = JSON.parse(json);
@@ -1002,11 +1011,15 @@ function parserJSON<T>(
       return { succes: true, donnees: parsed };
     }
 
-    return { succes: false, erreur: "Les donnees ne correspondent pas au schema attendu." };
+    return {
+      succes: false,
+      erreur: "Les donnees ne correspondent pas au schema attendu.",
+    };
   } catch (e: unknown) {
-    const message = e instanceof SyntaxError
-      ? `JSON invalide : ${e.message}`
-      : "Erreur inconnue lors du parsing";
+    const message =
+      e instanceof SyntaxError
+        ? `JSON invalide : ${e.message}`
+        : "Erreur inconnue lors du parsing";
     return { succes: false, erreur: message };
   }
 }
@@ -1035,9 +1048,10 @@ function estTableauDeProduits(valeur: unknown): valeur is Produit[] {
 }
 
 // Tests
-const jsonValide = '{"id": 1, "nom": "Clavier", "prix": 49.99, "enStock": true}';
+const jsonValide =
+  '{"id": 1, "nom": "Clavier", "prix": 49.99, "enStock": true}';
 const jsonInvalide = '{"id": "abc", "nom": "Souris"}';
-const jsonMalForme = '{id: 1}';
+const jsonMalForme = "{id: 1}";
 
 console.log(parserJSON(jsonValide, estProduit));
 // { succes: true, donnees: { id: 1, nom: "Clavier", prix: 49.99, enStock: true } }
@@ -1048,7 +1062,8 @@ console.log(parserJSON(jsonInvalide, estProduit));
 console.log(parserJSON(jsonMalForme, estProduit));
 // { succes: false, erreur: "JSON invalide : ..." }
 
-const jsonTableau = '[{"id":1,"nom":"A","prix":10,"enStock":true},{"id":2,"nom":"B","prix":20,"enStock":false}]';
+const jsonTableau =
+  '[{"id":1,"nom":"A","prix":10,"enStock":true},{"id":2,"nom":"B","prix":20,"enStock":false}]';
 console.log(parserJSON(jsonTableau, estTableauDeProduits));
 // { succes: true, donnees: [{...}, {...}] }
 ```
@@ -1069,7 +1084,7 @@ const Environnement = {
   Staging: "staging",
   Prod: "production",
 } as const;
-type Environnement = typeof Environnement[keyof typeof Environnement];
+type Environnement = (typeof Environnement)[keyof typeof Environnement];
 
 const NiveauLog = {
   Debug: 0,
@@ -1078,14 +1093,14 @@ const NiveauLog = {
   Error: 3,
   Silent: 4,
 } as const;
-type NiveauLog = typeof NiveauLog[keyof typeof NiveauLog];
+type NiveauLog = (typeof NiveauLog)[keyof typeof NiveauLog];
 
 // Tuple pour les regles de validation
 type RegleValidation = [
   champ: string,
   type: "string" | "number" | "boolean",
   obligatoire: boolean,
-  defaut?: unknown
+  defaut?: unknown,
 ];
 
 // Configuration avec types stricts
@@ -1148,11 +1163,11 @@ function log(config: ConfigApp, niveau: NiveauLog, message: string): void {
 // Test
 const config = obtenirConfig("dev");
 log(config, NiveauLog.Debug, "Demarrage en mode dev"); // Affiche
-log(config, NiveauLog.Error, "Erreur critique");       // Affiche
+log(config, NiveauLog.Error, "Erreur critique"); // Affiche
 
 const configProd = obtenirConfig("prod");
 log(configProd, NiveauLog.Debug, "Ceci est du debug"); // N'affiche PAS (niveau trop bas)
-log(configProd, NiveauLog.Error, "Erreur en prod");    // Affiche
+log(configProd, NiveauLog.Error, "Erreur en prod"); // Affiche
 ```
 
 </details>
@@ -1167,17 +1182,21 @@ Creez un convertisseur universel qui transforme une valeur `unknown` en différe
 ```typescript
 type TypeCible = "string" | "number" | "boolean" | "date" | "array";
 
-type ResultatConversion<T extends TypeCible> =
-  T extends "string" ? string :
-  T extends "number" ? number :
-  T extends "boolean" ? boolean :
-  T extends "date" ? Date :
-  T extends "array" ? unknown[] :
-  never;
+type ResultatConversion<T extends TypeCible> = T extends "string"
+  ? string
+  : T extends "number"
+    ? number
+    : T extends "boolean"
+      ? boolean
+      : T extends "date"
+        ? Date
+        : T extends "array"
+          ? unknown[]
+          : never;
 
 function convertir<T extends TypeCible>(
   valeur: unknown,
-  cible: T
+  cible: T,
 ): ResultatConversion<T> | null {
   try {
     switch (cible) {
@@ -1191,16 +1210,20 @@ function convertir<T extends TypeCible>(
           const n = Number(valeur);
           return (isNaN(n) ? null : n) as ResultatConversion<T>;
         }
-        if (typeof valeur === "boolean") return (valeur ? 1 : 0) as ResultatConversion<T>;
+        if (typeof valeur === "boolean")
+          return (valeur ? 1 : 0) as ResultatConversion<T>;
         return null;
       }
       case "boolean": {
         if (typeof valeur === "boolean") return valeur as ResultatConversion<T>;
         if (typeof valeur === "string") {
-          if (valeur.toLowerCase() === "true" || valeur === "1") return true as ResultatConversion<T>;
-          if (valeur.toLowerCase() === "false" || valeur === "0") return false as ResultatConversion<T>;
+          if (valeur.toLowerCase() === "true" || valeur === "1")
+            return true as ResultatConversion<T>;
+          if (valeur.toLowerCase() === "false" || valeur === "0")
+            return false as ResultatConversion<T>;
         }
-        if (typeof valeur === "number") return (valeur !== 0) as ResultatConversion<T>;
+        if (typeof valeur === "number")
+          return (valeur !== 0) as ResultatConversion<T>;
         return null;
       }
       case "date": {
@@ -1214,8 +1237,11 @@ function convertir<T extends TypeCible>(
       case "array": {
         if (Array.isArray(valeur)) return valeur as ResultatConversion<T>;
         if (typeof valeur === "string") {
-          try { return JSON.parse(valeur) as ResultatConversion<T>; }
-          catch { return [valeur] as ResultatConversion<T>; }
+          try {
+            return JSON.parse(valeur) as ResultatConversion<T>;
+          } catch {
+            return [valeur] as ResultatConversion<T>;
+          }
         }
         return [valeur] as ResultatConversion<T>;
       }
@@ -1228,7 +1254,7 @@ function convertir<T extends TypeCible>(
 }
 
 // Tests type-safe
-const s = convertir(42, "string");     // string | null — "42"
+const s = convertir(42, "string"); // string | null — "42"
 const n = convertir("3.14", "number"); // number | null — 3.14
 const b = convertir("true", "boolean"); // boolean | null — true
 const d = convertir("2024-01-15", "date"); // Date | null
@@ -1247,23 +1273,23 @@ console.log(a); // [1, 2, 3]
 
 ## Récapitulatif
 
-| Type / Concept      | Description                                                     |
-|----------------------|-----------------------------------------------------------------|
-| `enum` numérique     | Ensemble de constantes numériques auto-incrementees              |
-| `enum` string        | Ensemble de constantes string explicites                        |
-| `const enum`         | Enum efface à la compilation (inline)                            |
-| Union de litteraux   | Alternative legere aux enums (`"a" \| "b" \| "c"`)             |
-| `as const`           | Fige les valeurs comme litterales et readonly                    |
-| Tuple                | Tableau a longueur et types fixes par position                   |
-| Tuple readonly       | Tuple immutable                                                  |
-| Tuple nomme          | Tuple avec des labels pour chaque position                       |
-| `never`              | Type du bas — aucune valeur possible                             |
-| Exhaustivite         | Utiliser `never` pour vérifier que tous les cas sont geres      |
-| `unknown`            | Type du haut sécurisé — nécessité du narrowing                   |
-| `void`               | Absence de valeur de retour                                      |
-| `symbol`             | Valeur unique et immuable                                        |
-| `unique symbol`      | Symbole spécifique lie à une declaration `const`                |
-| `satisfies`          | Vérification de type sans elargissement                          |
+| Type / Concept     | Description                                                |
+| ------------------ | ---------------------------------------------------------- |
+| `enum` numérique   | Ensemble de constantes numériques auto-incrementees        |
+| `enum` string      | Ensemble de constantes string explicites                   |
+| `const enum`       | Enum efface à la compilation (inline)                      |
+| Union de litteraux | Alternative legere aux enums (`"a" \| "b" \| "c"`)         |
+| `as const`         | Fige les valeurs comme litterales et readonly              |
+| Tuple              | Tableau a longueur et types fixes par position             |
+| Tuple readonly     | Tuple immutable                                            |
+| Tuple nomme        | Tuple avec des labels pour chaque position                 |
+| `never`            | Type du bas — aucune valeur possible                       |
+| Exhaustivite       | Utiliser `never` pour vérifier que tous les cas sont geres |
+| `unknown`          | Type du haut sécurisé — nécessité du narrowing             |
+| `void`             | Absence de valeur de retour                                |
+| `symbol`           | Valeur unique et immuable                                  |
+| `unique symbol`    | Symbole spécifique lie à une declaration `const`           |
+| `satisfies`        | Vérification de type sans elargissement                    |
 
 ---
 
@@ -1278,8 +1304,9 @@ Dans le **Module 09**, nous aborderons les **Modules, Namespaces et Resolution**
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 08 enums tuples](../screencasts/screencast-08-enums-tuples.md)
 2. **Lab** : [lab-08-enums-tuples](../labs/lab-08-enums-tuples/README)
 3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
 4. **Quiz** : [quiz 08 enums tuples](../quizzes/quiz-08-enums-tuples.html)
-:::
+   :::

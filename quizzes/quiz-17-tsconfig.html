@@ -51,29 +51,29 @@
     const questions = [
       {
         label: "Question 1",
-        text: "Quels sous-flags sont actives par <code>\"strict\": true</code> dans tsconfig.json ?",
-        code: "{\n  \"compilerOptions\": {\n    \"strict\": true\n    // Active automatiquement :\n    // strictNullChecks, strictFunctionTypes,\n    // strictBindCallApply, strictPropertyInitialization,\n    // noImplicitAny, noImplicitThis,\n    // alwaysStrict, useUnknownInCatchVariables\n  }\n}",
+        text: "Comment configurer des alias de chemin (path aliases) dans tsconfig.json ?",
+        code: "// tsconfig.json\n{\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@core/*\": [\"src/core/*\"],\n      \"@utils/*\": [\"src/utils/*\"]\n    }\n  }\n}\n\n// Dans un fichier source :\nimport { helper } from '@utils/formatters';\n// equivalent a : import { helper } from 'src/utils/formatters'",
         options: [
-          "Uniquement strictNullChecks et noImplicitAny",
-          "Tous les flags commencant par 'strict' plus noImplicitAny, noImplicitThis, alwaysStrict et useUnknownInCatchVariables",
-          "Tous les flags de verification d'erreurs sans exception",
-          "Seulement strictNullChecks"
+          "paths seul suffit, baseUrl est facultatif",
+          "baseUrl definit le point de reference des chemins relatifs, paths mappe des alias vers des chemins reels — les deux sont necessaires ensemble",
+          "paths remplace completement les imports absolus par des imports relatifs",
+          "paths n'est disponible que dans TypeScript 5.0 et au-dela"
         ],
         answer: 1,
-        explanation: "<code>strict: true</code> active un ensemble specifique de flags : <code>strictNullChecks</code>, <code>strictFunctionTypes</code>, <code>strictBindCallApply</code>, <code>strictPropertyInitialization</code>, <code>noImplicitAny</code>, <code>noImplicitThis</code>, <code>alwaysStrict</code> et <code>useUnknownInCatchVariables</code>. Ce n'est pas tous les flags de verification, mais les plus importants pour la surete du typage."
+        explanation: "<code>baseUrl</code> (souvent '.') fixe le point de depart pour resolver les modules non-relatifs. <code>paths</code> definit ensuite des alias avec des wildcards (*). Attention : TypeScript resout les alias au niveau de la verification de types uniquement. Pour que les fichiers JS emis fonctionnent, vous avez besoin d'un plugin bundler (ts-paths, @rollup/plugin-alias...) ou de tsconfig-paths a l'execution."
       },
       {
         label: "Question 2",
-        text: "Quelle est la difference entre les options <code>moduleResolution</code> 'node' et 'bundler' ?",
-        code: "{\n  \"compilerOptions\": {\n    \"moduleResolution\": \"bundler\"\n    // vs\n    // \"moduleResolution\": \"node\"\n  }\n}",
+        text: "Quel est le role de l'option <code>lib</code> dans tsconfig.json ?",
+        code: "{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"]\n  }\n}",
         options: [
-          "Il n'y a aucune difference fonctionnelle",
-          "'bundler' permet les imports sans extension et supporte les exports/imports de package.json, adapte aux bundlers modernes",
-          "'node' est plus recent et recommande pour tous les projets",
-          "'bundler' ne fonctionne qu'avec Webpack"
+          "lib indique les fichiers source a inclure dans la compilation",
+          "lib specifie les definitions de types (declarations de bibliotheque) disponibles au moment de la compilation — les APIs globales que TypeScript connait",
+          "lib est un alias pour include et determine les fichiers a compiler",
+          "lib est obsolete et remplace par types"
         ],
         answer: 1,
-        explanation: "<code>moduleResolution: 'bundler'</code> (TS 5.0+) est concu pour les projets utilisant un bundler (Vite, Webpack, esbuild). Il permet les imports sans extension de fichier et supporte les champs <code>exports</code>/<code>imports</code> de package.json. <code>'node'</code> simule la resolution CommonJS de Node.js, tandis que <code>'node16'/'nodenext'</code> simule la resolution ESM de Node.js."
+        explanation: "<code>lib</code> controle quelles declarations de bibliotheque TypeScript inclut dans la compilation. <code>ES2020</code> donne acces a Promise, Map, Set, BigInt... <code>DOM</code> donne acces a document, window, fetch... Si vous ne specifiez pas lib, TypeScript en choisit un par defaut selon <code>target</code>. Pour Node.js sans DOM, ne pas inclure <code>DOM</code> evite d'avoir fetch, window etc. comme globaux."
       },
       {
         label: "Question 3",
@@ -113,6 +113,19 @@
         ],
         answer: 1,
         explanation: "<code>isolatedModules: true</code> garantit que chaque fichier TypeScript peut etre transpile <strong>independamment</strong> sans connaitre le reste du projet. C'est necessaire pour les transpileurs fichier-par-fichier comme esbuild, swc ou Babel. Elle interdit les constructions qui necessitent une analyse globale, comme <code>const enum</code> reexporte ou les <code>namespace</code>."
+      },
+      {
+        label: "Question 6",
+        text: "Quelle combinaison d'options permet de generer des fichiers .d.ts sans emettre de JavaScript ?",
+        code: "// Cas typique : librairie TypeScript\n// On veut les declarations pour les consommateurs\n// mais le JS est emis par le bundler\n{\n  \"compilerOptions\": {\n    \"declaration\": ???,\n    \"noEmit\": ???\n  }\n}",
+        options: [
+          "declaration: true, noEmit: false",
+          "declaration: true, noEmit: true",
+          "declarationOnly: true, noEmit: false",
+          "declaration: true, emitDeclarationOnly: true"
+        ],
+        answer: 3,
+        explanation: "<code>declaration: true</code> demande a TypeScript de generer les fichiers <code>.d.ts</code>. <code>emitDeclarationOnly: true</code> dit de n'emettre que ces declarations, sans generer les fichiers <code>.js</code>. C'est le pattern ideal pour une librairie compilee par un bundler (Rollup, esbuild) : TypeScript genere les types, le bundler genere le JS. <code>noEmit: true</code> ne fonctionne pas car il supprime aussi les <code>.d.ts</code>."
       }
     ];
     let currentQuestion = 0, score = 0, answered = false;

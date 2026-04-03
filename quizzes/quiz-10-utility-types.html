@@ -113,6 +113,32 @@
         ],
         answer: 1,
         explanation: "Les utility types se composent de l'interieur vers l'exterieur : <code>Pick</code> selectionne <code>host</code> et <code>port</code>, <code>Required</code> les rend obligatoires (ici ils le sont deja), puis <code>Readonly</code> les rend en lecture seule. Le resultat est <code>{ readonly host: string; readonly port: number }</code>."
+      },
+      {
+        label: "Question 6",
+        text: "Quelle difference y a-t-il entre <code>Exclude</code> et <code>Extract</code> ?",
+        code: "type A = Exclude&lt;'a' | 'b' | 'c', 'a' | 'b'&gt;;\n// A = 'c'\n\ntype B = Extract&lt;'a' | 'b' | 'c', 'a' | 'b'&gt;;\n// B = 'a' | 'b'",
+        options: [
+          "Exclude garde les types en commun, Extract retire les types en commun",
+          "Exclude retire les types assignables au second parametre, Extract ne garde que ceux qui le sont",
+          "Les deux font la meme chose mais avec une syntaxe differente",
+          "Exclude fonctionne sur les objets, Extract sur les unions"
+        ],
+        answer: 1,
+        explanation: "<code>Exclude&lt;T, U&gt;</code> retire de <code>T</code> tous les membres assignables a <code>U</code>. <code>Extract&lt;T, U&gt;</code> ne garde que les membres de <code>T</code> assignables a <code>U</code>. Ce sont des operateurs complementaires : <code>Exclude</code> filtre en soustrayant, <code>Extract</code> filtre en intersectant. Ils sont implementes avec des conditional types distributifs."
+      },
+      {
+        label: "Question 7",
+        text: "Comment <code>NonNullable</code> et <code>Parameters</code> sont-ils utiles ?",
+        code: "type MaybeString = string | null | undefined;\ntype DefinitelyString = NonNullable&lt;MaybeString&gt;;\n// DefinitelyString = string\n\nfunction greet(name: string, age: number, verbose?: boolean) {}\ntype GreetParams = Parameters&lt;typeof greet&gt;;\n// GreetParams = [name: string, age: number, verbose?: boolean]",
+        options: [
+          "NonNullable convertit null en '', Parameters retourne le nombre de parametres",
+          "NonNullable retire null et undefined d'un type union, Parameters extrait les types de parametres d'un type fonction sous forme de tuple",
+          "Les deux ne fonctionnent qu'avec des types generiques",
+          "NonNullable s'applique aux objets, Parameters aux classes"
+        ],
+        answer: 1,
+        explanation: "<code>NonNullable&lt;T&gt;</code> supprime <code>null</code> et <code>undefined</code> de l'union <code>T</code>. C'est le complementaire de <code>T | null | undefined</code>. <code>Parameters&lt;T&gt;</code> extrait les types de parametres d'un type fonction et les retourne sous forme de tuple. Il est tres utile pour creer des variantes d'une fonction ou pour tester les types d'une API."
       }
     ];
     let currentQuestion = 0, score = 0, answered = false;

@@ -21,17 +21,9 @@ const { test, assert, assertEqual, assertThrows, summary } =
 // - Si c'est un boolean : retourner 'oui' ou 'non'
 // - Si c'est undefined : retourner 'indefini'
 function formater(valeur: string | number | boolean | undefined): string {
-  // TODO: Utilisez typeof pour narrower le type
-  if (typeof valeur === "string") {
-    return `"${valeur}"`;
-  } else if (typeof valeur === "number") {
-    return valeur.toFixed(2).toString();
-  } else if (typeof valeur === "boolean") {
-    return valeur ? "oui" : "non";
-  } else if (typeof valeur === "undefined") {
-    return "indefini";
-  }
-  return "";
+  // TODO: utilisez typeof pour narrower le type
+  // string -> '"valeur"', number -> toFixed(2), boolean -> 'oui'/'non', undefined -> 'indefini'
+  return undefined as any;
 }
 
 // TODO: Implementez cette fonction qui additionne deux valeurs
@@ -41,12 +33,8 @@ function additionnerFlexible(
   a: string | number,
   b: string | number,
 ): string | number {
-  // TODO: Implementez avec typeof
-  if (typeof a === "number" && typeof b === "number") {
-    return a + b;
-  } else {
-    return a.toString() + b.toString();
-  }
+  // TODO: si les deux sont number -> somme numerique, sinon -> concatenation string
+  return undefined as any;
 }
 
 // =============================================================================
@@ -83,14 +71,11 @@ class ErreurValidation extends Erreur {
 // - Si ErreurValidation : retourner "Erreur de validation du champ {champ}: {message}"
 // - Si Erreur (generique) : retourner "Erreur {code}: {message}"
 function decrireErreur(erreur: Erreur): string {
-  // TODO: Utilisez instanceof pour narrower (attention a l'ordre !)
-  if (erreur instanceof ErreurReseau) {
-    return `Erreur reseau sur ${erreur.url}: ${erreur.message}`;
-  } else if (erreur instanceof ErreurValidation) {
-    return `Erreur de validation du champ ${erreur.champ}: ${erreur.message}`;
-  } else {
-    return `Erreur ${erreur.code}: ${erreur.message}`;
-  }
+  // TODO: utilisez instanceof pour narrower (attention a l'ordre !)
+  // ErreurReseau -> "Erreur reseau sur {url}: {message}"
+  // ErreurValidation -> "Erreur de validation du champ {champ}: {message}"
+  // Erreur -> "Erreur {code}: {message}"
+  return undefined as any;
 }
 
 // =============================================================================
@@ -127,17 +112,9 @@ type Forme = Cercle | Rectangle | Triangle;
 // Rectangle : largeur * hauteur
 // Triangle : (base * hauteur) / 2
 function calculerAire(forme: Forme): number {
-  switch (forme.type) {
-    case "cercle": {
-      return Math.PI * forme.rayon ** 2;
-    }
-    case "rectangle": {
-      return forme.largeur * forme.hauteur;
-    }
-    case "triangle": {
-      return (forme.base * forme.hauteur) / 2;
-    }
-  }
+  // TODO: switch sur forme.type
+  // cercle: Math.PI * rayon^2 | rectangle: largeur * hauteur | triangle: (base * hauteur) / 2
+  return undefined as any;
 }
 
 // TODO: Implementez le calcul du perimetre
@@ -145,22 +122,11 @@ function calculerAire(forme: Forme): number {
 // Rectangle : 2 * (largeur + hauteur)
 // Triangle : on simplifie — retournez base + hauteur + Math.sqrt(base^2 + hauteur^2)
 function calculerPerimetre(forme: Forme): number {
-  // TODO: Utilisez un switch sur forme.type
-  switch (forme.type) {
-    case "cercle": {
-      return 2 * Math.PI * forme.rayon;
-    }
-    case "rectangle": {
-      return 2 * (forme.largeur + forme.hauteur);
-    }
-    case "triangle": {
-      return (
-        forme.base +
-        forme.hauteur +
-        Math.sqrt(forme.base ^ (2 + forme.hauteur) ^ 2)
-      );
-    }
-  }
+  // TODO: switch sur forme.type
+  // cercle: 2 * Math.PI * rayon
+  // rectangle: 2 * (largeur + hauteur)
+  // triangle: base + hauteur + Math.sqrt(base^2 + hauteur^2)
+  return undefined as any;
 }
 
 // =============================================================================
@@ -184,25 +150,21 @@ type Vehicule = Voiture | Moto;
 // TODO: Creez un type guard pour Voiture
 // Indice : seule la Voiture a la propriete 'portes'
 function estVoiture(vehicule: Vehicule): vehicule is Voiture {
-  // TODO: Implementez avec 'in' et retournez avec le bon type predicate
-  return "portes" in vehicule;
+  // TODO: utilisez 'in' et retournez le bon type predicate
+  return false;
 }
 
 // TODO: Creez un type guard pour Moto
 function estMoto(vehicule: Vehicule): vehicule is Moto {
-  // TODO: Implementez
-  return "cylindres" in vehicule;
+  // TODO: implementez
+  return false;
 }
 
 // TODO: Utilisez les type guards pour decrire un vehicule
 function decrireVehicule(vehicule: Vehicule): string {
-  // TODO: Si voiture : "{marque} - {chevaux}ch - {portes} portes"
-  //       Si moto : "{marque} - {chevaux}ch - {cylindres} cylindres"
-  if (estVoiture(vehicule)) {
-    return `${vehicule.marque} - ${vehicule.chevaux}ch - ${vehicule.portes} portes`;
-  } else if (estMoto(vehicule)) {
-    return `${vehicule.marque} - ${vehicule.chevaux}ch - ${vehicule.cylindres} cylindres`;
-  }
+  // TODO: si voiture : "{marque} - {chevaux}ch - {portes} portes"
+  //       si moto    : "{marque} - {chevaux}ch - {cylindres} cylindres"
+  return undefined as any;
 }
 
 // =============================================================================
@@ -215,18 +177,15 @@ function decrireVehicule(vehicule: Vehicule): string {
 // ReponseErreur     : statut 'erreur', message: string, code: number
 
 interface ReponseChargement {
-  statut: "chargement";
+  // a completer
 }
 
 interface ReponseSucces<T> {
-  statut: "succes";
-  donnees: T;
+  // a completer
 }
 
 interface ReponseErreur {
-  statut: "erreur";
-  message: string;
-  code: number;
+  // a completer
 }
 
 // TODO: Definissez le type union ReponseAPI<T>
@@ -237,18 +196,10 @@ type ReponseAPI<T> = ReponseChargement | ReponseErreur | ReponseSucces<T>;
 // - succes : retourner 'Succes: {JSON.stringify(donnees)}'
 // - erreur : retourner 'Erreur {code}: {message}'
 function traiterReponse<T>(reponse: ReponseAPI<T>): string {
-  // TODO: Utilisez un switch sur reponse.statut
-  switch (reponse.statut) {
-    case "chargement": {
-      return "Chargement en cours...";
-    }
-    case "succes": {
-      return `Succes: ${JSON.stringify(reponse.donnees)}`;
-    }
-    case "erreur": {
-      return `Erreur ${reponse.code}: ${reponse.message}`;
-    }
-  }
+  // TODO: switch sur reponse.statut
+  // 'chargement' -> 'Chargement en cours...' | 'succes' -> 'Succes: {JSON.stringify(donnees)}'
+  // 'erreur' -> 'Erreur {code}: {message}'
+  return undefined as any;
 }
 
 // =============================================================================
@@ -269,26 +220,15 @@ type Jour =
 // samedi-dimanche : retourner false
 // Ajoutez une verification exhaustive avec never a la fin du switch
 function estJourTravaille(jour: Jour): boolean {
-  // TODO: Implementez avec un switch exhaustif
-  switch (jour) {
-    case "lundi":
-    case "mardi":
-    case "mercredi":
-    case "jeudi":
-    case "vendredi":
-      return true;
-    case "samedi":
-    case "dimanche":
-      return false;
-    default:
-      assertNever(jour);
-  }
+  // TODO: switch exhaustif — lundi-vendredi -> true, samedi-dimanche -> false
+  // Ajoutez assertNever dans le default
+  return undefined as any;
 }
 
 // TODO: Implementez cette helper function pour la verification exhaustive
 function assertNever(valeur: never): never {
-  // TODO: Lancez une erreur
-  throw new Error("");
+  // TODO: lancez une Error (ex: 'Cas non gere: ' + valeur)
+  throw new Error('Non implémenté');
 }
 
 type Saison = "printemps" | "ete" | "automne" | "hiver";
@@ -297,17 +237,10 @@ type Saison = "printemps" | "ete" | "automne" | "hiver";
 // (chaque saison = 3 mois)
 // Utilisez assertNever pour garantir que tous les cas sont couverts
 function moisParSaison(saison: Saison): string[] {
-  // TODO: Implementez avec un switch exhaustif
-  switch (saison) {
-    case "printemps":
-      return ["mars", "avril", "mai"];
-    case "ete":
-      return ["juin", "juillet", "aout"];
-    case "automne":
-      return ["septembre", "octobre", "novembre"];
-    case "hiver":
-      return ["decembre", "janvier", "fevrier"];
-  }
+  // TODO: switch exhaustif — retournez le tableau des 3 mois de chaque saison
+  // printemps: mars/avril/mai | ete: juin/juillet/aout
+  // automne: sept/oct/nov | hiver: dec/jan/fev
+  return [];
 }
 
 // =============================================================================

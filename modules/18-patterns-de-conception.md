@@ -56,7 +56,7 @@ class FormatageCSV implements StrategieDeFormatage {
     if (donnees.length === 0) return "";
     const entetes = Object.keys(donnees[0] as Record<string, unknown>);
     const lignes = donnees.map((d) =>
-      entetes.map((e) => String((d as Record<string, unknown>)[e])).join(",")
+      entetes.map((e) => String((d as Record<string, unknown>)[e])).join(","),
     );
     return [entetes.join(","), ...lignes].join("\n");
   }
@@ -149,15 +149,22 @@ class ServiceUtilisateur<T> {
   }
 
   changerStrategie(strategie: StrategieDeValidation<T>): void {
-    console.log(`Changement de strategie : ${this.strategie.nom} -> ${strategie.nom}`);
+    console.log(
+      `Changement de strategie : ${this.strategie.nom} -> ${strategie.nom}`,
+    );
     this.strategie = strategie;
   }
 
-  traiter(donnees: T): { valide: boolean; donnees: T; erreurs: ErreurValidation[] } {
+  traiter(donnees: T): {
+    valide: boolean;
+    donnees: T;
+    erreurs: ErreurValidation[];
+  } {
     const erreurs = this.strategie.valider(donnees);
-    const donneesFinales = erreurs.length === 0 && this.strategie.transformer
-      ? this.strategie.transformer(donnees)
-      : donnees;
+    const donneesFinales =
+      erreurs.length === 0 && this.strategie.transformer
+        ? this.strategie.transformer(donnees)
+        : donnees;
 
     return { valide: erreurs.length === 0, donnees: donneesFinales, erreurs };
   }
@@ -190,16 +197,13 @@ interface CarteEvenements {
   "utilisateur:connecte": { id: string; nom: string; timestamp: Date };
   "utilisateur:deconnecte": { id: string; raison: string };
   "message:envoye": { de: string; a: string; contenu: string };
-  "erreur": { code: number; message: string; stack?: string };
+  erreur: { code: number; message: string; stack?: string };
 }
 
 // EventEmitter generique et type-safe
 class EmetteurEvenements<E extends Record<string, unknown>> {
   // Map des ecouteurs, organises par nom d'evenement
-  private ecouteurs = new Map<
-    keyof E,
-    Set<(payload: unknown) => void>
-  >();
+  private ecouteurs = new Map<keyof E, Set<(payload: unknown) => void>>();
 
   /**
    * Ecouter un evenement avec un callback type
@@ -207,7 +211,7 @@ class EmetteurEvenements<E extends Record<string, unknown>> {
    */
   sur<K extends keyof E>(
     evenement: K,
-    ecouteur: (payload: E[K]) => void
+    ecouteur: (payload: E[K]) => void,
   ): () => void {
     if (!this.ecouteurs.has(evenement)) {
       this.ecouteurs.set(evenement, new Set());
@@ -227,7 +231,7 @@ class EmetteurEvenements<E extends Record<string, unknown>> {
    */
   uneFois<K extends keyof E>(
     evenement: K,
-    ecouteur: (payload: E[K]) => void
+    ecouteur: (payload: E[K]) => void,
   ): () => void {
     const desinscrire = this.sur(evenement, (payload) => {
       desinscrire();
@@ -246,7 +250,10 @@ class EmetteurEvenements<E extends Record<string, unknown>> {
         try {
           ecouteur(payload);
         } catch (erreur) {
-          console.error(`Erreur dans l'ecouteur de "${String(evenement)}"`, erreur);
+          console.error(
+            `Erreur dans l'ecouteur de "${String(evenement)}"`,
+            erreur,
+          );
         }
       }
     }
@@ -337,7 +344,7 @@ class BuilderConfigServeur<
   Port = NonDefini,
   Host = NonDefini,
   BDD = NonDefini,
-  MDP = NonDefini
+  MDP = NonDefini,
 > {
   private config: Partial<ConfigServeur> = {
     ssl: false,
@@ -378,7 +385,7 @@ class BuilderConfigServeur<
 
   // build() n'est disponible QUE quand tous les champs sont Defini
   build(
-    this: BuilderConfigServeur<Defini, Defini, Defini, Defini>
+    this: BuilderConfigServeur<Defini, Defini, Defini, Defini>,
   ): ConfigServeur {
     return this.config as ConfigServeur;
   }
@@ -417,9 +424,7 @@ les erreurs EXPLICITES dans le système de types.
 
 ```typescript
 // Definition du type Result
-type Result<T, E = Error> =
-  | { ok: true; valeur: T }
-  | { ok: false; erreur: E };
+type Result<T, E = Error> = { ok: true; valeur: T } | { ok: false; erreur: E };
 
 // Fonctions de construction
 function succes<T>(valeur: T): Result<T, never> {
@@ -460,7 +465,7 @@ namespace Result {
   /** Transformer la valeur si succes */
   export function map<T, U, E>(
     resultat: Result<T, E>,
-    fn: (val: T) => U
+    fn: (val: T) => U,
   ): Result<U, E> {
     if (resultat.ok) {
       return succes(fn(resultat.valeur));
@@ -471,7 +476,7 @@ namespace Result {
   /** Chainer avec une fonction qui retourne un Result */
   export function flatMap<T, U, E>(
     resultat: Result<T, E>,
-    fn: (val: T) => Result<U, E>
+    fn: (val: T) => Result<U, E>,
   ): Result<U, E> {
     if (resultat.ok) {
       return fn(resultat.valeur);
@@ -482,7 +487,7 @@ namespace Result {
   /** Transformer l'erreur */
   export function mapErreur<T, E, F>(
     resultat: Result<T, E>,
-    fn: (err: E) => F
+    fn: (err: E) => F,
   ): Result<T, F> {
     if (!resultat.ok) {
       return erreur(fn(resultat.erreur));
@@ -512,7 +517,7 @@ namespace Result {
 
   /** Version asynchrone de capturer */
   export async function capturerAsync<T>(
-    fn: () => Promise<T>
+    fn: () => Promise<T>,
   ): Promise<Result<T, Error>> {
     try {
       return succes(await fn());
@@ -553,7 +558,7 @@ interface UtilisateurValide {
 
 function creerUtilisateur(
   email: string,
-  age: number
+  age: number,
 ): Result<UtilisateurValide, ErreurValidation> {
   const emailResult = validerEmail(email);
   if (!emailResult.ok) return emailResult;
@@ -569,7 +574,9 @@ const resultat = creerUtilisateur("alice@exemple.fr", 30);
 if (resultat.ok) {
   console.log(`Utilisateur cree : ${resultat.valeur.email}`);
 } else {
-  console.log(`Erreur dans ${resultat.erreur.champ}: ${resultat.erreur.message}`);
+  console.log(
+    `Erreur dans ${resultat.erreur.champ}: ${resultat.erreur.message}`,
+  );
 }
 ```
 
@@ -604,7 +611,7 @@ namespace Option {
 
   export function flatMap<T, U>(
     opt: Option<T>,
-    fn: (val: T) => Option<U>
+    fn: (val: T) => Option<U>,
   ): Option<U> {
     return opt.some ? fn(opt.valeur) : none();
   }
@@ -615,7 +622,7 @@ namespace Option {
 
   export function filtrer<T>(
     opt: Option<T>,
-    predicat: (val: T) => boolean
+    predicat: (val: T) => boolean,
   ): Option<T> {
     return opt.some && predicat(opt.valeur) ? opt : none();
   }
@@ -658,12 +665,12 @@ type GBP = Marque<number, "GBP">;
 // Constructeurs avec validation
 function eur(montant: number): EUR {
   if (!Number.isFinite(montant)) throw new Error("Montant invalide");
-  return Math.round(montant * 100) / 100 as unknown as EUR;
+  return (Math.round(montant * 100) / 100) as unknown as EUR;
 }
 
 function usd(montant: number): USD {
   if (!Number.isFinite(montant)) throw new Error("Montant invalide");
-  return Math.round(montant * 100) / 100 as unknown as USD;
+  return (Math.round(montant * 100) / 100) as unknown as USD;
 }
 
 // Operations type-safe
@@ -711,13 +718,13 @@ function creerFormulaire(): Formulaire<NonValide> {
 function remplir(
   form: Formulaire<NonValide>,
   champ: string,
-  valeur: string
+  valeur: string,
 ): Formulaire<NonValide> {
   return { donnees: { ...form.donnees, [champ]: valeur } };
 }
 
 function valider(
-  form: Formulaire<NonValide>
+  form: Formulaire<NonValide>,
 ): Result<Formulaire<Valide>, string> {
   // Logique de validation...
   if (Object.keys(form.donnees).length === 0) {
@@ -727,7 +734,7 @@ function valider(
 }
 
 function soumettre(
-  form: Formulaire<Valide> // SEULS les formulaires valides peuvent etre soumis
+  form: Formulaire<Valide>, // SEULS les formulaires valides peuvent etre soumis
 ): Formulaire<Soumis> {
   console.log("Soumission des donnees:", form.donnees);
   return form as unknown as Formulaire<Soumis>;
@@ -779,13 +786,17 @@ class MachineACafe<Etat extends string = Eteint> {
   // Seule une machine prete peut lancer une preparation
   preparerCafe(this: MachineACafe<Pret>): MachineACafe<EnPreparation> {
     console.log("Preparation en cours...");
-    return new MachineACafe("en_preparation" as EnPreparation) as unknown as MachineACafe<EnPreparation>;
+    return new MachineACafe(
+      "en_preparation" as EnPreparation,
+    ) as unknown as MachineACafe<EnPreparation>;
   }
 
   // Seule une machine en preparation peut terminer
   terminer(this: MachineACafe<EnPreparation>): MachineACafe<Termine> {
     console.log("Cafe pret !");
-    return new MachineACafe("termine" as Termine) as unknown as MachineACafe<Termine>;
+    return new MachineACafe(
+      "termine" as Termine,
+    ) as unknown as MachineACafe<Termine>;
   }
 
   // Une machine terminee peut etre remise a pret
@@ -795,19 +806,23 @@ class MachineACafe<Etat extends string = Eteint> {
   }
 
   // L'extinction est possible depuis n'importe quel etat sauf eteint
-  eteindre(this: MachineACafe<Pret> | MachineACafe<Termine>): MachineACafe<Eteint> {
+  eteindre(
+    this: MachineACafe<Pret> | MachineACafe<Termine>,
+  ): MachineACafe<Eteint> {
     console.log("Machine eteinte");
-    return new MachineACafe("eteint" as Eteint) as unknown as MachineACafe<Eteint>;
+    return new MachineACafe(
+      "eteint" as Eteint,
+    ) as unknown as MachineACafe<Eteint>;
   }
 }
 
 // Utilisation — les transitions invalides sont des ERREURS de compilation
-const machine = MachineACafe.creer()  // Eteint
-  .allumer()                           // -> Pret
-  .preparerCafe()                      // -> EnPreparation
-  .terminer()                          // -> Termine
-  .reinitialiser()                     // -> Pret
-  .eteindre();                         // -> Eteint
+const machine = MachineACafe.creer() // Eteint
+  .allumer() // -> Pret
+  .preparerCafe() // -> EnPreparation
+  .terminer() // -> Termine
+  .reinitialiser() // -> Pret
+  .eteindre(); // -> Eteint
 
 // machine.preparerCafe(); // ERREUR : une machine eteinte ne peut pas preparer de cafe
 // MachineACafe.creer().preparerCafe(); // ERREUR : pas prete
@@ -849,7 +864,7 @@ class Conteneur {
 
   enregistrer<K extends keyof Dependances>(
     nom: K,
-    factory: () => Dependances[K]
+    factory: () => Dependances[K],
   ): void {
     this.factories.set(nom as string, factory);
   }
@@ -903,15 +918,19 @@ class ServiceInscription {
   constructor(
     private bdd: ServiceBDD,
     private email: ServiceEmail,
-    private journal: ServiceJournal
+    private journal: ServiceJournal,
   ) {}
 
-  async inscrire(nom: string, emailAddr: string): Promise<Result<string, string>> {
+  async inscrire(
+    nom: string,
+    emailAddr: string,
+  ): Promise<Result<string, string>> {
     this.journal.info(`Inscription de ${nom}`);
 
     try {
       await this.bdd.requete("INSERT INTO users (nom, email) VALUES ($1, $2)", [
-        nom, emailAddr,
+        nom,
+        emailAddr,
       ]);
       await this.email.envoyer(emailAddr, "Bienvenue !", `Bonjour ${nom} !`);
       return succes(`Utilisateur ${nom} inscrit`);
@@ -926,7 +945,7 @@ class ServiceInscription {
 const serviceInscription = new ServiceInscription(
   conteneur.resoudre("bdd"),
   conteneur.resoudre("email"),
-  conteneur.resoudre("journal")
+  conteneur.resoudre("journal"),
 );
 ```
 
@@ -946,52 +965,54 @@ function pipe<A, B, C, D>(
   valeur: A,
   fn1: (a: A) => B,
   fn2: (b: B) => C,
-  fn3: (c: C) => D
+  fn3: (c: C) => D,
 ): D;
 function pipe<A, B, C, D, E>(
   valeur: A,
   fn1: (a: A) => B,
   fn2: (b: B) => C,
   fn3: (c: C) => D,
-  fn4: (d: D) => E
+  fn4: (d: D) => E,
 ): E;
-function pipe(valeur: unknown, ...fns: Array<(arg: unknown) => unknown>): unknown {
+function pipe(
+  valeur: unknown,
+  ...fns: Array<(arg: unknown) => unknown>
+): unknown {
   return fns.reduce((acc, fn) => fn(acc), valeur);
 }
 
 // Utilisation — Chaque etape est type-safe
 const resultatPipe = pipe(
   "  Alice Dupont  ",
-  (s: string) => s.trim(),          // string -> string
-  (s) => s.split(" "),              // string -> string[]
-  (parts) => parts.map((p) =>      // string[] -> string[]
-    p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
-  ),
-  (parts) => parts.join(" ")       // string[] -> string
+  (s: string) => s.trim(), // string -> string
+  (s) => s.split(" "), // string -> string[]
+  (parts) =>
+    parts.map(
+      (
+        p, // string[] -> string[]
+      ) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase(),
+    ),
+  (parts) => parts.join(" "), // string[] -> string
 );
 // resultatPipe est de type string = "Alice Dupont"
 
 // compose : meme chose mais de droite a gauche
 function compose<A, B>(fn1: (a: A) => B): (a: A) => B;
-function compose<A, B, C>(
-  fn2: (b: B) => C,
-  fn1: (a: A) => B
-): (a: A) => C;
+function compose<A, B, C>(fn2: (b: B) => C, fn1: (a: A) => B): (a: A) => C;
 function compose<A, B, C, D>(
   fn3: (c: C) => D,
   fn2: (b: B) => C,
-  fn1: (a: A) => B
+  fn1: (a: A) => B,
 ): (a: A) => D;
 function compose(...fns: Array<(arg: unknown) => unknown>) {
-  return (valeur: unknown) =>
-    fns.reduceRight((acc, fn) => fn(acc), valeur);
+  return (valeur: unknown) => fns.reduceRight((acc, fn) => fn(acc), valeur);
 }
 
 // Utilisation de compose
 const formaterNom = compose(
   (parts: string[]) => parts.join(" "),
   (parts: string[]) => parts.map((p) => p.charAt(0).toUpperCase() + p.slice(1)),
-  (s: string) => s.trim().split(" ")
+  (s: string) => s.trim().split(" "),
 );
 
 console.log(formaterNom("  alice dupont  ")); // "Alice Dupont"
@@ -1071,39 +1092,45 @@ interface EvenementsPourWildcard {
 }
 
 // Extraire les evenements qui matchent un pattern wildcard
-type MatchWildcard<Map, Pattern extends string> =
-  Pattern extends `${infer Prefix}:*`
-    ? { [K in keyof Map as K extends `${Prefix}:${string}` ? K : never]: Map[K] }
-    : { [K in keyof Map as K extends Pattern ? K : never]: Map[K] };
+type MatchWildcard<
+  Map,
+  Pattern extends string,
+> = Pattern extends `${infer Prefix}:*`
+  ? { [K in keyof Map as K extends `${Prefix}:${string}` ? K : never]: Map[K] }
+  : { [K in keyof Map as K extends Pattern ? K : never]: Map[K] };
 
 // Les payloads possibles pour un pattern
-type PayloadsWildcard<Map, Pattern extends string> =
-  MatchWildcard<Map, Pattern>[keyof MatchWildcard<Map, Pattern>];
+type PayloadsWildcard<Map, Pattern extends string> = MatchWildcard<
+  Map,
+  Pattern
+>[keyof MatchWildcard<Map, Pattern>];
 
 class EmetteurAvecWildcard<E extends Record<string, unknown>> {
   private ecouteurs = new Map<string, Set<(payload: unknown) => void>>();
 
   sur<K extends keyof E & string>(
     evenement: K,
-    ecouteur: (payload: E[K]) => void
+    ecouteur: (payload: E[K]) => void,
   ): () => void {
     if (!this.ecouteurs.has(evenement)) {
       this.ecouteurs.set(evenement, new Set());
     }
     this.ecouteurs.get(evenement)!.add(ecouteur as (p: unknown) => void);
-    return () => this.ecouteurs.get(evenement)?.delete(ecouteur as (p: unknown) => void);
+    return () =>
+      this.ecouteurs.get(evenement)?.delete(ecouteur as (p: unknown) => void);
   }
 
   surWildcard<P extends `${string}:*`>(
     pattern: P,
-    ecouteur: (payload: PayloadsWildcard<E, P>) => void
+    ecouteur: (payload: PayloadsWildcard<E, P>) => void,
   ): () => void {
     const prefix = pattern.slice(0, -1); // Enlever le *
     if (!this.ecouteurs.has(pattern)) {
       this.ecouteurs.set(pattern, new Set());
     }
     this.ecouteurs.get(pattern)!.add(ecouteur as (p: unknown) => void);
-    return () => this.ecouteurs.get(pattern)?.delete(ecouteur as (p: unknown) => void);
+    return () =>
+      this.ecouteurs.get(pattern)?.delete(ecouteur as (p: unknown) => void);
   }
 
   emettre<K extends keyof E & string>(evenement: K, payload: E[K]): void {
@@ -1147,7 +1174,7 @@ Creez un builder générique qui fonctionne avec N'IMPORTE QUEL type :
 // Builder generique pour n'importe quel type
 type BuilderType<T, Definis extends keyof T = never> = {
   [K in keyof T as K extends Definis ? never : K]-?: (
-    valeur: T[K]
+    valeur: T[K],
   ) => BuilderType<T, Definis | K>;
 } & (Definis extends keyof T
   ? [Exclude<keyof T, Definis>] extends [never]
@@ -1221,9 +1248,7 @@ type ErreurInscription =
   | { etape: "technique"; message: string };
 
 // Chaque etape retourne un Result
-function validerNom(
-  nom: string
-): Result<string, ErreurInscription> {
+function validerNom(nom: string): Result<string, ErreurInscription> {
   if (nom.length < 2) {
     return erreur({ etape: "validation", champ: "nom", message: "Trop court" });
   }
@@ -1231,17 +1256,19 @@ function validerNom(
 }
 
 function validerEmailInscription(
-  email: string
+  email: string,
 ): Result<string, ErreurInscription> {
   if (!email.includes("@")) {
-    return erreur({ etape: "validation", champ: "email", message: "Email invalide" });
+    return erreur({
+      etape: "validation",
+      champ: "email",
+      message: "Email invalide",
+    });
   }
   return succes(email.toLowerCase());
 }
 
-function validerMotDePasse(
-  mdp: string
-): Result<string, ErreurInscription> {
+function validerMotDePasse(mdp: string): Result<string, ErreurInscription> {
   if (mdp.length < 8) {
     return erreur({
       etape: "validation",
@@ -1252,9 +1279,7 @@ function validerMotDePasse(
   return succes(mdp);
 }
 
-function parserAge(
-  ageStr: string
-): Result<number, ErreurInscription> {
+function parserAge(ageStr: string): Result<number, ErreurInscription> {
   const age = parseInt(ageStr, 10);
   if (isNaN(age) || age < 13 || age > 150) {
     return erreur({
@@ -1268,7 +1293,7 @@ function parserAge(
 
 // Pipeline complet
 function inscrire(
-  formulaire: FormulaireInscription
+  formulaire: FormulaireInscription,
 ): Result<UtilisateurCree, ErreurInscription> {
   const nomR = validerNom(formulaire.nom);
   if (!nomR.ok) return nomR;
@@ -1539,16 +1564,16 @@ async function traiterUpload(fichier: Buffer): Promise<string> {
 
 ### Quand utiliser `using` ?
 
-| Situation | Utiliser `using` ? | Pourquoi |
-|-----------|-------------------|----------|
-| Connexion BDD | Oui (`await using`) | Liberer la connexion au pool |
-| File handle | Oui (`await using`) | Fermer le descripteur de fichier |
-| Verrou / Mutex | Oui (`using`) | Liberer le verrou automatiquement |
-| Répertoire temporaire | Oui (`await using`) | Supprimer les fichiers temp |
-| Transaction BDD | Oui (`await using`) | Rollback automatique si non commit |
-| Timer / Intervalle | Oui (`using`) | clearTimeout / clearInterval |
-| Variable simple | Non | Pas de ressource a liberer |
-| Objet en memoire | Non | Le GC s'en occupe |
+| Situation             | Utiliser `using` ?  | Pourquoi                           |
+| --------------------- | ------------------- | ---------------------------------- |
+| Connexion BDD         | Oui (`await using`) | Liberer la connexion au pool       |
+| File handle           | Oui (`await using`) | Fermer le descripteur de fichier   |
+| Verrou / Mutex        | Oui (`using`)       | Liberer le verrou automatiquement  |
+| Répertoire temporaire | Oui (`await using`) | Supprimer les fichiers temp        |
+| Transaction BDD       | Oui (`await using`) | Rollback automatique si non commit |
+| Timer / Intervalle    | Oui (`using`)       | clearTimeout / clearInterval       |
+| Variable simple       | Non                 | Pas de ressource a liberer         |
+| Objet en memoire      | Non                 | Le GC s'en occupe                  |
 
 > **Pré-requis tsconfig** : pour utiliser `using`, il faut au minimum
 > `"target": "es2022"` et `"lib": ["es2022", "esnext.disposable"]` dans
@@ -1558,19 +1583,19 @@ async function traiterUpload(fichier: Buffer): Promise<string> {
 
 ## Récapitulatif
 
-| Pattern                | Description                                           | Avantage TypeScript                    |
-|------------------------|-------------------------------------------------------|----------------------------------------|
-| **Strategy**           | Algorithme interchangeable                            | Generics pour typer les stratégies      |
-| **Observer**           | Pub/Sub avec événements types                         | EventMap garantit les types de payload  |
-| **Builder**            | Construction pas a pas                                | Phantom types pour les champs requis    |
-| **Result<T, E>**       | Erreurs explicites dans les types                     | Pattern matching avec narrowing         |
-| **Option/Maybe**       | Alternative type-safe a null                          | Monadic chaining avec map/flatMap       |
-| **Branded Types**      | Types nominaux (EUR != USD)                           | Marques invisibles au runtime           |
-| **Phantom Types**      | Etats encodes dans les generics                       | Transitions validees à la compilation   |
-| **Type-State**         | Machine a états dans les types                        | Méthodes conditionelles par état        |
-| **DI Container**       | Injection de dépendances type-safe                    | Registry type avec keyof                |
-| **pipe/compose**       | Chainer des fonctions                                 | Types inferes a travers la chaine       |
-| **Disposable/using**   | Gestion automatique des ressources (ES2025)           | Interfaces Disposable/AsyncDisposable   |
+| Pattern              | Description                                 | Avantage TypeScript                    |
+| -------------------- | ------------------------------------------- | -------------------------------------- |
+| **Strategy**         | Algorithme interchangeable                  | Generics pour typer les stratégies     |
+| **Observer**         | Pub/Sub avec événements types               | EventMap garantit les types de payload |
+| **Builder**          | Construction pas a pas                      | Phantom types pour les champs requis   |
+| **Result<T, E>**     | Erreurs explicites dans les types           | Pattern matching avec narrowing        |
+| **Option/Maybe**     | Alternative type-safe a null                | Monadic chaining avec map/flatMap      |
+| **Branded Types**    | Types nominaux (EUR != USD)                 | Marques invisibles au runtime          |
+| **Phantom Types**    | Etats encodes dans les generics             | Transitions validees à la compilation  |
+| **Type-State**       | Machine a états dans les types              | Méthodes conditionelles par état       |
+| **DI Container**     | Injection de dépendances type-safe          | Registry type avec keyof               |
+| **pipe/compose**     | Chainer des fonctions                       | Types inferes a travers la chaine      |
+| **Disposable/using** | Gestion automatique des ressources (ES2025) | Interfaces Disposable/AsyncDisposable  |
 
 ---
 
@@ -1586,7 +1611,8 @@ Container, pipe/compose, et bien plus encore.
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 18 patterns](../screencasts/screencast-18-patterns.md)
 2. **Lab** : [lab-18-patterns](../labs/lab-18-patterns/README)
 3. **Quiz** : [quiz 18 patterns](../quizzes/quiz-18-patterns.html)
-:::
+   :::

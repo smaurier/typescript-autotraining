@@ -71,7 +71,10 @@ Cas typiques :
 
 ```typescript
 // Concatener deux tuples
-type Concat<A extends readonly unknown[], B extends readonly unknown[]> = [...A, ...B];
+type Concat<A extends readonly unknown[], B extends readonly unknown[]> = [
+  ...A,
+  ...B,
+];
 
 type Resultat1 = Concat<[string, number], [boolean]>;
 // [string, number, boolean]
@@ -91,7 +94,7 @@ Ici, `...A` et `...B` veulent dire : "reprends la forme exacte de ces deux tuple
 // Fonction qui fusionne les arguments de deux fonctions
 function fusionnerArgs<A extends unknown[], B extends unknown[]>(
   argsA: [...A],
-  argsB: [...B]
+  argsB: [...B],
 ): [...A, ...B] {
   return [...argsA, ...argsB];
 }
@@ -105,23 +108,29 @@ const fusionne = fusionnerArgs([1, "hello"], [true, 42]);
 
 ```typescript
 // Extraire le premier element et le reste
-type Premier<T extends readonly unknown[]> = T extends [infer P, ...unknown[]] ? P : never;
-type Reste<T extends readonly unknown[]> = T extends [unknown, ...infer R] ? R : never;
+type Premier<T extends readonly unknown[]> = T extends [infer P, ...unknown[]]
+  ? P
+  : never;
+type Reste<T extends readonly unknown[]> = T extends [unknown, ...infer R]
+  ? R
+  : never;
 
 type T1 = Premier<[string, number, boolean]>; // string
-type T2 = Reste<[string, number, boolean]>;   // [number, boolean]
-type T3 = Premier<[]>;                         // never
-type T4 = Reste<[string]>;                     // []
+type T2 = Reste<[string, number, boolean]>; // [number, boolean]
+type T3 = Premier<[]>; // never
+type T4 = Reste<[string]>; // []
 ```
 
 ### Dernier élément d'un tuple
 
 ```typescript
-type Dernier<T extends readonly unknown[]> = T extends [...unknown[], infer D] ? D : never;
+type Dernier<T extends readonly unknown[]> = T extends [...unknown[], infer D]
+  ? D
+  : never;
 
 type D1 = Dernier<[string, number, boolean]>; // boolean
-type D2 = Dernier<[string]>;                   // string
-type D3 = Dernier<[]>;                         // never
+type D2 = Dernier<[string]>; // string
+type D3 = Dernier<[]>; // never
 ```
 
 ### Application : typer une fonction `pipe`
@@ -130,18 +139,14 @@ La fonction `pipe` est un pattern fonctionnel classique. Typer cette fonction co
 
 ```typescript
 // Version simplifiee avec deux fonctions
-function pipe<A, B, C>(
-  valeur: A,
-  fn1: (a: A) => B,
-  fn2: (b: B) => C
-): C {
+function pipe<A, B, C>(valeur: A, fn1: (a: A) => B, fn2: (b: B) => C): C {
   return fn2(fn1(valeur));
 }
 
 const resultat = pipe(
   "  Hello World  ",
-  (s) => s.trim(),           // string -> string
-  (s) => s.split(" ").length // string -> number
+  (s) => s.trim(), // string -> string
+  (s) => s.split(" ").length, // string -> number
 );
 // resultat: number = 2
 
@@ -150,16 +155,16 @@ function pipe3<A, B, C, D>(
   valeur: A,
   fn1: (a: A) => B,
   fn2: (b: B) => C,
-  fn3: (c: C) => D
+  fn3: (c: C) => D,
 ): D {
   return fn3(fn2(fn1(valeur)));
 }
 
 const resultat2 = pipe3(
   10,
-  (n) => n * 2,          // number -> number
+  (n) => n * 2, // number -> number
   (n) => `Valeur: ${n}`, // number -> string
-  (s) => s.length         // string -> number
+  (s) => s.length, // string -> number
 );
 // resultat2: number = 10
 ```
@@ -170,7 +175,7 @@ const resultat2 = pipe3(
 type Prepend<E, T extends readonly unknown[]> = [E, ...T];
 
 type P1 = Prepend<string, [number, boolean]>; // [string, number, boolean]
-type P2 = Prepend<0, [1, 2, 3]>;             // [0, 1, 2, 3]
+type P2 = Prepend<0, [1, 2, 3]>; // [0, 1, 2, 3]
 
 // Fonction utilitaire
 function prepend<E, T extends unknown[]>(element: E, tuple: [...T]): [E, ...T] {
@@ -205,9 +210,9 @@ Le point important est que `infer` ne fonctionne jamais seul : il fonctionne a l
 // TypeScript fournit deja ReturnType<T>, mais voici comment le recreer :
 type MonReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
 
-type R1 = MonReturnType<() => string>;           // string
+type R1 = MonReturnType<() => string>; // string
 type R2 = MonReturnType<(x: number) => boolean>; // boolean
-type R3 = MonReturnType<typeof Math.max>;         // number
+type R3 = MonReturnType<typeof Math.max>; // number
 ```
 
 ### Extraire les types des paramètres
@@ -217,13 +222,15 @@ type R3 = MonReturnType<typeof Math.max>;         // number
 type MesParametres<T> = T extends (...args: infer P) => any ? P : never;
 
 type P1 = MesParametres<(a: string, b: number) => void>; // [string, number]
-type P2 = MesParametres<() => void>;                       // []
+type P2 = MesParametres<() => void>; // []
 
 // Extraire le premier parametre
-type PremierParam<T> = T extends (premier: infer P, ...rest: any[]) => any ? P : never;
+type PremierParam<T> = T extends (premier: infer P, ...rest: any[]) => any
+  ? P
+  : never;
 
 type PP1 = PremierParam<(a: string, b: number) => void>; // string
-type PP2 = PremierParam<() => void>;                       // never
+type PP2 = PremierParam<() => void>; // never
 ```
 
 ### Extraire le type d'une promesse
@@ -234,10 +241,10 @@ Cet exemple montre une idée centrale du module : on peut combiner `infer` **et*
 // Unwrap une Promise (recursif pour les promesses imbriquees)
 type Unwrap<T> = T extends Promise<infer U> ? Unwrap<U> : T;
 
-type U1 = Unwrap<Promise<string>>;                 // string
-type U2 = Unwrap<Promise<Promise<number>>>;         // number
+type U1 = Unwrap<Promise<string>>; // string
+type U2 = Unwrap<Promise<Promise<number>>>; // number
 type U3 = Unwrap<Promise<Promise<Promise<boolean>>>>; // boolean
-type U4 = Unwrap<string>;                           // string (pas une promesse)
+type U4 = Unwrap<string>; // string (pas une promesse)
 ```
 
 ### Extraire les types d'un tableau
@@ -246,9 +253,9 @@ type U4 = Unwrap<string>;                           // string (pas une promesse)
 // Extraire le type des elements d'un tableau
 type ElementDe<T> = T extends readonly (infer E)[] ? E : never;
 
-type E1 = ElementDe<string[]>;      // string
+type E1 = ElementDe<string[]>; // string
 type E2 = ElementDe<[1, "a", true]>; // 1 | "a" | true
-type E3 = ElementDe<number>;        // never
+type E3 = ElementDe<number>; // never
 ```
 
 ### Infer dans les template literal types
@@ -259,8 +266,8 @@ type ExtraireRoute<T extends string> =
   T extends `/${infer Segment}/${infer Reste}`
     ? { segment: Segment; reste: Reste }
     : T extends `/${infer Segment}`
-    ? { segment: Segment; reste: "" }
-    : never;
+      ? { segment: Segment; reste: "" }
+      : never;
 
 type Route1 = ExtraireRoute<"/utilisateurs/profil">;
 // { segment: "utilisateurs"; reste: "profil" }
@@ -273,8 +280,8 @@ type ParametresRoute<T extends string> =
   T extends `${string}:${infer Param}/${infer Reste}`
     ? Param | ParametresRoute<`/${Reste}`>
     : T extends `${string}:${infer Param}`
-    ? Param
-    : never;
+      ? Param
+      : never;
 
 type Params1 = ParametresRoute<"/users/:id/posts/:postId">;
 // "id" | "postId"
@@ -299,7 +306,7 @@ Les fonctions d'ordre superieur (qui prennent ou retournent des fonctions) sont 
 // debounce : retarde l'execution d'une fonction
 function debounce<TArgs extends unknown[]>(
   fn: (...args: TArgs) => void,
-  delaiMs: number
+  delaiMs: number,
 ): (...args: TArgs) => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
@@ -315,12 +322,9 @@ function debounce<TArgs extends unknown[]>(
 }
 
 // La fonction retournee conserve le typage des parametres
-const rechercherDebounced = debounce(
-  (terme: string, page: number) => {
-    console.log(`Recherche: "${terme}" — page ${page}`);
-  },
-  300
-);
+const rechercherDebounced = debounce((terme: string, page: number) => {
+  console.log(`Recherche: "${terme}" — page ${page}`);
+}, 300);
 
 rechercherDebounced("TypeScript", 1); // OK
 // rechercherDebounced(42);            // ERREUR : attendu (string, number)
@@ -331,7 +335,7 @@ rechercherDebounced("TypeScript", 1); // OK
 ```typescript
 // memoize : met en cache les resultats d'une fonction
 function memoize<TArgs extends unknown[], TRetour>(
-  fn: (...args: TArgs) => TRetour
+  fn: (...args: TArgs) => TRetour,
 ): (...args: TArgs) => TRetour {
   const cache = new Map<string, TRetour>();
 
@@ -355,9 +359,9 @@ const factorielle = memoize((n: number): number => {
   return n * factorielle(n - 1);
 });
 
-console.log(factorielle(5));  // Calcul... puis 120
-console.log(factorielle(5));  // [Cache] puis 120
-console.log(factorielle(3));  // [Cache] puis 6 (calcule lors de factorielle(5))
+console.log(factorielle(5)); // Calcul... puis 120
+console.log(factorielle(5)); // [Cache] puis 120
+console.log(factorielle(3)); // [Cache] puis 6 (calcule lors de factorielle(5))
 ```
 
 ### Fonction `retry` typee
@@ -367,9 +371,8 @@ console.log(factorielle(3));  // [Cache] puis 6 (calcule lors de factorielle(5))
 async function retry<TArgs extends unknown[], TRetour>(
   fn: (...args: TArgs) => Promise<TRetour>,
   maxTentatives: number = 3,
-  delaiMs: number = 1000
+  delaiMs: number = 1000,
 ): Promise<(...args: TArgs) => Promise<TRetour>> {
-
   return async (...args: TArgs): Promise<TRetour> => {
     let dernierErreur: Error | undefined;
 
@@ -378,7 +381,9 @@ async function retry<TArgs extends unknown[], TRetour>(
         return await fn(...args);
       } catch (erreur) {
         dernierErreur = erreur as Error;
-        console.log(`Tentative ${tentative}/${maxTentatives} echouee: ${dernierErreur.message}`);
+        console.log(
+          `Tentative ${tentative}/${maxTentatives} echouee: ${dernierErreur.message}`,
+        );
 
         if (tentative < maxTentatives) {
           await new Promise((resolve) => setTimeout(resolve, delaiMs));
@@ -409,12 +414,12 @@ const additionner = (a: number, b: number): number => a + b;
 const additionnerCurried = curry2(additionner);
 
 const ajouter5 = additionnerCurried(5); // (b: number) => number
-console.log(ajouter5(3));                // 8
-console.log(ajouter5(10));               // 15
+console.log(ajouter5(3)); // 8
+console.log(ajouter5(10)); // 15
 
 // Currying pour 3 arguments
 function curry3<A, B, C, R>(
-  fn: (a: A, b: B, c: C) => R
+  fn: (a: A, b: B, c: C) => R,
 ): (a: A) => (b: B) => (c: C) => R {
   return (a: A) => (b: B) => (c: C) => fn(a, b, c);
 }
@@ -423,20 +428,22 @@ const volume = (l: number, w: number, h: number): number => l * w * h;
 const volumeCurried = curry3(volume);
 
 const boite10x5 = volumeCurried(10)(5); // (h: number) => number
-console.log(boite10x5(2));               // 100
-console.log(boite10x5(3));               // 150
+console.log(boite10x5(2)); // 100
+console.log(boite10x5(3)); // 150
 ```
 
 ### Currying générique avance
 
 ```typescript
 // Type recursif pour le currying
-type Curry<TParams extends unknown[], TRetour> =
-  TParams extends [infer Premier, ...infer Reste]
-    ? Reste extends []
-      ? (arg: Premier) => TRetour
-      : (arg: Premier) => Curry<Reste, TRetour>
-    : TRetour;
+type Curry<TParams extends unknown[], TRetour> = TParams extends [
+  infer Premier,
+  ...infer Reste,
+]
+  ? Reste extends []
+    ? (arg: Premier) => TRetour
+    : (arg: Premier) => Curry<Reste, TRetour>
+  : TRetour;
 
 // Exemple de type resultat
 type TestCurry = Curry<[string, number, boolean], void>;
@@ -444,7 +451,7 @@ type TestCurry = Curry<[string, number, boolean], void>;
 
 // Implementation (simplifiee pour illustrer le concept)
 function curry<TParams extends unknown[], TRetour>(
-  fn: (...args: TParams) => TRetour
+  fn: (...args: TParams) => TRetour,
 ): Curry<TParams, TRetour> {
   const curried = (...args: unknown[]): unknown => {
     if (args.length >= fn.length) {
@@ -492,7 +499,9 @@ type BuilderState = {
   protocole: boolean;
 };
 
-class ServeurBuilder<TEtat extends BuilderState = { hote: false; port: false; protocole: false }> {
+class ServeurBuilder<
+  TEtat extends BuilderState = { hote: false; port: false; protocole: false },
+> {
   private config: Partial<ConfigServeur> = {};
 
   hote(hote: string): ServeurBuilder<TEtat & { hote: true }> {
@@ -505,7 +514,9 @@ class ServeurBuilder<TEtat extends BuilderState = { hote: false; port: false; pr
     return this as any;
   }
 
-  protocole(protocole: "http" | "https"): ServeurBuilder<TEtat & { protocole: true }> {
+  protocole(
+    protocole: "http" | "https",
+  ): ServeurBuilder<TEtat & { protocole: true }> {
     this.config.protocole = protocole;
     return this as any;
   }
@@ -522,7 +533,7 @@ class ServeurBuilder<TEtat extends BuilderState = { hote: false; port: false; pr
 
   // `construire` n'est disponible que si toutes les proprietes requises sont definies
   construire(
-    this: ServeurBuilder<{ hote: true; port: true; protocole: true }>
+    this: ServeurBuilder<{ hote: true; port: true; protocole: true }>,
   ): ConfigServeur {
     return this.config as ConfigServeur;
   }
@@ -558,7 +569,7 @@ Les generics peuvent etre combines avec des types conditionnels pour que le type
 ```typescript
 // Le type de retour depend du type d'entree
 function convertir<T extends string | number | boolean>(
-  valeur: T
+  valeur: T,
 ): T extends string ? number : T extends number ? string : boolean {
   if (typeof valeur === "string") {
     return parseFloat(valeur) as any;
@@ -569,9 +580,9 @@ function convertir<T extends string | number | boolean>(
   return !valeur as any;
 }
 
-const a = convertir("42");    // type: number
-const b = convertir(42);      // type: string
-const c = convertir(true);    // type: boolean
+const a = convertir("42"); // type: number
+const b = convertir(42); // type: string
+const c = convertir(true); // type: boolean
 
 console.log(a); // 42
 console.log(b); // "42"
@@ -590,14 +601,16 @@ interface DonneesUtilisateur {
 
 type FormatReponse = "json" | "csv" | "xml";
 
-type ReponseSelonFormat<F extends FormatReponse> =
-  F extends "json" ? DonneesUtilisateur[]
-  : F extends "csv" ? string
-  : F extends "xml" ? Document
-  : never;
+type ReponseSelonFormat<F extends FormatReponse> = F extends "json"
+  ? DonneesUtilisateur[]
+  : F extends "csv"
+    ? string
+    : F extends "xml"
+      ? Document
+      : never;
 
 async function chargerUtilisateurs<F extends FormatReponse>(
-  format: F
+  format: F,
 ): Promise<ReponseSelonFormat<F>> {
   const donnees: DonneesUtilisateur[] = [
     { id: 1, nom: "Alice", email: "alice@mail.com" },
@@ -618,7 +631,7 @@ async function chargerUtilisateurs<F extends FormatReponse>(
 // TypeScript connait le type de retour exact
 async function demo() {
   const json = await chargerUtilisateurs("json"); // DonneesUtilisateur[]
-  const csv = await chargerUtilisateurs("csv");   // string
+  const csv = await chargerUtilisateurs("csv"); // string
 
   console.log(json[0].nom); // "Alice" — OK, c'est un tableau d'objets
   console.log(csv.split("\n").length); // OK, c'est un string
@@ -638,8 +651,8 @@ Quand un type conditionnel est applique à un type union, il se **distribue** su
 type EstString<T> = T extends string ? "oui" : "non";
 
 // Avec un type simple
-type Test1 = EstString<string>;  // "oui"
-type Test2 = EstString<number>;  // "non"
+type Test1 = EstString<string>; // "oui"
+type Test2 = EstString<number>; // "non"
 
 // Avec un type UNION : le conditionnel se distribue
 type Test3 = EstString<string | number>;
@@ -667,7 +680,7 @@ type D1 = EstTableau<string[] | number>; // "oui" | "non" (distribue)
 // Non-distributif (en enveloppant dans un tuple)
 type EstTableauStrict<T> = [T] extends [any[]] ? "oui" : "non";
 type D2 = EstTableauStrict<string[] | number>; // "non" (evalue comme un tout)
-type D3 = EstTableauStrict<string[]>;           // "oui"
+type D3 = EstTableauStrict<string[]>; // "oui"
 ```
 
 ### Analogie : le tri postal
@@ -699,7 +712,11 @@ function creerNoeud<T>(valeur: T, ...enfants: Noeud<T>[]): Noeud<T> {
 }
 
 // Parcourir l'arbre en profondeur
-function parcourirProfondeur<T>(noeud: Noeud<T>, fn: (valeur: T, profondeur: number) => void, profondeur: number = 0): void {
+function parcourirProfondeur<T>(
+  noeud: Noeud<T>,
+  fn: (valeur: T, profondeur: number) => void,
+  profondeur: number = 0,
+): void {
   fn(noeud.valeur, profondeur);
   for (const enfant of noeud.enfants) {
     parcourirProfondeur(enfant, fn, profondeur + 1);
@@ -707,7 +724,10 @@ function parcourirProfondeur<T>(noeud: Noeud<T>, fn: (valeur: T, profondeur: num
 }
 
 // Transformer chaque valeur de l'arbre
-function transformerArbre<T, U>(noeud: Noeud<T>, fn: (valeur: T) => U): Noeud<U> {
+function transformerArbre<T, U>(
+  noeud: Noeud<T>,
+  fn: (valeur: T) => U,
+): Noeud<U> {
   return {
     valeur: fn(noeud.valeur),
     enfants: noeud.enfants.map((enfant) => transformerArbre(enfant, fn)),
@@ -715,20 +735,16 @@ function transformerArbre<T, U>(noeud: Noeud<T>, fn: (valeur: T) => U): Noeud<U>
 }
 
 // Utilisation : arbre de fichiers
-const arbre = creerNoeud("src",
-  creerNoeud("composants",
+const arbre = creerNoeud(
+  "src",
+  creerNoeud(
+    "composants",
     creerFeuille("Bouton.tsx"),
     creerFeuille("Formulaire.tsx"),
-    creerNoeud("ui",
-      creerFeuille("Modal.tsx"),
-      creerFeuille("Tooltip.tsx")
-    )
+    creerNoeud("ui", creerFeuille("Modal.tsx"), creerFeuille("Tooltip.tsx")),
   ),
-  creerNoeud("pages",
-    creerFeuille("Accueil.tsx"),
-    creerFeuille("Contact.tsx")
-  ),
-  creerFeuille("index.ts")
+  creerNoeud("pages", creerFeuille("Accueil.tsx"), creerFeuille("Contact.tsx")),
+  creerFeuille("index.ts"),
 );
 
 parcourirProfondeur(arbre, (val, prof) => {
@@ -772,8 +788,8 @@ const donnees: JSONValue = {
 type DeepReadonly<T> = T extends (infer E)[]
   ? ReadonlyArray<DeepReadonly<E>>
   : T extends object
-  ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-  : T;
+    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+    : T;
 
 interface Etat {
   utilisateur: {
@@ -818,16 +834,20 @@ type DeepPartial<T> = T extends object
 // Utile pour les mises a jour partielles
 function mettreAJourProfond<T extends object>(
   cible: T,
-  modifications: DeepPartial<T>
+  modifications: DeepPartial<T>,
 ): T {
   const resultat = { ...cible };
 
   for (const cle in modifications) {
     const valeur = modifications[cle];
-    if (valeur !== undefined && typeof valeur === "object" && !Array.isArray(valeur)) {
+    if (
+      valeur !== undefined &&
+      typeof valeur === "object" &&
+      !Array.isArray(valeur)
+    ) {
       (resultat as any)[cle] = mettreAJourProfond(
         (cible as any)[cle],
-        valeur as any
+        valeur as any,
       );
     } else if (valeur !== undefined) {
       (resultat as any)[cle] = valeur;
@@ -851,7 +871,7 @@ const configModifiee = mettreAJourProfond(config, {
 });
 
 console.log(configModifiee.serveur.ssl.actif); // true
-console.log(configModifiee.serveur.port);       // 3000 (inchange)
+console.log(configModifiee.serveur.port); // 3000 (inchange)
 ```
 
 ---
@@ -867,7 +887,7 @@ function rechercher<T>(tableau: T[], cle: keyof T, valeur: T[keyof T]): T[];
 function rechercher<T>(
   tableau: T[],
   predicatOuCle: ((elem: T) => boolean) | keyof T,
-  valeur?: T[keyof T]
+  valeur?: T[keyof T],
 ): T[] {
   if (typeof predicatOuCle === "function") {
     return tableau.filter(predicatOuCle as (elem: T) => boolean);
@@ -940,14 +960,17 @@ function creerEmailId(id: string): EmailId {
 }
 
 // Fonctions qui utilisent les types marques
-function envoyerEmailTypeSafe(utilisateurId: UtilisateurId, emailId: EmailId): void {
+function envoyerEmailTypeSafe(
+  utilisateurId: UtilisateurId,
+  emailId: EmailId,
+): void {
   console.log(`Envoi de l'email ${emailId} a l'utilisateur ${utilisateurId}`);
 }
 
 const userId = creerUtilisateurId("user_123");
 const emailId = creerEmailId("email_456");
 
-envoyerEmailTypeSafe(userId, emailId);         // OK
+envoyerEmailTypeSafe(userId, emailId); // OK
 // envoyerEmailTypeSafe(emailId, userId);       // ERREUR : types incompatibles !
 // envoyerEmailTypeSafe("user_123", emailId);   // ERREUR : string n'est pas UtilisateurId
 ```
@@ -1000,16 +1023,16 @@ Creez un type utilitaire `Flatten<T>` qui "aplatit" un type tableau imbrique. Pa
 type Flatten<T> = T extends (infer E)[] ? Flatten<E> : T;
 
 // Tests
-type F1 = Flatten<number[]>;        // number
-type F2 = Flatten<number[][]>;      // number
-type F3 = Flatten<string[][][]>;    // string
-type F4 = Flatten<boolean>;         // boolean (pas un tableau)
+type F1 = Flatten<number[]>; // number
+type F2 = Flatten<number[][]>; // number
+type F3 = Flatten<string[][][]>; // string
+type F4 = Flatten<boolean>; // boolean (pas un tableau)
 
 // Version qui aplatit un seul niveau
 type FlattenUnNiveau<T> = T extends (infer E)[] ? E : T;
 
-type FU1 = FlattenUnNiveau<number[]>;     // number
-type FU2 = FlattenUnNiveau<number[][]>;   // number[]
+type FU1 = FlattenUnNiveau<number[]>; // number
+type FU2 = FlattenUnNiveau<number[][]>; // number[]
 type FU3 = FlattenUnNiveau<string[][][]>; // string[][]
 
 // Fonction avec le type Flatten
@@ -1040,19 +1063,21 @@ type CheminProfond<T, Prefixe extends string = ""> = T extends object
   : never;
 
 // Type pour obtenir le type a un chemin profond
-type TypeAuChemin<T, Chemin extends string> =
-  Chemin extends `${infer Cle}.${infer Reste}`
-    ? Cle extends keyof T
-      ? TypeAuChemin<T[Cle], Reste>
-      : never
-    : Chemin extends keyof T
+type TypeAuChemin<
+  T,
+  Chemin extends string,
+> = Chemin extends `${infer Cle}.${infer Reste}`
+  ? Cle extends keyof T
+    ? TypeAuChemin<T[Cle], Reste>
+    : never
+  : Chemin extends keyof T
     ? T[Chemin]
     : never;
 
 // Implementation
 function accederProfond<T extends object, C extends CheminProfond<T>>(
   objet: T,
-  chemin: C
+  chemin: C,
 ): TypeAuChemin<T, C & string> {
   const segments = (chemin as string).split(".");
   let courant: any = objet;
@@ -1088,8 +1113,8 @@ const employe: Employe = {
 
 const ville = accederProfond(employe, "adresse.ville"); // string
 const codePays = accederProfond(employe, "adresse.pays.code"); // string
-console.log(ville);     // "Paris"
-console.log(codePays);  // "FR"
+console.log(ville); // "Paris"
+console.log(codePays); // "FR"
 ```
 
 </details>
@@ -1108,7 +1133,7 @@ interface EvenementsApp {
   "utilisateur:deconnecte": { id: string };
   "article:cree": { id: number; titre: string; auteur: string };
   "article:supprime": { id: number };
-  "erreur": { message: string; code: number };
+  erreur: { message: string; code: number };
 }
 
 // Emetteur d'evenements generique
@@ -1118,7 +1143,7 @@ class EmetteurTypeSafe<TEvenements extends Record<string, any>> {
   // S'abonner a un evenement
   sur<K extends keyof TEvenements>(
     evenement: K,
-    ecouteur: (donnees: TEvenements[K]) => void
+    ecouteur: (donnees: TEvenements[K]) => void,
   ): () => void {
     if (!this.ecouteurs.has(evenement)) {
       this.ecouteurs.set(evenement, new Set());
@@ -1134,7 +1159,7 @@ class EmetteurTypeSafe<TEvenements extends Record<string, any>> {
   // S'abonner pour un seul evenement
   uneFois<K extends keyof TEvenements>(
     evenement: K,
-    ecouteur: (donnees: TEvenements[K]) => void
+    ecouteur: (donnees: TEvenements[K]) => void,
   ): void {
     const desabonner = this.sur(evenement, (donnees) => {
       desabonner();
@@ -1145,7 +1170,7 @@ class EmetteurTypeSafe<TEvenements extends Record<string, any>> {
   // Emettre un evenement
   emettre<K extends keyof TEvenements>(
     evenement: K,
-    donnees: TEvenements[K]
+    donnees: TEvenements[K],
   ): void {
     const ecouteurs = this.ecouteurs.get(evenement);
     if (ecouteurs) {
@@ -1203,7 +1228,9 @@ Creez un système de types marques pour une application financiere qui empeche d
 declare const __devise: unique symbol;
 
 // Type de montant marque par une devise
-type Montant<TDevise extends string> = number & { readonly [__devise]: TDevise };
+type Montant<TDevise extends string> = number & {
+  readonly [__devise]: TDevise;
+};
 
 // Devises supportees
 type EUR = Montant<"EUR">;
@@ -1211,20 +1238,35 @@ type USD = Montant<"USD">;
 type GBP = Montant<"GBP">;
 
 // Constructeurs
-function eur(montant: number): EUR { return montant as EUR; }
-function usd(montant: number): USD { return montant as USD; }
-function gbp(montant: number): GBP { return montant as GBP; }
+function eur(montant: number): EUR {
+  return montant as EUR;
+}
+function usd(montant: number): USD {
+  return montant as USD;
+}
+function gbp(montant: number): GBP {
+  return montant as GBP;
+}
 
 // Operations type-safe (meme devise uniquement)
-function additionner<T extends string>(a: Montant<T>, b: Montant<T>): Montant<T> {
+function additionner<T extends string>(
+  a: Montant<T>,
+  b: Montant<T>,
+): Montant<T> {
   return ((a as number) + (b as number)) as Montant<T>;
 }
 
-function soustraire<T extends string>(a: Montant<T>, b: Montant<T>): Montant<T> {
+function soustraire<T extends string>(
+  a: Montant<T>,
+  b: Montant<T>,
+): Montant<T> {
   return ((a as number) - (b as number)) as Montant<T>;
 }
 
-function multiplier<T extends string>(montant: Montant<T>, facteur: number): Montant<T> {
+function multiplier<T extends string>(
+  montant: Montant<T>,
+  facteur: number,
+): Montant<T> {
   return ((montant as number) * facteur) as Montant<T>;
 }
 
@@ -1238,7 +1280,7 @@ interface TauxChange {
 function convertir<TDe extends string, TVers extends string>(
   montant: Montant<TDe>,
   tauxChange: number,
-  _versDevise: TVers
+  _versDevise: TVers,
 ): Montant<TVers> {
   return ((montant as number) * tauxChange) as Montant<TVers>;
 }
@@ -1264,18 +1306,18 @@ console.log(`Total avec conversion: ${totalAvecConversion} EUR`);
 
 ## Récapitulatif
 
-| Concept                      | Description                                                        |
-|------------------------------|--------------------------------------------------------------------|
-| Variadic tuple types         | Manipuler des tuples generiquement (`[...A, ...B]`)               |
-| `infer`                      | Extraire un type depuis une structure dans un conditionnel         |
-| Higher-order generics        | Typer les fonctions qui prennent/retournent des fonctions          |
-| Currying type-safe           | Transformer `f(a, b, c)` en `f(a)(b)(c)` avec types preserves     |
-| Builder type-safe            | Forcer les étapes obligatoires au moment de la compilation         |
-| Retour conditionnel          | Le type de retour depend du type d'entree                          |
-| Distributivite               | Les conditionnels se distribuent sur les unions                    |
-| Contraintes recursives       | Types qui se referencent eux-memes (arbres, DeepReadonly)          |
-| Overloads génériques         | Signatures multiples avec types différents                         |
-| Branded types                | Types nominaux pour empecher les melanges                          |
+| Concept                | Description                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| Variadic tuple types   | Manipuler des tuples generiquement (`[...A, ...B]`)           |
+| `infer`                | Extraire un type depuis une structure dans un conditionnel    |
+| Higher-order generics  | Typer les fonctions qui prennent/retournent des fonctions     |
+| Currying type-safe     | Transformer `f(a, b, c)` en `f(a)(b)(c)` avec types preserves |
+| Builder type-safe      | Forcer les étapes obligatoires au moment de la compilation    |
+| Retour conditionnel    | Le type de retour depend du type d'entree                     |
+| Distributivite         | Les conditionnels se distribuent sur les unions               |
+| Contraintes recursives | Types qui se referencent eux-memes (arbres, DeepReadonly)     |
+| Overloads génériques   | Signatures multiples avec types différents                    |
+| Branded types          | Types nominaux pour empecher les melanges                     |
 
 ---
 
@@ -1290,8 +1332,9 @@ Dans le **Module 08**, nous explorerons les **Enums, Tuples et Types speciaux** 
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 07 generics avances](../screencasts/screencast-07-generics-avances.md)
 2. **Lab** : [lab-07-generics-avances](../labs/lab-07-generics-avances/README)
 3. **Visualisation** : [Generics Flow](../visualizations/generics-flow.html)
 4. **Quiz** : [quiz 07 generics avances](../quizzes/quiz-07-generics-avances.html)
-:::
+   :::

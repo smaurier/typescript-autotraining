@@ -51,16 +51,16 @@
     const questions = [
       {
         label: "Question 1",
-        text: "Quelle est la limite principale des types recursifs en TypeScript ?",
-        code: "type DeepReadonly&lt;T&gt; = {\n  readonly [K in keyof T]: T[K] extends object\n    ? DeepReadonly&lt;T[K]&gt;\n    : T[K];\n};",
+        text: "Que vaut le type <code>Unwrap&lt;Promise&lt;Promise&lt;string&gt;&gt;&gt;</code> avec ce type recursif ?",
+        code: "type Unwrap&lt;T&gt; = T extends Promise&lt;infer U&gt; ? Unwrap&lt;U&gt; : T;\n\ntype A = Unwrap&lt;string&gt;;\ntype B = Unwrap&lt;Promise&lt;number&gt;&gt;;\ntype C = Unwrap&lt;Promise&lt;Promise&lt;string&gt;&gt;&gt;;",
         options: [
-          "Ils ne fonctionnent pas avec les interfaces",
-          "Ils ont une limite de profondeur de recursion (environ 1000 niveaux)",
-          "Ils ne peuvent pas etre exportes",
-          "Ils ne sont evalues qu'a l'execution"
+          "A = string, B = Promise&lt;number&gt;, C = Promise&lt;string&gt;",
+          "A = string, B = number, C = string",
+          "A = never, B = number, C = string",
+          "A = string, B = number, C = Promise&lt;string&gt;"
         ],
         answer: 1,
-        explanation: "TypeScript impose une limite de profondeur de recursion pour les types (generalement autour de 1000 niveaux pour les types instanties). Au-dela, le compilateur produit une erreur <code>'Type instantiation is excessively deep and possibly infinite'</code>."
+        explanation: "<code>Unwrap</code> est un type recursif : si <code>T</code> est un <code>Promise&lt;U&gt;</code>, il desemballe <code>U</code> et se rappelle. <code>A = string</code> car string n'est pas un Promise. <code>B = number</code> car <code>Promise&lt;number&gt;</code> est desemballe une fois. <code>C = string</code> car <code>Promise&lt;Promise&lt;string&gt;&gt;</code> est desemballe deux fois. C'est le meme principe que le type standard <code>Awaited&lt;T&gt;</code>."
       },
       {
         label: "Question 2",
@@ -113,6 +113,19 @@
         ],
         answer: 2,
         explanation: "<code>Flatten</code> desemballe recursivement les tableaux jusqu'a atteindre un type qui n'est pas un tableau. <code>number[][][]</code> devient <code>number[][]</code>, puis <code>number[]</code>, puis <code>number</code>. <code>string</code> n'est pas un tableau, donc il reste <code>string</code>."
+      },
+      {
+        label: "Question 6",
+        text: "Quelle est la difference entre un type recursif sur les valeurs et un type recursif sur les cles ?",
+        code: "// Recursif sur les valeurs (en profondeur) :\ntype DeepReadonly&lt;T&gt; = {\n  readonly [K in keyof T]: T[K] extends object\n    ? DeepReadonly&lt;T[K]&gt;\n    : T[K];\n};\n\n// Recursif pour generer les chemins :\ntype Paths&lt;T&gt; = T extends object\n  ? { [K in keyof T]: K extends string\n      ? K | `${K}.${Paths&lt;T[K]&gt;}`\n      : never }[keyof T]\n  : never;",
+        options: [
+          "Les deux sont identiques, la distinction n'existe pas",
+          "La recursion sur les valeurs transforme chaque valeur imbriquee. La recursion sur les cles genere de nouvelles cles/chemins a partir de la structure.",
+          "Seule la recursion sur les valeurs est supportee en TypeScript",
+          "La recursion sur les cles necessite le flag recursiveTypes actif"
+        ],
+        answer: 1,
+        explanation: "<code>DeepReadonly</code> est recursif sur les <strong>valeurs</strong> : pour chaque propriete, si sa valeur est un objet, on applique recursivite. <code>Paths</code> est recursif sur les <strong>cles</strong> : il genere toutes les chaines de chemin possibles (<code>'user'</code>, <code>'user.name'</code>, <code>'user.address.city'</code>...). Cette distinction structure/forme vs chemins/contenus est fondamentale dans la programmation de types avancee."
       }
     ];
     let currentQuestion = 0, score = 0, answered = false;

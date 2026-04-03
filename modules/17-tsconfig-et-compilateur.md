@@ -56,7 +56,9 @@ Si ces trois réponses sont claires, beaucoup d'options cessent d'être des lign
 // tsconfig.json — Structure globale
 {
   // Options du compilateur TypeScript
-  "compilerOptions": { /* ... */ },
+  "compilerOptions": {
+    /* ... */
+  },
 
   // Fichiers a inclure dans la compilation
   "include": ["src/**/*"],
@@ -71,10 +73,7 @@ Si ces trois réponses sont claires, beaucoup d'options cessent d'être des lign
   "extends": "./tsconfig.base.json",
 
   // References de projets (monorepos)
-  "references": [
-    { "path": "./packages/core" },
-    { "path": "./packages/ui" }
-  ]
+  "references": [{ "path": "./packages/core" }, { "path": "./packages/ui" }]
 }
 ```
 
@@ -252,7 +251,9 @@ function traiterOK(donnees: unknown) {} // OK
 const element = document.getElementById("app"); // Type: HTMLElement | null
 // element.textContent = "Bonjour"; // Erreur : 'element' peut etre null
 element?.textContent; // OK avec optional chaining
-if (element) { element.textContent = "Bonjour"; } // OK avec narrowing
+if (element) {
+  element.textContent = "Bonjour";
+} // OK avec narrowing
 
 // --- strictFunctionTypes ---
 // Contravariance stricte des parametres de fonctions
@@ -414,9 +415,9 @@ monorepo/
 // packages/core/tsconfig.json
 {
   "compilerOptions": {
-    "composite": true,        // OBLIGATOIRE pour les project references
-    "declaration": true,      // OBLIGATOIRE : genere les .d.ts
-    "declarationMap": true,   // Recommande : navigation vers les sources
+    "composite": true, // OBLIGATOIRE pour les project references
+    "declaration": true, // OBLIGATOIRE : genere les .d.ts
+    "declarationMap": true, // Recommande : navigation vers les sources
     "rootDir": "./src",
     "outDir": "./dist",
     "target": "ES2022",
@@ -466,9 +467,7 @@ monorepo/
     "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../core" }
-  ]
+  "references": [{ "path": "../core" }]
 }
 ```
 
@@ -504,9 +503,7 @@ monorepo/
     "outDir": "./dist"
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../core" }
-  ]
+  "references": [{ "path": "../core" }]
 }
 ```
 
@@ -684,7 +681,10 @@ tsc --generateTrace ./trace
 
 // 1. const enum (necessite de connaitre la valeur a la compilation)
 const enum Direction {
-  Nord, Sud, Est, Ouest
+  Nord,
+  Sud,
+  Est,
+  Ouest,
 }
 // Avec isolatedModules, les const enum sont restreints
 
@@ -880,13 +880,13 @@ monorepo/
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Bundler",  // Important pour Vite !
+    "moduleResolution": "Bundler", // Important pour Vite !
     "strict": true,
-    "jsx": "react-jsx",            // Pour React
+    "jsx": "react-jsx", // Pour React
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
-    "isolatedModules": true,        // Necessaire pour Vite
-    "noEmit": true,                 // Vite compile le JS
+    "isolatedModules": true, // Necessaire pour Vite
+    "noEmit": true, // Vite compile le JS
     "allowImportingTsExtensions": true, // TS 5.0+ avec noEmit
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
@@ -924,7 +924,7 @@ export default defineConfig({
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "jsx": "preserve",               // Next.js gere le JSX
+    "jsx": "preserve", // Next.js gere le JSX
     "strict": true,
     "noEmit": true,
     "incremental": true,
@@ -933,7 +933,7 @@ export default defineConfig({
     "isolatedModules": true,
     "skipLibCheck": true,
     "plugins": [
-      { "name": "next" }            // Plugin TypeScript de Next.js
+      { "name": "next" } // Plugin TypeScript de Next.js
     ],
     "paths": {
       "@/*": ["./src/*"]
@@ -1002,7 +1002,7 @@ export default tseslint.config(
   {
     // Ignorer certains fichiers
     ignores: ["dist/", "node_modules/", "*.js"],
-  }
+  },
 );
 ```
 
@@ -1153,6 +1153,7 @@ Le tsconfig.json suivant a plusieurs problèmes. Identifiez et corrigez-les :
 ### Exercice 2 : Configurer un monorepo
 
 Creez les fichiers tsconfig.json pour un monorepo avec trois packages :
+
 - `@monorepo/shared` : types et utilitaires partages
 - `@monorepo/server` : API Express (depend de shared)
 - `@monorepo/client` : App React Vite (depend de shared)
@@ -1216,9 +1217,7 @@ Creez les fichiers tsconfig.json pour un monorepo avec trois packages :
     "outDir": "./dist"
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../shared" }
-  ]
+  "references": [{ "path": "../shared" }]
 }
 ```
 
@@ -1236,9 +1235,7 @@ Creez les fichiers tsconfig.json pour un monorepo avec trois packages :
     "noEmit": true
   },
   "include": ["src/**/*"],
-  "references": [
-    { "path": "../shared" }
-  ]
+  "references": [{ "path": "../shared" }]
 }
 ```
 
@@ -1270,7 +1267,7 @@ tsconfig.json pour ameliorer les performances ?
 
     // 4. Isoler les modules (permet le parallelisme)
     // Impact : INDIRECT — permet d'utiliser des outils plus rapides
-    "isolatedModules": true,
+    "isolatedModules": true
 
     // 5. Exclure les tests et fichiers non necessaires
     // Impact : MOYEN — moins de fichiers a analyser
@@ -1305,19 +1302,19 @@ tsconfig.json pour ameliorer les performances ?
 
 ## Récapitulatif
 
-| Option                       | Role                                              |
-|------------------------------|--------------------------------------------------|
-| **target**                   | Version JS de sortie (ES2022 recommande)          |
-| **module**                   | Système de modules (NodeNext/ESNext)              |
-| **moduleResolution**         | Algorithme de résolution (NodeNext/Bundler)       |
-| **strict**                   | Active toutes les verifications strictes          |
-| **paths**                    | Alias d'import (@/*, @utils/*, etc.)             |
-| **composite**                | Active les project références                     |
-| **incremental**              | Compilation incrementale avec cache               |
-| **skipLibCheck**             | Ignore les .d.ts (performance)                   |
-| **isolatedModules**          | Compilation fichier par fichier                   |
-| **declaration**              | Genere les fichiers .d.ts                         |
-| **noEmit**                   | Ne généré pas de JS (bundler externe)            |
+| Option               | Role                                        |
+| -------------------- | ------------------------------------------- |
+| **target**           | Version JS de sortie (ES2022 recommande)    |
+| **module**           | Système de modules (NodeNext/ESNext)        |
+| **moduleResolution** | Algorithme de résolution (NodeNext/Bundler) |
+| **strict**           | Active toutes les verifications strictes    |
+| **paths**            | Alias d'import (@/_, @utils/_, etc.)        |
+| **composite**        | Active les project références               |
+| **incremental**      | Compilation incrementale avec cache         |
+| **skipLibCheck**     | Ignore les .d.ts (performance)              |
+| **isolatedModules**  | Compilation fichier par fichier             |
+| **declaration**      | Genere les fichiers .d.ts                   |
+| **noEmit**           | Ne généré pas de JS (bundler externe)       |
 
 ---
 
@@ -1336,7 +1333,8 @@ allons exploiter n'existeraient pas.
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 17 tsconfig](../screencasts/screencast-17-tsconfig.md)
 2. **Lab** : [lab-17-tsconfig](../labs/lab-17-tsconfig/README)
 3. **Quiz** : [quiz 17 tsconfig](../quizzes/quiz-17-tsconfig.html)
-:::
+   :::

@@ -103,8 +103,8 @@ export class Calculatrice {
 // Import de noms specifiques
 import { additionner, multiplier, PI } from "./utils/math";
 
-console.log(additionner(2, 3));  // 5
-console.log(multiplier(4, PI));  // ~12.57
+console.log(additionner(2, 3)); // 5
+console.log(multiplier(4, PI)); // ~12.57
 
 // Import avec renommage (alias)
 import { additionner as add, Point2D as Point } from "./utils/math";
@@ -115,7 +115,7 @@ console.log(add(p.x, p.y)); // 30
 // Import de tout sous un namespace
 import * as MathUtils from "./utils/math";
 
-console.log(MathUtils.PI);            // 3.14159...
+console.log(MathUtils.PI); // 3.14159...
 console.log(MathUtils.additionner(1, 2)); // 3
 const calc = new MathUtils.Calculatrice();
 ```
@@ -198,8 +198,8 @@ export default function formaterDate(date: Date): string {
 import config from "./config";
 import formaterDate from "./helpers/formater";
 
-console.log(config.apiUrl);                // "https://api.example.com"
-console.log(formaterDate(new Date()));     // "samedi 8 mars 2026"
+console.log(config.apiUrl); // "https://api.example.com"
+console.log(formaterDate(new Date())); // "samedi 8 mars 2026"
 ```
 
 ### Import de types uniquement (`import type`)
@@ -239,7 +239,10 @@ function creerArticle(titre: string, auteur: Utilisateur): Article {
   };
 }
 
-function filtrerParStatut(articles: Article[], statut: StatutArticle): Article[] {
+function filtrerParStatut(
+  articles: Article[],
+  statut: StatutArticle,
+): Article[] {
   // Implementation...
   return articles;
 }
@@ -290,18 +293,18 @@ L'option `esModuleInterop` dans `tsconfig.json` permet d'utiliser la syntaxe ESM
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
     // ...
-  }
+  },
 }
 ```
 
 ```typescript
 // Avec esModuleInterop active, on peut importer normalement :
-import fs from "fs";              // Module Node.js CJS
-import path from "path";          // Module Node.js CJS
-import express from "express";    // Package npm CJS
-import _ from "lodash";           // Package npm CJS
+import fs from "fs"; // Module Node.js CJS
+import path from "path"; // Module Node.js CJS
+import express from "express"; // Package npm CJS
+import _ from "lodash"; // Package npm CJS
 
 // Ca fonctionne comme si ces modules avaient un export par defaut
 const contenu = fs.readFileSync("fichier.txt", "utf-8");
@@ -459,7 +462,7 @@ export type InfosConnexion = {
 export class ServiceAPI {
   constructor(
     private baseUrl: string,
-    private token?: string
+    private token?: string,
   ) {}
 
   private headers(): Record<string, string> {
@@ -519,12 +522,12 @@ const api = new ServiceAPI("https://api.example.com");
 
 ### Avantages et inconvenients des barrel files
 
-| Avantages                                   | Inconvenients                                  |
-|---------------------------------------------|------------------------------------------------|
-| Imports plus propres et plus courts          | Peut causer des imports circulaires             |
-| API publique claire du dossier              | Peut empecher le tree-shaking                   |
-| Facilite le refactoring interne             | Augmente le temps de compilation                |
-| Cache la structure interne du dossier       | Un module modifie = tout le barrel recharge     |
+| Avantages                             | Inconvenients                               |
+| ------------------------------------- | ------------------------------------------- |
+| Imports plus propres et plus courts   | Peut causer des imports circulaires         |
+| API publique claire du dossier        | Peut empecher le tree-shaking               |
+| Facilite le refactoring interne       | Augmente le temps de compilation            |
+| Cache la structure interne du dossier | Un module modifie = tout le barrel recharge |
 
 > **Recommandation** : Utilisez les barrel files avec moderation. Ils sont excellents pour les bibliotheques et les dossiers avec une API publique claire. Evitez-les pour les dossiers très larges ou les imports circulaires sont probables.
 
@@ -611,11 +614,11 @@ service.ajouter(user);
 
 ### Pourquoi éviter les namespaces ?
 
-| Raison                          | Explication                                              |
-|---------------------------------|----------------------------------------------------------|
-| Modules ES sont le standard     | L'ecosysteme JavaScript est base sur ESM                 |
-| Pas de tree-shaking             | Tout le namespace est inclus même si on n'utilise qu'une partie |
-| Complexite inutile              | Les modules ES font la même chose plus simplement         |
+| Raison                            | Explication                                                          |
+| --------------------------------- | -------------------------------------------------------------------- |
+| Modules ES sont le standard       | L'ecosysteme JavaScript est base sur ESM                             |
+| Pas de tree-shaking               | Tout le namespace est inclus même si on n'utilise qu'une partie      |
+| Complexite inutile                | Les modules ES font la même chose plus simplement                    |
 | Incompatible avec certains outils | ESBuild, Vite et autres bundlers modernes ne les supportent pas bien |
 
 > **Recommandation** : N'utilisez **pas** les namespaces dans du code nouveau. Preferez toujours les modules ES (`import`/`export`). Les namespaces restent utiles uniquement dans les fichiers de declarations (`.d.ts`) pour les bibliotheques globales.
@@ -664,13 +667,13 @@ import { bar } from "mon-package"; // Resolu via package.json "exports"
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
     },
     "./utils": {
       "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js"
-    }
-  }
+      "import": "./dist/utils.js",
+    },
+  },
 }
 ```
 
@@ -684,9 +687,9 @@ Resolution adaptee aux bundlers modernes (Vite, webpack, esbuild, Rollup). C'est
   "compilerOptions": {
     "moduleResolution": "bundler",
     "module": "esnext",
-    "target": "esnext"
+    "target": "esnext",
     // ...
-  }
+  },
 }
 ```
 
@@ -706,12 +709,12 @@ import logo from "./logo.png";
 
 ### Tableau comparatif des stratégies
 
-| Stratégie    | Extensions requises | `exports` pkg.json | Cas d'usage                    |
-|--------------|--------------------|--------------------|--------------------------------|
-| `node`       | Non                | Non                | Projets anciens, CommonJS       |
-| `node16`     | Oui (`.js`)        | Oui                | Node.js avec ESM natif          |
-| `nodenext`   | Oui (`.js`)        | Oui                | Node.js dernière version        |
-| `bundler`    | Non                | Oui                | Apps front-end, Vite, webpack   |
+| Stratégie  | Extensions requises | `exports` pkg.json | Cas d'usage                   |
+| ---------- | ------------------- | ------------------ | ----------------------------- |
+| `node`     | Non                 | Non                | Projets anciens, CommonJS     |
+| `node16`   | Oui (`.js`)         | Oui                | Node.js avec ESM natif        |
+| `nodenext` | Oui (`.js`)         | Oui                | Node.js dernière version      |
+| `bundler`  | Non                 | Oui                | Apps front-end, Vite, webpack |
 
 ---
 
@@ -738,9 +741,9 @@ Les alias de chemins permettent de remplacer les chemins relatifs longs par des 
       "@config": ["src/config/index.ts"],
 
       // Alias pour les tests
-      "@test/*": ["tests/*"]
-    }
-  }
+      "@test/*": ["tests/*"],
+    },
+  },
 }
 ```
 
@@ -884,7 +887,7 @@ import logo from "./assets/logo.png";
 import icone from "./assets/check.svg";
 
 console.log(styles.container); // la classe CSS
-console.log(logo);             // le chemin vers l'image
+console.log(logo); // le chemin vers l'image
 ```
 
 ### Declarations pour les variables globales
@@ -927,10 +930,10 @@ Certains modules sont importes uniquement pour leurs **effets de bord** (side ef
 ```typescript
 // Import pour effet de bord uniquement
 // Le module s'execute mais on n'importe aucune valeur
-import "./polyfills";           // Charge des polyfills
-import "reflect-metadata";     // Configure le systeme de reflexion
-import "./styles/global.css";  // Charge des styles globaux (via bundler)
-import "./config/init";        // Execute du code d'initialisation
+import "./polyfills"; // Charge des polyfills
+import "reflect-metadata"; // Configure le systeme de reflexion
+import "./styles/global.css"; // Charge des styles globaux (via bundler)
+import "./config/init"; // Execute du code d'initialisation
 ```
 
 ```typescript
@@ -958,11 +961,7 @@ Pour aider les bundlers avec le tree-shaking, le champ `sideEffects` dans `packa
 // package.json
 {
   "name": "mon-package",
-  "sideEffects": [
-    "*.css",
-    "./src/polyfills.ts",
-    "./src/config/init.ts"
-  ]
+  "sideEffects": ["*.css", "./src/polyfills.ts", "./src/config/init.ts"],
   // Ou "sideEffects": false si aucun fichier n'a d'effet de bord
 }
 ```
@@ -982,7 +981,7 @@ async function chargerModule() {
   const mathUtils = await import("./utils/math");
 
   console.log(mathUtils.additionner(1, 2)); // 3
-  console.log(mathUtils.PI);                // 3.14159...
+  console.log(mathUtils.PI); // 3.14159...
 }
 
 // Avec destructuring
@@ -1012,7 +1011,8 @@ async function obtenirStockage() {
 // Chargement paresseux (lazy loading) de fonctionnalites lourdes
 async function genererRapportPDF() {
   // Le module PDF est charge uniquement quand on en a besoin
-  const { creerPDF, ajouterTableau, sauvegarder } = await import("./rapport/pdf-generator");
+  const { creerPDF, ajouterTableau, sauvegarder } =
+    await import("./rapport/pdf-generator");
 
   const pdf = creerPDF("Rapport mensuel");
   ajouterTableau(pdf, donnees);
@@ -1147,14 +1147,17 @@ Array.prototype.estVide = function <T>(this: T[]): boolean {
 
 Array.prototype.grouper = function <T, K extends string>(
   this: T[],
-  fn: (element: T) => K
+  fn: (element: T) => K,
 ): Record<K, T[]> {
-  return this.reduce((acc, element) => {
-    const cle = fn(element);
-    if (!acc[cle]) acc[cle] = [];
-    acc[cle].push(element);
-    return acc;
-  }, {} as Record<K, T[]>);
+  return this.reduce(
+    (acc, element) => {
+      const cle = fn(element);
+      if (!acc[cle]) acc[cle] = [];
+      acc[cle].push(element);
+      return acc;
+    },
+    {} as Record<K, T[]>,
+  );
 };
 ```
 
@@ -1164,7 +1167,7 @@ import "./polyfills/array"; // Charge les implementations
 
 const nombres = [1, 2, 3, 4, 5];
 console.log(nombres.dernierElement()); // 5
-console.log([].estVide());             // true
+console.log([].estVide()); // true
 
 const utilisateurs = [
   { nom: "Alice", ville: "Paris" },
@@ -1199,7 +1202,11 @@ export interface User {
 
 export type UserRole = "admin" | "editeur" | "lecteur";
 
-export function creerUser(nom: string, email: string, role: UserRole = "lecteur"): User {
+export function creerUser(
+  nom: string,
+  email: string,
+  role: UserRole = "lecteur",
+): User {
   return { id: crypto.randomUUID(), nom, email, role };
 }
 
@@ -1215,7 +1222,11 @@ export interface Post {
 
 export type PostStatut = "brouillon" | "publie" | "archive";
 
-export function creerPost(titre: string, contenu: string, auteurId: string): Post {
+export function creerPost(
+  titre: string,
+  contenu: string,
+  auteurId: string,
+): Post {
   return {
     id: crypto.randomUUID(),
     titre,
@@ -1329,7 +1340,7 @@ Ecrivez un fichier `tsconfig.json` complet pour un projet Vite avec React, inclu
       "@utils/*": ["src/utils/*"],
       "@assets/*": ["src/assets/*"],
       "@styles/*": ["src/styles/*"],
-      "@config": ["src/config/index.ts"]
+      "@config": ["src/config/index.ts"],
     },
 
     // Sortie
@@ -1339,10 +1350,10 @@ Ecrivez un fichier `tsconfig.json` complet pour un projet Vite avec React, inclu
     "sourceMap": true,
 
     // Autres
-    "skipLibCheck": true
+    "skipLibCheck": true,
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts"],
 }
 ```
 
@@ -1386,7 +1397,11 @@ Ecrivez des declarations de types pour un SDK de paiement fictif qui n'a pas de 
 declare module "payment-sdk" {
   // Types de base
   export type Devise = "EUR" | "USD" | "GBP" | "CHF";
-  export type StatutPaiement = "en_attente" | "accepte" | "refuse" | "rembourse";
+  export type StatutPaiement =
+    | "en_attente"
+    | "accepte"
+    | "refuse"
+    | "rembourse";
 
   // Interfaces
   export interface Montant {
@@ -1456,7 +1471,10 @@ declare module "payment-sdk" {
     // Methodes de paiement
     creerPaiement(options: OptionsCreationPaiement): Promise<ResultatPaiement>;
     obtenirPaiement(id: string): Promise<Paiement>;
-    listerPaiements(filtres?: { statut?: StatutPaiement; limite?: number }): Promise<Paiement[]>;
+    listerPaiements(filtres?: {
+      statut?: StatutPaiement;
+      limite?: number;
+    }): Promise<Paiement[]>;
     rembourser(options: OptionsRemboursement): Promise<ResultatPaiement>;
 
     // Webhooks
@@ -1577,7 +1595,7 @@ function obtenirCache(api: ServiceAPI): Map<string, EntreeCache> {
 ServiceAPI.prototype.getAvecCache = async function <T>(
   this: ServiceAPI,
   chemin: string,
-  dureeVieMs: number = 60000
+  dureeVieMs: number = 60000,
 ): Promise<T> {
   const cache = obtenirCache(this);
   const entree = cache.get(chemin);
@@ -1595,7 +1613,7 @@ ServiceAPI.prototype.getAvecCache = async function <T>(
 
 ServiceAPI.prototype.invaliderCache = function (
   this: ServiceAPI,
-  chemin?: string
+  chemin?: string,
 ): void {
   const cache = obtenirCache(this);
   if (chemin) {
@@ -1635,22 +1653,22 @@ async function demo() {
 
 ## Récapitulatif
 
-| Concept                     | Description                                                        |
-|-----------------------------|--------------------------------------------------------------------|
-| `export` / `import`         | Syntaxe ESM standard pour partager du code entre fichiers          |
-| `export default`            | Export principal unique d'un module                                 |
-| `import type`               | Import de types uniquement, efface à la compilation                |
-| `esModuleInterop`           | Permet d'importer des modules CJS avec la syntaxe ESM             |
-| Re-exports                  | Re-exporter des éléments d'un module via un autre                  |
-| Barrel files                | Fichiers `index.ts` qui centralisent les exports d'un dossier     |
-| Namespaces                  | Héritage — éviter dans le code nouveau                             |
-| Resolution `bundler`        | Stratégie recommandee pour les apps front-end                      |
-| Resolution `node16`         | Stratégie pour Node.js avec ESM natif                              |
-| `paths`                     | Alias de chemins dans `tsconfig.json`                              |
-| `declare module`            | Declarations de types pour des modules sans types                  |
-| Side-effect imports         | `import "./module"` — exécuté le module sans importer de valeurs  |
-| `import()`                  | Import dynamique — charge un module à la demandé                   |
-| Augmentation de modules     | Ajouter des types à un module existant                             |
+| Concept                 | Description                                                      |
+| ----------------------- | ---------------------------------------------------------------- |
+| `export` / `import`     | Syntaxe ESM standard pour partager du code entre fichiers        |
+| `export default`        | Export principal unique d'un module                              |
+| `import type`           | Import de types uniquement, efface à la compilation              |
+| `esModuleInterop`       | Permet d'importer des modules CJS avec la syntaxe ESM            |
+| Re-exports              | Re-exporter des éléments d'un module via un autre                |
+| Barrel files            | Fichiers `index.ts` qui centralisent les exports d'un dossier    |
+| Namespaces              | Héritage — éviter dans le code nouveau                           |
+| Resolution `bundler`    | Stratégie recommandee pour les apps front-end                    |
+| Resolution `node16`     | Stratégie pour Node.js avec ESM natif                            |
+| `paths`                 | Alias de chemins dans `tsconfig.json`                            |
+| `declare module`        | Declarations de types pour des modules sans types                |
+| Side-effect imports     | `import "./module"` — exécuté le module sans importer de valeurs |
+| `import()`              | Import dynamique — charge un module à la demandé                 |
+| Augmentation de modules | Ajouter des types à un module existant                           |
 
 ---
 
@@ -1665,8 +1683,9 @@ Les modules que nous avons vus dans ce Module 09 forment les fondations de l'org
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 09 modules](../screencasts/screencast-09-modules.md)
 2. **Lab** : [lab-09-modules](../labs/lab-09-modules/README)
 3. **Visualisation** : [Module Resolution](../visualizations/module-resolution.html)
 4. **Quiz** : [quiz 09 modules](../quizzes/quiz-09-modules.html)
-:::
+   :::

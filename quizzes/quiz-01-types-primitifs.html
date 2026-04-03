@@ -64,55 +64,68 @@
       },
       {
         label: "Question 2",
-        text: "Pourquoi est-il deconseille d'utiliser le type any en TypeScript ?",
-        code: "function process(data: any) {\n  // Aucune erreur signalee, meme si .foo n'existe pas\n  console.log(data.foo.bar.baz);\n}",
+        text: "Quelle difference TypeScript fait-il entre ces deux declarations ?",
+        code: "let a = 42;\nconst b = 42;",
         options: [
-          "any est plus lent a l'execution que les types specifiques",
-          "any desactive completement la verification de types pour cette valeur",
-          "any n'est pas un type valide en TypeScript",
-          "any empeche l'utilisation de generics"
+          "Aucune difference, les deux ont le type number",
+          "a est de type number, b est de type 42 (literal type)",
+          "a est de type any, b est de type number",
+          "b est de type number, a est de type 42 (literal type)"
         ],
         answer: 1,
-        explanation: "Le type any desactive completement le systeme de types pour la valeur concernee. TypeScript ne signalera aucune erreur, meme si vous accedez a des proprietes inexistantes ou appelez des methodes invalides. Cela revient a ecrire du JavaScript pur et perd tout l'interet de TypeScript. Preferez unknown si le type est inconnu."
+        explanation: "Avec let, TypeScript infere number car la variable peut etre reassignee a n'importe quel nombre. Avec const, TypeScript infere le literal type 42 car la valeur ne changera jamais. C'est la difference fondamentale entre let et const pour l'inference de type."
       },
       {
         label: "Question 3",
-        text: "Quel est le role de l'operateur satisfies en TypeScript ?",
-        code: "type Color = 'red' | 'green' | 'blue';\n\nconst palette = {\n  primary: 'red',\n  secondary: 'green',\n} satisfies Record&lt;string, Color&gt;;",
+        text: "Pourquoi faut-il utiliser le type string (minuscule) et non String (majuscule) pour annoter une variable en TypeScript ?",
+        code: "let nom: string = 'Alice';  // correct\nlet prenom: String = 'Bob'; // deconseille",
         options: [
-          "Il convertit la valeur vers le type specifie (comme un cast)",
-          "Il valide que la valeur est compatible avec le type tout en conservant l'inference precise",
-          "Il cree un nouveau type a partir de la valeur",
-          "Il remplace l'annotation de type classique avec deux-points"
+          "String est une erreur de syntaxe en TypeScript",
+          "string est le type primitif, String est le type objet wrapper — ils ne sont pas directement interchangeables et String interdit certaines operations",
+          "Il n'y a aucune difference, les deux fonctionnent exactement pareil",
+          "string est plus rapide a l'execution que String"
         ],
         answer: 1,
-        explanation: "L'operateur satisfies (introduit en TypeScript 4.9) permet de verifier qu'une valeur est compatible avec un type donne, sans elargir le type infere. Dans l'exemple, palette.primary reste de type 'red' (pas string), tout en garantissant que chaque valeur est bien un Color. C'est le meilleur des deux mondes : validation + inference precise."
+        explanation: "En TypeScript, string (minuscule) designe le type primitif JavaScript. String (majuscule) designe l'objet wrapper String. Ils ne sont pas equivalents : string est plus restrictif et plus correct pour la majorite des cas. Par exemple, 'hello' instanceof String est false. Utilisez toujours les types primitifs en minuscule : string, number, boolean."
       },
       {
         label: "Question 4",
-        text: "Quelle est la difference fondamentale entre unknown et any ?",
-        code: "let a: any = 42;\na.toUpperCase(); // Pas d'erreur\n\nlet b: unknown = 42;\nb.toUpperCase(); // Erreur !",
+        text: "Avec strictNullChecks actif, qu'est-ce que ce code produit ?",
+        code: "let nom: string = 'Alice';\nnom = null; // ?",
         options: [
-          "unknown est un alias pour any en mode strict",
-          "any accepte toutes les operations, unknown exige un narrowing avant toute utilisation",
-          "unknown n'accepte que les types primitifs, any accepte aussi les objets",
-          "Il n'y a aucune difference, ce sont des synonymes"
+          "Aucune erreur, null est toujours assignable a string",
+          "Une erreur TypeScript : null n'est pas assignable a string",
+          "null remplace la valeur et nom vaut undefined",
+          "TypeScript convertit null en la chaine vide \"\""
         ],
         answer: 1,
-        explanation: "any et unknown acceptent tous les deux n'importe quelle valeur en affectation. La difference cruciale est qu'avec unknown, TypeScript vous oblige a verifier (narrower) le type avant de pouvoir effectuer des operations dessus. C'est le choix type-safe quand vous ne connaissez pas le type a l'avance."
+        explanation: "Avec strictNullChecks actif (inclus dans strict: true), null et undefined ne sont pas assignables a un type ordinaire comme string. Pour accepter null, il faut declarer le type explicitement : let nom: string | null = 'Alice'. C'est l'une des protections les plus importantes de TypeScript contre les erreurs 'Cannot read property of null'."
       },
       {
         label: "Question 5",
-        text: "Que fait l'assertion de type avec as dans le code suivant ?",
-        code: "const input = document.getElementById('email');\nconst emailInput = input as HTMLInputElement;\nconsole.log(emailInput.value);",
+        text: "Quel est le type infere de la variable resultat dans ce code ?",
+        code: "function reponse(condition: boolean) {\n  if (condition) {\n    return 'oui';\n  }\n  return 42;\n}",
         options: [
-          "Elle convertit l'element DOM en un HTMLInputElement a l'execution",
-          "Elle informe TypeScript de traiter la valeur comme HTMLInputElement sans verification a l'execution",
-          "Elle cree une copie de l'objet avec le type HTMLInputElement",
-          "Elle ajoute une validation runtime qui leve une erreur si le type est incorrect"
+          "any",
+          "string | number",
+          "string",
+          "unknown"
         ],
         answer: 1,
-        explanation: "L'assertion de type avec as est une indication pour le compilateur TypeScript uniquement. Elle ne genere aucun code a l'execution et ne fait aucune verification. Vous dites a TypeScript : « je sais mieux que toi quel est le type ». C'est utile quand vous avez une information que TypeScript ne peut pas deduire, mais attention : si vous vous trompez, l'erreur ne sera detectee qu'a l'execution."
+        explanation: "TypeScript infere automatiquement le type de retour d'une fonction en faisant l'union de tous les types de retour possibles. Ici, la fonction peut retourner 'oui' (string) ou 42 (number), donc le type de retour infere est string | number. C'est l'union de types au travail : TypeScript est conservateur et inclut tous les cas possibles."
+      },
+      {
+        label: "Question 6",
+        text: "Quelle annotation de type permet d'accepter a la fois un string et une valeur absente ?",
+        code: "function saluer(nom: /* ??? */) {\n  if (nom) {\n    return 'Bonjour ' + nom;\n  }\n  return 'Bonjour anonyme';\n}",
+        options: [
+          "nom: string?",
+          "nom: string | undefined",
+          "nom: maybe&lt;string&gt;",
+          "nom: optional string"
+        ],
+        answer: 1,
+        explanation: "Pour accepter une valeur optionnelle, on utilise le type union string | undefined. Avec le sucre syntaxique des parametres optionnels, on peut ecrire nom?: string (equivalent a string | undefined pour un parametre de fonction). Dans les deux cas, TypeScript force un narrowing avant d'utiliser nom comme string : if (nom) { ... } ou if (nom !== undefined) { ... }."
       }
     ];
 

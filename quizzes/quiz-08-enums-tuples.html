@@ -90,29 +90,42 @@
       },
       {
         label: "Question 4",
-        text: "Que represente le type never et quand est-il utilise ?",
-        code: "// Fonction qui ne retourne jamais\nfunction throwError(msg: string): never {\n  throw new Error(msg);\n}\n\n// Boucle infinie\nfunction infinite(): never {\n  while (true) {}\n}\n\n// Type vide apres narrowing exhaustif\ntype Result = string &amp; number; // never",
+        text: "Qu'apporte la syntaxe des named tuple elements ?",
+        code: "// Tuple sans labels\ntype Point = [number, number];\n\n// Tuple avec labels\ntype PointNomme = [x: number, y: number];\n\nconst p: PointNomme = [10, 20];\nconsole.log(p[0]); // 10",
         options: [
-          "never est un alias pour void",
-          "never represente un type sans aucune valeur possible : fonctions qui ne retournent jamais, code inaccessible, ou intersections impossibles",
-          "never est utilise pour les variables non initialisees",
-          "never signifie que la variable peut etre null ou undefined"
+          "Les labels permettent d'acceder aux elements avec p.x au lieu de p[0]",
+          "Les labels n'ont pas d'effet runtime — ils servent uniquement a documenter la semantique de chaque position et ameliorent l'autocompletion",
+          "Les labels rendent le tuple immutable",
+          "Les labels ne sont pas encore supportes en TypeScript"
         ],
         answer: 1,
-        explanation: "never est le type bottom de TypeScript : il represente l'ensemble vide des valeurs. Aucune valeur ne peut etre de type never. Il apparait naturellement dans trois cas : (1) les fonctions qui ne retournent jamais (throw, boucle infinie), (2) le code inaccessible apres un narrowing exhaustif, (3) les intersections impossibles (string & number). never est aussi tres utile dans les types conditionnels pour filtrer des types."
+        explanation: "Les named tuple elements (introduits en TS 4.0) n'ajoutent rien au runtime : p.x n'existe pas, seul p[0] fonctionne. En revanche, ils documentent la semantique de chaque position et apparaissent dans les hints des outils (VSCode affiche x: number plutot que 0: number). Tres utile pour les parametres de fonctions utilisant les rest params."
       },
       {
         label: "Question 5",
-        text: "Pourquoi TypeScript exige-t-il un narrowing avant d'utiliser une valeur de type unknown ?",
-        code: "function process(value: unknown) {\n  // value.toUpperCase(); // Erreur !\n\n  if (typeof value === 'string') {\n    value.toUpperCase(); // OK apres narrowing\n  }\n\n  if (value instanceof Date) {\n    value.getTime(); // OK apres narrowing\n  }\n}",
+        text: "Comment rendre un tuple immutable en TypeScript ?",
+        code: "// Option 1\nconst t1: readonly [string, number] = ['Alice', 30];\n\n// Option 2\nconst t2 = ['Alice', 30] as const;",
         options: [
-          "C'est un bug de TypeScript, unknown devrait se comporter comme any",
-          "unknown accepte toute assignation mais interdit toute operation tant que le type reel n'est pas verifie, ce qui garantit la securite de type",
-          "unknown est reserve aux types primitifs et refuse les objets",
-          "Le narrowing est optionnel avec unknown, c'est juste un avertissement"
+          "Seule l'option 1 fonctionne, as const ne s'applique qu'aux objets",
+          "Les deux options creent des tuples readonly, mais as const infere aussi les literal types exacts ('Alice' et 30 plutot que string et number)",
+          "Aucune des deux options ne bloque l'ecriture a l'execution",
+          "readonly et as const sont identiques et interchangeables dans tous les contextes"
         ],
         answer: 1,
-        explanation: "unknown est le type top type-safe de TypeScript. Contrairement a any, il vous oblige a verifier le type avant toute operation. C'est le choix ideal quand vous recevez des donnees dont le type est inconnu (API externe, JSON parse, catch). Le narrowing avec typeof, instanceof ou des type guards personnalises permet ensuite d'utiliser la valeur en toute securite."
+        explanation: "Les deux syntaxes bloquent la modification au niveau TypeScript. La difference : readonly [string, number] accepte n'importe quel string et number. as const infere les literal types exacts : le type devient readonly ['Alice', 30] (pas readonly [string, number]). Utilisez as const quand la valeur exacte compte (par exemple pour des constantes partagees)."
+      },
+      {
+        label: "Question 6",
+        text: "Que represente le type de cette fonction avec rest elements dans un tuple ?",
+        code: "type Headers = [string, ...number[]];",
+        options: [
+          "Un tuple avec exactement deux elements : un string et un number[]",
+          "Un tuple avec au moins un element string suivi de zero ou plusieurs number",
+          "Un tableau de string et de number melange",
+          "Une erreur de syntaxe : les rest elements ne sont pas supportes dans les tuples"
+        ],
+        answer: 1,
+        explanation: "Les rest elements dans les tuples (TS 4.2+) permettent de combiner la precision positionnelle des tuples avec la flexibilite des tableaux. [string, ...number[]] signifie : exactement un string en premiere position, puis zero ou plusieurs number. Cela est utile pour typer des arguments de fonctions variadic : type StrThenNums = [leading: string, ...rest: number[]]."
       }
     ];
 

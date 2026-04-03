@@ -17,19 +17,21 @@ const { test, assert, assertEqual, assertDeepEqual, summary } =
 // Annotez les parametres et le type de retour de chaque fonction.
 // =============================================================================
 
-// TODO: Ajoutez les annotations de type (2 parametres number, retour number)
-function additionner(a: number, b: number): number {
-  return a + b;
+// TODO: Remplacez 'any' par les bons types (a: number, b: number): number
+function additionner(a: any, b: any): any {
+  // TODO: retournez la somme
+  return undefined;
 }
 
-// TODO: Ajoutez les annotations de type (parametre string, retour boolean)
-function estVide(chaine: string): boolean {
-  return chaine.length === 0;
+// TODO: Remplacez 'any' par le bon type (chaine: string): boolean
+function estVide(chaine: any): any {
+  // TODO: retournez true si chaine est vide
+  return undefined;
 }
 
-// TODO: Annotez cette fonction qui ne retourne rien
-function afficherMessage(message: string): void {
-  console.log(message);
+// TODO: Remplacez 'any' par le bon type (message: string): void
+function afficherMessage(message: any): void {
+  // TODO: affichez le message
 }
 
 // =============================================================================
@@ -40,18 +42,15 @@ function afficherMessage(message: string): void {
 // Si titre est absent, retournez juste le nom
 // Si titre est present, retournez "titre nom"
 function nomComplet(nom: string, titre?: string) {
-  // TODO: Implementez la logique
-  if (titre) {
-    return titre + " " + nom;
-  }
-  return nom;
+  // TODO: implementez la logique
+  return undefined as any;
 }
 
 // TODO: Donnez une valeur par defaut de 1 au parametre 'quantite'
 // Retournez le prix * quantite
 function calculerPrix(prix: number, quantite = 1) {
-  // TODO: Implementez
-  return prix * quantite;
+  // TODO: implementez
+  return undefined as any;
 }
 
 // TODO: Annotez cette fonction avec un parametre optionnel et un par defaut
@@ -62,15 +61,8 @@ function direBonjour(
   langue: "fr" | "en" = "fr",
   formel?: boolean,
 ): string {
-  const salutation =
-    langue === "en"
-      ? formel
-        ? `Good day, ${nom}.`
-        : `Hi ${nom}!`
-      : formel
-        ? `Bonjour, ${nom}.`
-        : `Salut ${nom} !`;
-  return salutation;
+  // TODO: retournez la salutation selon langue ('fr'|'en') et formel (optionnel)
+  return undefined as any;
 }
 
 // =============================================================================
@@ -79,15 +71,16 @@ function direBonjour(
 
 // TODO: Utilisez un parametre rest pour accepter un nombre variable de nombres
 // Retournez la somme de tous les nombres
-function somme(...numbers: number[]): number {
-  return numbers.reduce((acc, curr) => acc + curr, 0);
+function somme(...numbers: any[]): any {
+  // TODO: retournez la somme de tous les elements
+  return undefined;
 }
 
 // TODO: Le premier parametre est un separateur (string),
 // le reste sont des elements (string[]) a joindre
-function joindre(separator: string, ...elements: string[]): string {
-  // TODO: Implementez avec separateur + rest params
-  return elements.join(separator);
+function joindre(separator: any, ...elements: any[]): any {
+  // TODO: retournez les elements joints par le separateur
+  return undefined;
 }
 
 // =============================================================================
@@ -100,18 +93,12 @@ function joindre(separator: string, ...elements: string[]): string {
 // 2. convertir(valeur: number): string   — convertit un nombre en string
 // 3. Implementation qui gere les deux cas
 
+// TODO: completez les signatures de surcharge ci-dessous
 function convertir(valeur: string): number;
 function convertir(valeur: number): string;
-
-function convertir(valeur: string | number): number | string {
-  // TODO: Implementez la logique
-  if (typeof valeur === "string") {
-    return Number(valeur);
-  }
-  if (typeof valeur === "number") {
-    return valeur.toString();
-  }
-  throw new Error("Type non supporté");
+function convertir(valeur: any): any {
+  // TODO: si string -> number, si number -> string
+  return undefined;
 }
 
 // TODO: Ajoutez les surcharges pour 'chercher' :
@@ -119,27 +106,11 @@ function convertir(valeur: string | number): number | string {
 // 2. chercher(items: number[], cle: number): number | undefined
 // Implementation : retourne l'element trouve ou undefined
 
+// TODO: completez les signatures de surcharge (string[], number[])
 function chercher(items: string[], cle: string): string | undefined;
 function chercher(items: number[], cle: number): number | undefined;
-
-function chercher(
-  items: string[] | number[],
-  cle: string | number,
-): string | number | undefined {
-  if (
-    Array.isArray(items) &&
-    items.every((item) => typeof item === "string") &&
-    typeof cle === "string"
-  ) {
-    return items.find((item) => item === cle);
-  }
-  if (
-    Array.isArray(items) &&
-    items.every((item) => typeof item === "number") &&
-    typeof cle === "number"
-  ) {
-    return items.find((item) => item === cle);
-  }
+function chercher(items: any[], cle: any): any {
+  // TODO: retournez l'element trouve ou undefined
   return undefined;
 }
 
@@ -150,7 +121,7 @@ function chercher(
 // TODO: Typez le parametre 'callback' comme une fonction
 // qui prend un string et retourne void
 function pourChaqueNom(noms: string[], callback: (nom: string) => void): void {
-  noms.forEach(callback);
+  // TODO: appelez callback pour chaque nom
 }
 
 // TODO: Typez le parametre 'transformateur' comme une fonction
@@ -159,7 +130,8 @@ function appliquerTransformation(
   nombres: number[],
   transformateur: (valeur: number) => number,
 ): number[] {
-  return nombres.map(transformateur);
+  // TODO: retournez le tableau transforme
+  return [];
 }
 
 // TODO: Typez le parametre 'predicat' comme une fonction
@@ -168,7 +140,8 @@ function filtrer(
   nombres: number[],
   predicat: (valeur: number) => boolean,
 ): number[] {
-  return nombres.filter(predicat);
+  // TODO: retournez le tableau filtre
+  return [];
 }
 
 // =============================================================================
@@ -179,8 +152,8 @@ function filtrer(
 // multiplierPar(facteur) retourne une fonction (x) => x * facteur
 // Typez correctement le retour
 function multiplierPar(facteur: number): (x: number) => number {
-  // TODO: Retournez une fonction
-  return (x) => x * facteur;
+  // TODO: retournez une fonction (x) => x * facteur
+  return undefined as any;
 }
 
 // TODO: Creez une fonction 'composer' qui prend deux fonctions f et g
@@ -190,8 +163,8 @@ function composer(
   f: (x: number) => number,
   g: (x: number) => number,
 ): (x: number) => number {
-  // TODO: Retournez la composition
-  return (x: number) => f(g(x));
+  // TODO: retournez une fonction qui applique g puis f : f(g(x))
+  return undefined as any;
 }
 
 // =============================================================================
@@ -215,31 +188,28 @@ type Animal = Chat | Chien;
 // TODO: Implementez un type predicate pour verifier si un animal est un Chat
 // La signature doit utiliser 'animal is Chat'
 function estChat(animal: Animal): animal is Chat {
-  return animal.type === "chat";
+  // TODO: retournez true si animal.type === 'chat'
+  return false;
 }
 
 function estChien(animal: Animal): animal is Chien {
-  return animal.type === "chien";
+  // TODO: retournez true si animal.type === 'chien'
+  return false;
 }
 
 // TODO: Implementez un type predicate pour verifier si une valeur est un string
 // La signature doit utiliser 'valeur is string'
 function estString(valeur: unknown): valeur is string {
-  return typeof valeur === "string";
+  // TODO: retournez true si typeof valeur === 'string'
+  return false;
 }
 
 // TODO: Utilisez les type predicates pour implementer cette fonction
 function decrireAnimal(animal: Animal): string {
-  // TODO: Utilisez estChat pour narrower le type
-  // Si chat : retourner "nom est un chat qui ronronne/ne ronronne pas"
-  // Si chien : retourner "nom est un chien de race X"
-  if (estChat(animal)) {
-    return `${animal.nom} est un chat qui ${animal.ronronne ? "ronronne" : "ne ronronne pas"}`;
-  }
-  if (estChien(animal)) {
-    return `${animal.nom} est un chien de race ${animal.race}`;
-  }
-  return `L'animal n'est ni un chien ni un chat`;
+  // TODO: utilisez estChat / estChien pour narrower le type
+  // Si chat : retourner "{nom} est un chat qui ronronne/ne ronronne pas"
+  // Si chien : retourner "{nom} est un chien de race {race}"
+  return undefined as any;
 }
 
 // =============================================================================

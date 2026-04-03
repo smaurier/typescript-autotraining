@@ -141,9 +141,9 @@ TypeScript peut générer automatiquement les fichiers `.d.ts` à partir de votr
 // tsconfig.json
 {
   "compilerOptions": {
-    "declaration": true,         // Genere les .d.ts
+    "declaration": true, // Genere les .d.ts
     "declarationDir": "./types", // Dossier de sortie des .d.ts
-    "declarationMap": true,      // Genere des source maps pour .d.ts
+    "declarationMap": true, // Genere des source maps pour .d.ts
     "emitDeclarationOnly": true, // Ne genere QUE les .d.ts (pas le JS)
     "outDir": "./dist"
   }
@@ -176,7 +176,11 @@ export function creerCalculatrice(): Calculatrice {
   return new Calculatrice();
 }
 
-export type Operation = "addition" | "soustraction" | "multiplication" | "division";
+export type Operation =
+  | "addition"
+  | "soustraction"
+  | "multiplication"
+  | "division";
 ```
 
 ```typescript
@@ -189,7 +193,11 @@ export declare class Calculatrice {
 }
 
 export declare function creerCalculatrice(): Calculatrice;
-export type Operation = "addition" | "soustraction" | "multiplication" | "division";
+export type Operation =
+  | "addition"
+  | "soustraction"
+  | "multiplication"
+  | "division";
 
 // Remarquez :
 // - Les implementations sont supprimees
@@ -556,7 +564,7 @@ namespace Validation {
 }
 
 // Resultat : Validation a les deux fonctions
-Validation.estEmail("test@test.fr");   // OK
+Validation.estEmail("test@test.fr"); // OK
 Validation.estTelephone("0612345678"); // OK
 ```
 
@@ -605,7 +613,10 @@ const fromHex: Couleur = Couleur.fromHex("#FF5733");
 // Fusionner un namespace avec une classe pour ajouter des proprietes statiques
 
 class Animal {
-  constructor(public nom: string, public type: string) {}
+  constructor(
+    public nom: string,
+    public type: string,
+  ) {}
 
   description(): string {
     return `${this.nom} est un ${this.type}`;
@@ -627,10 +638,10 @@ namespace Animal {
 }
 
 // Utilisation
-const minou = Animal.chat("Minou");      // Factory method via namespace
+const minou = Animal.chat("Minou"); // Factory method via namespace
 const rex = Animal.chien("Rex");
-console.log(minou.description());         // Methode d'instance via class
-console.log(Animal.ESPECES);              // Constante via namespace
+console.log(minou.description()); // Methode d'instance via class
+console.log(Animal.ESPECES); // Constante via namespace
 ```
 
 ### Namespace + Enum merging
@@ -664,7 +675,7 @@ namespace Statut {
 }
 
 // Utilisation
-console.log(Statut.estActif(Statut.Actif));     // true
+console.log(Statut.estActif(Statut.Actif)); // true
 console.log(Statut.description(Statut.Suspendu)); // "Le compte est..."
 ```
 
@@ -720,7 +731,7 @@ console.log(Statut.description(Statut.Suspendu)); // "Le compte est..."
 
     // Dossiers ou chercher les types
     "typeRoots": [
-      "./types",           // Nos types personnalises
+      "./types", // Nos types personnalises
       "./node_modules/@types" // Types de DefinitelyTyped
     ]
   }
@@ -749,10 +760,7 @@ mon-package-types/
   "version": "1.0.0",
   "description": "Declarations TypeScript pour ma-lib",
   "types": "index.d.ts",
-  "files": [
-    "*.d.ts",
-    "package.json"
-  ],
+  "files": ["*.d.ts", "package.json"],
   "repository": {
     "type": "git",
     "url": "https://github.com/DefinitelyTyped/DefinitelyTyped"
@@ -802,7 +810,7 @@ export interface Reponse<T = unknown> {
  * Effectue une requete HTTP type-safe
  */
 export declare function requete<T = unknown>(
-  options: OptionsRequete
+  options: OptionsRequete,
 ): Promise<Reponse<T>>;
 
 /**
@@ -810,7 +818,7 @@ export declare function requete<T = unknown>(
  */
 export declare function get<T = unknown>(
   url: string,
-  options?: Omit<OptionsRequete, "url" | "methode">
+  options?: Omit<OptionsRequete, "url" | "methode">,
 ): Promise<Reponse<T>>;
 
 /**
@@ -819,15 +827,13 @@ export declare function get<T = unknown>(
 export declare function post<T = unknown>(
   url: string,
   corps: unknown,
-  options?: Omit<OptionsRequete, "url" | "methode" | "corps">
+  options?: Omit<OptionsRequete, "url" | "methode" | "corps">,
 ): Promise<Reponse<T>>;
 
 /**
  * Cree une instance avec une configuration de base
  */
-export declare function creerInstance(
-  configBase: Partial<OptionsRequete>
-): {
+export declare function creerInstance(configBase: Partial<OptionsRequete>): {
   requete<T>(options: OptionsRequete): Promise<Reponse<T>>;
   get<T>(url: string): Promise<Reponse<T>>;
   post<T>(url: string, corps: unknown): Promise<Reponse<T>>;
@@ -908,7 +914,7 @@ declare module "simple-validate" {
   /** Verifie si la valeur est un numero de telephone */
   export function isPhone(
     valeur: string,
-    codePays?: "FR" | "US" | "GB" | "DE"
+    codePays?: "FR" | "US" | "GB" | "DE",
   ): boolean;
 
   /** Verifie si la valeur est une URL valide */
@@ -987,8 +993,8 @@ declare module "simple-validate" {
 // entre les imports de valeur et les imports de type
 
 // CORRECT :
-import type { Utilisateur, Role } from "./models";  // Type uniquement
-import { creerUtilisateur } from "./services";       // Valeur
+import type { Utilisateur, Role } from "./models"; // Type uniquement
+import { creerUtilisateur } from "./services"; // Valeur
 
 // INCORRECT (avec verbatimModuleSyntax) :
 // import { Utilisateur, creerUtilisateur } from "./services";
@@ -1009,14 +1015,30 @@ Ecrivez les declarations de type pour cette bibliotheque JavaScript imaginaire :
 
 ```javascript
 // color-utils.js (bibliotheque JS sans types)
-function rgb(r, g, b) { return { r, g, b, type: 'rgb' }; }
-function hsl(h, s, l) { return { h, s, l, type: 'hsl' }; }
-function hex(value) { return { value, type: 'hex' }; }
-function toHex(color) { /* ... convertit en hex */ }
-function toRgb(color) { /* ... convertit en rgb */ }
-function mix(color1, color2, ratio) { /* ... melange */ }
-function lighten(color, amount) { /* ... eclaircit */ }
-function darken(color, amount) { /* ... assombrit */ }
+function rgb(r, g, b) {
+  return { r, g, b, type: "rgb" };
+}
+function hsl(h, s, l) {
+  return { h, s, l, type: "hsl" };
+}
+function hex(value) {
+  return { value, type: "hex" };
+}
+function toHex(color) {
+  /* ... convertit en hex */
+}
+function toRgb(color) {
+  /* ... convertit en rgb */
+}
+function mix(color1, color2, ratio) {
+  /* ... melange */
+}
+function lighten(color, amount) {
+  /* ... eclaircit */
+}
+function darken(color, amount) {
+  /* ... assombrit */
+}
 module.exports = { rgb, hsl, hex, toHex, toRgb, mix, lighten, darken };
 ```
 
@@ -1071,7 +1093,7 @@ declare module "color-utils" {
   export function mix(
     color1: Couleur,
     color2: Couleur,
-    ratio?: number
+    ratio?: number,
   ): CouleurRGB;
 
   /** Eclaircit une couleur (amount: 0 a 1) */
@@ -1134,7 +1156,7 @@ declare module "express-serve-static-core" {
      */
     jsonType<T extends Record<string, unknown>>(
       statut: number,
-      donnees: T
+      donnees: T,
     ): void;
 
     /**
@@ -1221,9 +1243,7 @@ namespace Monnaie {
   // Operations
   export function additionner(a: Monnaie, b: Monnaie): Monnaie {
     if (a.devise !== b.devise) {
-      throw new Error(
-        `Impossible d'additionner ${a.devise} et ${b.devise}`
-      );
+      throw new Error(`Impossible d'additionner ${a.devise} et ${b.devise}`);
     }
     return creer(a.montant + b.montant, a.devise);
   }
@@ -1233,10 +1253,7 @@ namespace Monnaie {
 const prix: Monnaie = Monnaie.euros(42.5);
 console.log(prix.formater()); // "42,50 EUR"
 
-const total = Monnaie.additionner(
-  Monnaie.euros(10),
-  Monnaie.euros(20)
-);
+const total = Monnaie.additionner(Monnaie.euros(10), Monnaie.euros(20));
 console.log(total.formater()); // "30,00 EUR"
 ```
 
@@ -1279,7 +1296,7 @@ declare global {
      */
     hasOwn<T extends object, K extends PropertyKey>(
       obj: T,
-      key: K
+      key: K,
     ): obj is T & Record<K, unknown>;
   }
 
@@ -1303,18 +1320,18 @@ export {};
 
 ## Récapitulatif
 
-| Concept                    | Description                                              |
-|----------------------------|----------------------------------------------------------|
-| **Fichier .d.ts**          | Contient uniquement des declarations de type             |
-| **declare**                | Indique qu'une implementation existe ailleurs            |
-| **declare module**         | Declare les types d'un module JS ou augmente un existant |
-| **declare global**         | Ajoute des types a l'espace global                       |
-| **Triple-slash**           | Références entre fichiers de declaration                 |
-| **Declaration merging**    | Fusion automatique d'interfaces, namespaces, etc.        |
-| **@types/**                | Packages de types de DefinitelyTyped                     |
-| **tsc --declaration**      | Génération automatique de .d.ts depuis le code TS        |
-| **declarationMap**         | Source maps pour naviguer vers les sources depuis .d.ts  |
-| **verbatimModuleSyntax**   | Force `import type` pour les types purs                  |
+| Concept                  | Description                                              |
+| ------------------------ | -------------------------------------------------------- |
+| **Fichier .d.ts**        | Contient uniquement des declarations de type             |
+| **declare**              | Indique qu'une implementation existe ailleurs            |
+| **declare module**       | Declare les types d'un module JS ou augmente un existant |
+| **declare global**       | Ajoute des types a l'espace global                       |
+| **Triple-slash**         | Références entre fichiers de declaration                 |
+| **Declaration merging**  | Fusion automatique d'interfaces, namespaces, etc.        |
+| **@types/**              | Packages de types de DefinitelyTyped                     |
+| **tsc --declaration**    | Génération automatique de .d.ts depuis le code TS        |
+| **declarationMap**       | Source maps pour naviguer vers les sources depuis .d.ts  |
+| **verbatimModuleSyntax** | Force `import type` pour les types purs                  |
 
 ---
 
@@ -1334,8 +1351,9 @@ références dans `tsconfig.json`.
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 16 declaration files](../screencasts/screencast-16-declaration-files.md)
 2. **Lab** : [lab-16-declaration-files](../labs/lab-16-declaration-files/README)
 3. **Visualisation** : [Module Resolution](../visualizations/module-resolution.html)
 4. **Quiz** : [quiz 16 declaration files](../quizzes/quiz-16-declaration-files.html)
-:::
+   :::

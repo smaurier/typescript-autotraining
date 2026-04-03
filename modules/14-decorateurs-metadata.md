@@ -4,6 +4,7 @@
 > **Difficulte** : 3/5
 > **Prérequis** : Classes TypeScript, generics, bases du système de types
 > **Objectifs** :
+>
 > - Comprendre la différence entre les decorateurs experimentaux et Stage 3
 > - Maîtriser la syntaxe des decorateurs Stage 3
 > - Créer des decorateurs pour classes, méthodes, propriétés et accesseurs
@@ -59,7 +60,7 @@ Imagine un gâteau. Le décorateur n'en change pas la base, mais il ajoute une c
 // tsconfig.json
 {
   "compilerOptions": {
-    "target": "ES2022",  // ou plus recent
+    "target": "ES2022" // ou plus recent
     // PAS besoin de "experimentalDecorators": true
     // PAS besoin de "emitDecoratorMetadata": true
   }
@@ -74,7 +75,7 @@ Imagine un gâteau. Le décorateur n'en change pas la base, mais il ajoute une c
   "compilerOptions": {
     "target": "ES2016",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true  // pour reflect-metadata
+    "emitDecoratorMetadata": true // pour reflect-metadata
   }
 }
 ```
@@ -88,20 +89,21 @@ Imagine un gâteau. Le décorateur n'en change pas la base, mais il ajoute une c
 ### Syntaxe d'un decorateur
 
 Un decorateur Stage 3 est simplement une **fonction** qui recoit deux arguments :
+
 1. La **valeur** decoree (la classe, la méthode, etc.)
 2. Un objet **contexte** avec des metadonnees
 
 ```typescript
 // Signature d'un decorateur de classe
 type DecorateurClasse = (
-  valeur: Function,                    // Le constructeur de la classe
-  contexte: ClassDecoratorContext     // Metadonnees
+  valeur: Function, // Le constructeur de la classe
+  contexte: ClassDecoratorContext, // Metadonnees
 ) => Function | void;
 
 // Signature d'un decorateur de methode
 type DecorateurMethode = (
-  valeur: Function,                    // La methode decoree
-  contexte: ClassMethodDecoratorContext // Metadonnees
+  valeur: Function, // La methode decoree
+  contexte: ClassMethodDecoratorContext, // Metadonnees
 ) => Function | void;
 ```
 
@@ -113,10 +115,7 @@ type DecorateurMethode = (
 
 ```typescript
 // Un decorateur qui scelle une classe (empeche l'ajout de proprietes)
-function Sceller(
-  valeur: Function,
-  contexte: ClassDecoratorContext
-) {
+function Sceller(valeur: Function, contexte: ClassDecoratorContext) {
   Object.seal(valeur);
   Object.seal(valeur.prototype);
   console.log(`Classe ${contexte.name} scellee !`);
@@ -141,7 +140,7 @@ class MonService {
 // Un decorateur qui ajoute un timestamp de creation
 function AvecTimestamp<T extends new (...args: any[]) => any>(
   Originale: T,
-  contexte: ClassDecoratorContext
+  contexte: ClassDecoratorContext,
 ) {
   return class extends Originale {
     dateCreation = new Date();
@@ -169,10 +168,7 @@ const doc = new Document("Mon document");
 // Un registre de classes decorees (utile pour la DI)
 const registreClasses = new Map<string, Function>();
 
-function Enregistrer(
-  valeur: Function,
-  contexte: ClassDecoratorContext
-) {
+function Enregistrer(valeur: Function, contexte: ClassDecoratorContext) {
   const nom = contexte.name ?? "Anonyme";
   registreClasses.set(nom, valeur);
   console.log(`Classe ${nom} enregistree dans le registre`);
@@ -210,7 +206,7 @@ if (ClasseService) {
 // Logger automatiquement les appels de methode
 function Logger(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   const nomMethode = String(contexte.name);
 
@@ -252,7 +248,7 @@ calc.multiplier(5, 6);
 // Mesurer le temps d'execution d'une methode
 function MesurerTemps(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   const nomMethode = String(contexte.name);
 
@@ -290,7 +286,7 @@ traitement.trier([5, 3, 8, 1, 9, 2]);
 // Gerer les erreurs automatiquement dans les methodes async
 function GererErreurs(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   const nomMethode = String(contexte.name);
 
@@ -309,14 +305,16 @@ function GererErreurs(
 // Limiter le nombre d'appels (debounce simplifie)
 function UneFoisParSeconde(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   let dernierAppel = 0;
 
   function methodeLimitee(this: any, ...args: any[]) {
     const maintenant = Date.now();
     if (maintenant - dernierAppel < 1000) {
-      console.log(`[LIMITE] ${String(contexte.name)} : appel ignore (trop frequent)`);
+      console.log(
+        `[LIMITE] ${String(contexte.name)} : appel ignore (trop frequent)`,
+      );
       return;
     }
     dernierAppel = maintenant;
@@ -348,13 +346,13 @@ En Stage 3, les decorateurs de propriété necessitent le mot-clé `accessor` po
 // Validation automatique d'une propriete
 function Positif(
   valeur: ClassAccessorDecoratorTarget<any, number>,
-  contexte: ClassAccessorDecoratorContext<any, number>
+  contexte: ClassAccessorDecoratorContext<any, number>,
 ) {
   return {
     set(this: any, val: number) {
       if (val < 0) {
         throw new Error(
-          `La propriete ${String(contexte.name)} doit etre positive, recu : ${val}`
+          `La propriete ${String(contexte.name)} doit etre positive, recu : ${val}`,
         );
       }
       valeur.set.call(this, val);
@@ -390,7 +388,7 @@ console.log(produit.prix); // 29.99
 // Notifier quand une propriete change
 function Observable(
   valeur: ClassAccessorDecoratorTarget<any, any>,
-  contexte: ClassAccessorDecoratorContext
+  contexte: ClassAccessorDecoratorContext,
 ) {
   const nomPropriete = String(contexte.name);
 
@@ -399,7 +397,7 @@ function Observable(
       const ancienneValeur = valeur.get.call(this);
       if (ancienneValeur !== nouvelleValeur) {
         console.log(
-          `[CHANGE] ${nomPropriete}: ${ancienneValeur} -> ${nouvelleValeur}`
+          `[CHANGE] ${nomPropriete}: ${ancienneValeur} -> ${nouvelleValeur}`,
         );
         valeur.set.call(this, nouvelleValeur);
 
@@ -431,9 +429,9 @@ class EtatApplication {
 }
 
 const etat = new EtatApplication();
-etat.compteur = 5;    // [CHANGE] compteur: 0 -> 5
+etat.compteur = 5; // [CHANGE] compteur: 0 -> 5
 etat.message = "Bonjour"; // [CHANGE] message:  -> Bonjour
-etat.compteur = 5;    // Pas de log (meme valeur)
+etat.compteur = 5; // Pas de log (meme valeur)
 ```
 
 ---
@@ -473,13 +471,13 @@ class B {}
 function Plage(min: number, max: number) {
   return function (
     valeur: ClassAccessorDecoratorTarget<any, number>,
-    contexte: ClassAccessorDecoratorContext<any, number>
+    contexte: ClassAccessorDecoratorContext<any, number>,
   ) {
     return {
       set(this: any, val: number) {
         if (val < min || val > max) {
           throw new RangeError(
-            `${String(contexte.name)} doit etre entre ${min} et ${max}, recu : ${val}`
+            `${String(contexte.name)} doit etre entre ${min} et ${max}, recu : ${val}`,
           );
         }
         valeur.set.call(this, val);
@@ -495,13 +493,13 @@ function Plage(min: number, max: number) {
 function LongueurMax(max: number) {
   return function (
     valeur: ClassAccessorDecoratorTarget<any, string>,
-    contexte: ClassAccessorDecoratorContext<any, string>
+    contexte: ClassAccessorDecoratorContext<any, string>,
   ) {
     return {
       set(this: any, val: string) {
         if (val.length > max) {
           throw new Error(
-            `${String(contexte.name)} ne doit pas depasser ${max} caracteres`
+            `${String(contexte.name)} ne doit pas depasser ${max} caracteres`,
           );
         }
         valeur.set.call(this, val);
@@ -525,8 +523,8 @@ class Employe {
 }
 
 const employe = new Employe();
-employe.nom = "Jean Dupont";        // OK
-employe.age = 30;                    // OK
+employe.nom = "Jean Dupont"; // OK
+employe.age = 30; // OK
 // employe.age = 10;                 // RangeError : age doit etre entre 18 et 65
 // employe.nom = "A".repeat(51);     // Erreur : ne doit pas depasser 50 caracteres
 ```
@@ -536,7 +534,7 @@ employe.age = 30;                    // OK
 ```typescript
 // Options de configuration pour un decorateur de cache
 interface OptionsCacheTTL {
-  dureeVie: number;         // En millisecondes
+  dureeVie: number; // En millisecondes
   clePersonnalisee?: string;
 }
 
@@ -545,7 +543,7 @@ function Cache(options: OptionsCacheTTL) {
 
   return function (
     methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
+    contexte: ClassMethodDecoratorContext,
   ) {
     const nomMethode = options.clePersonnalisee ?? String(contexte.name);
 
@@ -578,7 +576,7 @@ function Cache(options: OptionsCacheTTL) {
 }
 
 class ServiceDonnees {
-  @Cache({ dureeVie: 5000 })  // Cache de 5 secondes
+  @Cache({ dureeVie: 5000 }) // Cache de 5 secondes
   obtenirUtilisateur(id: number) {
     console.log(`Chargement utilisateur ${id}...`);
     return { id, nom: "Alice" };
@@ -592,9 +590,9 @@ class ServiceDonnees {
 }
 
 const service = new ServiceDonnees();
-service.obtenirUtilisateur(1);  // [CACHE] Miss - charge depuis la source
-service.obtenirUtilisateur(1);  // [CACHE] Hit - retourne du cache
-service.obtenirUtilisateur(2);  // [CACHE] Miss - id different
+service.obtenirUtilisateur(1); // [CACHE] Miss - charge depuis la source
+service.obtenirUtilisateur(1); // [CACHE] Hit - retourne du cache
+service.obtenirUtilisateur(2); // [CACHE] Miss - id different
 ```
 
 ---
@@ -606,10 +604,7 @@ service.obtenirUtilisateur(2);  // [CACHE] Miss - id different
 Les decorateurs sont appliques de **bas en haut** (du plus proche de la cible vers le plus eloigne) mais evalues de **haut en bas**.
 
 ```typescript
-function Premier(
-  methode: Function,
-  contexte: ClassMethodDecoratorContext
-) {
+function Premier(methode: Function, contexte: ClassMethodDecoratorContext) {
   console.log("Premier decorateur EVALUE");
   return function (this: any, ...args: any[]) {
     console.log("Premier decorateur EXECUTE (avant)");
@@ -619,10 +614,7 @@ function Premier(
   };
 }
 
-function Deuxieme(
-  methode: Function,
-  contexte: ClassMethodDecoratorContext
-) {
+function Deuxieme(methode: Function, contexte: ClassMethodDecoratorContext) {
   console.log("Deuxieme decorateur EVALUE");
   return function (this: any, ...args: any[]) {
     console.log("Deuxieme decorateur EXECUTE (avant)");
@@ -633,8 +625,8 @@ function Deuxieme(
 }
 
 class Exemple {
-  @Premier   // Evalue en 1er, execute en dernier (enveloppe exterieure)
-  @Deuxieme  // Evalue en 2eme, execute en premier (enveloppe interieure)
+  @Premier // Evalue en 1er, execute en dernier (enveloppe exterieure)
+  @Deuxieme // Evalue en 2eme, execute en premier (enveloppe interieure)
   saluer() {
     console.log("Bonjour !");
   }
@@ -720,7 +712,7 @@ Avec `"emitDecoratorMetadata": true`, TypeScript emet automatiquement des metado
 class ServiceExemple {
   constructor(
     private logger: LoggerService,
-    private config: ConfigService
+    private config: ConfigService,
   ) {}
 
   traiter(donnees: string): number {
@@ -755,10 +747,9 @@ function ajouterValidation(
   cible: any,
   propriete: string,
   validateur: (valeur: any) => boolean,
-  message: string
+  message: string,
 ) {
-  const validations: RegleValidation[] =
-    cible[VALIDATIONS] || [];
+  const validations: RegleValidation[] = cible[VALIDATIONS] || [];
   validations.push({ propriete, validateur, message });
   cible[VALIDATIONS] = validations;
 }
@@ -769,7 +760,7 @@ function EstRequis(cible: any, propriete: string) {
     cible,
     propriete,
     (v) => v !== null && v !== undefined && v !== "",
-    `${propriete} est requis`
+    `${propriete} est requis`,
   );
 }
 
@@ -778,7 +769,7 @@ function EstEmail(cible: any, propriete: string) {
     cible,
     propriete,
     (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-    `${propriete} doit etre un email valide`
+    `${propriete} doit etre un email valide`,
   );
 }
 
@@ -788,7 +779,7 @@ function Longueur(min: number, max: number) {
       cible,
       propriete,
       (v) => typeof v === "string" && v.length >= min && v.length <= max,
-      `${propriete} doit avoir entre ${min} et ${max} caracteres`
+      `${propriete} doit avoir entre ${min} et ${max} caracteres`,
     );
   };
 }
@@ -843,7 +834,10 @@ console.log(erreurs);
 // Un conteneur DI simple utilisant des decorateurs
 
 // Registre des services
-const conteneur = new Map<string, { classe: any; singleton: boolean; instance?: any }>();
+const conteneur = new Map<
+  string,
+  { classe: any; singleton: boolean; instance?: any }
+>();
 
 // Decorateur pour enregistrer un service
 function Service(options: { singleton?: boolean } = {}) {
@@ -853,7 +847,9 @@ function Service(options: { singleton?: boolean } = {}) {
       classe: valeur,
       singleton: options.singleton ?? true,
     });
-    console.log(`[DI] Service ${nom} enregistre (singleton: ${options.singleton ?? true})`);
+    console.log(
+      `[DI] Service ${nom} enregistre (singleton: ${options.singleton ?? true})`,
+    );
   };
 }
 
@@ -923,8 +919,8 @@ const CHAMPS_SERIALISES = Symbol("serialises");
 const CHAMPS_TRANSFORMES = Symbol("transformes");
 
 interface OptionsChamp {
-  nom?: string;         // Nom dans le JSON (si different)
-  exclure?: boolean;    // Ne pas serialiser
+  nom?: string; // Nom dans le JSON (si different)
+  exclure?: boolean; // Ne pas serialiser
   transformer?: (valeur: any) => any; // Transformation a la serialisation
 }
 
@@ -945,7 +941,8 @@ function Exclure(cible: any, propriete: string) {
 // Fonction de serialisation
 function serialiser<T extends object>(instance: T): Record<string, any> {
   const proto = Object.getPrototypeOf(instance);
-  const champs: Map<string, OptionsChamp> = proto[CHAMPS_SERIALISES] || new Map();
+  const champs: Map<string, OptionsChamp> =
+    proto[CHAMPS_SERIALISES] || new Map();
   const resultat: Record<string, any> = {};
 
   for (const [propriete, options] of champs) {
@@ -1036,7 +1033,7 @@ class UtilisateurController {
   @UseGuards(AuthGuard)
   async modifier(
     @Param("id") id: string,
-    @Body() dto: ModifierUtilisateurDTO
+    @Body() dto: ModifierUtilisateurDTO,
   ): Promise<Utilisateur> {
     return this.service.modifier(parseInt(id), dto);
   }
@@ -1053,7 +1050,7 @@ class UtilisateurController {
 class UtilisateurService {
   constructor(
     @InjectRepository(UtilisateurEntity)
-    private readonly repo: Repository<UtilisateurEntity>
+    private readonly repo: Repository<UtilisateurEntity>,
   ) {}
 
   async obtenirTous(): Promise<Utilisateur[]> {
@@ -1098,13 +1095,13 @@ Creez un decorateur `@Deprecated` qui affiche un avertissement quand une méthod
 // Version simple
 function Deprecated(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   const nomMethode = String(contexte.name);
 
   function methodeDepreciee(this: any, ...args: any[]) {
     console.warn(
-      `[ATTENTION] La methode ${nomMethode} est depreciee et sera supprimee prochainement.`
+      `[ATTENTION] La methode ${nomMethode} est depreciee et sera supprimee prochainement.`,
     );
     return methodeOriginale.call(this, ...args);
   }
@@ -1116,7 +1113,7 @@ function Deprecated(
 function DeprecatedAvecMessage(message?: string, remplacement?: string) {
   return function (
     methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
+    contexte: ClassMethodDecoratorContext,
   ) {
     const nomMethode = String(contexte.name);
     let dejaAverti = false;
@@ -1124,7 +1121,9 @@ function DeprecatedAvecMessage(message?: string, remplacement?: string) {
     function methodeDepreciee(this: any, ...args: any[]) {
       if (!dejaAverti) {
         const msg = message || `La methode ${nomMethode} est depreciee.`;
-        const rempl = remplacement ? ` Utilisez ${remplacement} a la place.` : "";
+        const rempl = remplacement
+          ? ` Utilisez ${remplacement} a la place.`
+          : "";
         console.warn(`[DEPRECATED] ${msg}${rempl}`);
         dejaAverti = true; // N'avertir qu'une seule fois
       }
@@ -1144,7 +1143,7 @@ class MonAPI {
 
   @DeprecatedAvecMessage(
     "obtenirDonnees v1 n'est plus maintenue",
-    "obtenirDonneesV2()"
+    "obtenirDonneesV2()",
   )
   obtenirDonnees() {
     return [];
@@ -1164,6 +1163,7 @@ api.obtenirDonnees();
 
 api.obtenirDonnees(); // Pas de deuxieme avertissement
 ```
+
 </details>
 
 ### Exercice 2 : Decorateur @Retry
@@ -1178,7 +1178,7 @@ Creez un decorateur qui relance automatiquement une méthode async en cas d'eche
 function Retry(options: { tentatives: number; delaiMs: number }) {
   return function (
     methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
+    contexte: ClassMethodDecoratorContext,
   ) {
     const nomMethode = String(contexte.name);
 
@@ -1191,7 +1191,7 @@ function Retry(options: { tentatives: number; delaiMs: number }) {
         } catch (erreur) {
           dernierErreur = erreur as Error;
           console.warn(
-            `[RETRY] ${nomMethode} - tentative ${tentative}/${options.tentatives} echouee: ${dernierErreur.message}`
+            `[RETRY] ${nomMethode} - tentative ${tentative}/${options.tentatives} echouee: ${dernierErreur.message}`,
           );
 
           if (tentative < options.tentatives) {
@@ -1204,7 +1204,7 @@ function Retry(options: { tentatives: number; delaiMs: number }) {
       }
 
       throw new Error(
-        `${nomMethode} a echoue apres ${options.tentatives} tentatives: ${dernierErreur?.message}`
+        `${nomMethode} a echoue apres ${options.tentatives} tentatives: ${dernierErreur?.message}`,
       );
     }
 
@@ -1235,6 +1235,7 @@ const service = new ServiceExterne();
 // Va echouer 2 fois puis reussir a la 3eme tentative
 const resultat = await service.appelerAPI("/api/donnees");
 ```
+
 </details>
 
 ### Exercice 3 : Decorateur @Memoize
@@ -1248,7 +1249,7 @@ Creez un decorateur qui met en cache les résultats d'une méthode pure.
 // Decorateur de memoisation
 function Memoize(
   methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+  contexte: ClassMethodDecoratorContext,
 ) {
   const cache = new Map<string, any>();
   const nomMethode = String(contexte.name);
@@ -1280,7 +1281,7 @@ function Memoize(
 function MemoizeAvecTTL(ttlMs: number) {
   return function (
     methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
+    contexte: ClassMethodDecoratorContext,
   ) {
     const cache = new Map<string, { valeur: any; expiration: number }>();
 
@@ -1325,6 +1326,7 @@ const maths = new Mathematiques();
 console.log(maths.fibonacci(10)); // Calcule et cache chaque etape
 console.log(maths.fibonacci(10)); // Retourne directement du cache
 ```
+
 </details>
 
 ### Exercice 4 : Decorateur @Authorize
@@ -1347,26 +1349,26 @@ const utilisateurCourant = {
 function Authorize(...rolesRequis: Role[]) {
   return function (
     methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
+    contexte: ClassMethodDecoratorContext,
   ) {
     const nomMethode = String(contexte.name);
 
     function methodeProtegee(this: any, ...args: any[]) {
       // Verifier si l'utilisateur a au moins un des roles requis
       const autorise = rolesRequis.some((role) =>
-        utilisateurCourant.roles.includes(role)
+        utilisateurCourant.roles.includes(role),
       );
 
       if (!autorise) {
         throw new Error(
           `[ACCES REFUSE] ${utilisateurCourant.nom} n'a pas les permissions ` +
             `pour ${nomMethode}. Roles requis : ${rolesRequis.join(", ")}. ` +
-            `Roles de l'utilisateur : ${utilisateurCourant.roles.join(", ")}.`
+            `Roles de l'utilisateur : ${utilisateurCourant.roles.join(", ")}.`,
         );
       }
 
       console.log(
-        `[AUTH] ${utilisateurCourant.nom} autorise pour ${nomMethode}`
+        `[AUTH] ${utilisateurCourant.nom} autorise pour ${nomMethode}`,
       );
       return methodeOriginale.call(this, ...args);
     }
@@ -1394,7 +1396,7 @@ class GestionContenu {
 
 const gestion = new GestionContenu();
 
-gestion.lire(1);     // OK - Alice est lecteur
+gestion.lire(1); // OK - Alice est lecteur
 gestion.modifier(1, "Nouveau contenu"); // OK - Alice est editeur
 
 try {
@@ -1404,6 +1406,7 @@ try {
   // [ACCES REFUSE] Alice n'a pas les permissions pour supprimer...
 }
 ```
+
 </details>
 
 ---
@@ -1412,23 +1415,23 @@ try {
 
 ### Decorateurs Stage 3 vs Experimentaux
 
-| Aspect | Stage 3 | Experimentaux |
-|--------|---------|---------------|
-| tsconfig | Aucune option speciale | `experimentalDecorators: true` |
-| Parametres de classe | Non supportes | Supportes |
-| `accessor` keyword | Requis pour les propriétés | Non nécessaire |
-| reflect-metadata | Non intégré | Supporte avec `emitDecoratorMetadata` |
-| Frameworks | Nouveaux projets | Angular, NestJS (legacy) |
-| Standard TC39 | Oui | Non |
+| Aspect               | Stage 3                    | Experimentaux                         |
+| -------------------- | -------------------------- | ------------------------------------- |
+| tsconfig             | Aucune option speciale     | `experimentalDecorators: true`        |
+| Parametres de classe | Non supportes              | Supportes                             |
+| `accessor` keyword   | Requis pour les propriétés | Non nécessaire                        |
+| reflect-metadata     | Non intégré                | Supporte avec `emitDecoratorMetadata` |
+| Frameworks           | Nouveaux projets           | Angular, NestJS (legacy)              |
+| Standard TC39        | Oui                        | Non                                   |
 
 ### Types de decorateurs
 
-| Type | Cible | Cas d'usage |
-|------|-------|-------------|
-| Classe | La classe entière | Enregistrement, scellement, mixins |
-| Méthode | Une méthode | Logging, cache, retry, auth |
-| Accesseur | Un getter/setter | Validation, observation |
-| Champ | Une propriété (Stage 3 limite) | Metadata |
+| Type      | Cible                          | Cas d'usage                        |
+| --------- | ------------------------------ | ---------------------------------- |
+| Classe    | La classe entière              | Enregistrement, scellement, mixins |
+| Méthode   | Une méthode                    | Logging, cache, retry, auth        |
+| Accesseur | Un getter/setter               | Validation, observation            |
+| Champ     | Une propriété (Stage 3 limite) | Metadata                           |
 
 ### Points clés
 
@@ -1455,7 +1458,8 @@ Vous avez maintenant couvert les aspects les plus avances du système de types T
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 14 decorateurs](../screencasts/screencast-14-decorateurs.md)
 2. **Lab** : [lab-14-decorateurs](../labs/lab-14-decorateurs/README)
 3. **Quiz** : [quiz 14 decorateurs](../quizzes/quiz-14-decorateurs.html)
-:::
+   :::

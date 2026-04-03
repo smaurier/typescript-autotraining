@@ -4,6 +4,7 @@
 > **Difficulte** : 4/5
 > **Prérequis** : Generics, conditional types, infer, keyof, unions
 > **Objectifs** :
+>
 > - Maîtriser les mapped types et leurs modificateurs
 > - Comprendre le key remapping avec `as`
 > - Utiliser les template literal types pour manipuler des chaines au niveau des types
@@ -249,7 +250,7 @@ type PersonneSetters = Setters<Personne>;
 type EvenementHandlers<T> = {
   [K in keyof T as `on${Capitalize<string & K>}Change`]: (
     ancienneValeur: T[K],
-    nouvelleValeur: T[K]
+    nouvelleValeur: T[K],
   ) => void;
 };
 
@@ -359,34 +360,30 @@ type DimensionsAccesseurs = GettersEtSetters<Dimensions>;
 
 ```typescript
 // DeepReadonly recursif
-type DeepReadonly<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepReadonly<T> = T extends Function
+  ? T
+  : T extends object
     ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
     : T;
 
 // DeepPartial recursif
-type DeepPartial<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepPartial<T> = T extends Function
+  ? T
+  : T extends object
     ? { [K in keyof T]?: DeepPartial<T[K]> }
     : T;
 
 // DeepRequired recursif
-type DeepRequired<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepRequired<T> = T extends Function
+  ? T
+  : T extends object
     ? { [K in keyof T]-?: DeepRequired<T[K]> }
     : T;
 
 // DeepMutable recursif
-type DeepMutable<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepMutable<T> = T extends Function
+  ? T
+  : T extends object
     ? { -readonly [K in keyof T]: DeepMutable<T[K]> }
     : T;
 
@@ -429,8 +426,8 @@ Les template literal types utilisent la même syntaxe que les template strings d
 // Type literal simple
 type Salutation = `Bonjour ${string}`;
 
-const s1: Salutation = "Bonjour Alice";   // OK
-const s2: Salutation = "Bonjour monde";   // OK
+const s1: Salutation = "Bonjour Alice"; // OK
+const s2: Salutation = "Bonjour monde"; // OK
 // const s3: Salutation = "Au revoir";     // Erreur !
 
 // Avec des unions, on obtient toutes les combinaisons
@@ -450,19 +447,19 @@ TypeScript fournit quatre utility types pour transformer les chaines au niveau d
 
 ```typescript
 // Uppercase : convertir en majuscules
-type U1 = Uppercase<"hello">;      // "HELLO"
-type U2 = Uppercase<"bonjour">;    // "BONJOUR"
+type U1 = Uppercase<"hello">; // "HELLO"
+type U2 = Uppercase<"bonjour">; // "BONJOUR"
 
 // Lowercase : convertir en minuscules
-type L1 = Lowercase<"HELLO">;      // "hello"
-type L2 = Lowercase<"BONJOUR">;    // "bonjour"
+type L1 = Lowercase<"HELLO">; // "hello"
+type L2 = Lowercase<"BONJOUR">; // "bonjour"
 
 // Capitalize : premiere lettre en majuscule
-type C1 = Capitalize<"hello">;     // "Hello"
-type C2 = Capitalize<"bonjour">;   // "Bonjour"
+type C1 = Capitalize<"hello">; // "Hello"
+type C2 = Capitalize<"bonjour">; // "Bonjour"
 
 // Uncapitalize : premiere lettre en minuscule
-type UC1 = Uncapitalize<"Hello">;   // "hello"
+type UC1 = Uncapitalize<"Hello">; // "hello"
 type UC2 = Uncapitalize<"Bonjour">; // "bonjour"
 
 // Ces types sont distribues sur les unions
@@ -496,8 +493,8 @@ type CamelVersSnake<T extends string> =
       : `${Debut}${Lettre}${CamelVersSnake<Fin>}`
     : T;
 
-type S1 = CamelVersSnake<"nomUtilisateur">;  // "nom_utilisateur"
-type S2 = CamelVersSnake<"dateDeNaissance">;  // "date_de_naissance"
+type S1 = CamelVersSnake<"nomUtilisateur">; // "nom_utilisateur"
+type S2 = CamelVersSnake<"dateDeNaissance">; // "date_de_naissance"
 ```
 
 ---
@@ -510,7 +507,7 @@ type S2 = CamelVersSnake<"dateDeNaissance">;  // "date_de_naissance"
 // Generer automatiquement des handlers pour chaque propriete
 type PropHandlers<T> = {
   [K in keyof T as `on${Capitalize<string & K>}Change`]: (
-    callback: (ancienne: T[K], nouvelle: T[K]) => void
+    callback: (ancienne: T[K], nouvelle: T[K]) => void,
   ) => void;
 };
 
@@ -555,12 +552,11 @@ const mesStyles: Styles = {
 
 ```typescript
 // Transformer les cles camelCase en SCREAMING_SNAKE_CASE pour des constantes
-type VersScreamingSnake<S extends string> =
-  S extends `${infer T}${infer U}`
-    ? U extends Uncapitalize<U>
-      ? `${Uppercase<T>}${VersScreamingSnake<U>}`
-      : `${Uppercase<T>}_${VersScreamingSnake<U>}`
-    : S;
+type VersScreamingSnake<S extends string> = S extends `${infer T}${infer U}`
+  ? U extends Uncapitalize<U>
+    ? `${Uppercase<T>}${VersScreamingSnake<U>}`
+    : `${Uppercase<T>}_${VersScreamingSnake<U>}`
+  : S;
 
 type SnakeTest = VersScreamingSnake<"nomUtilisateur">;
 // "NOM_UTILISATEUR"
@@ -627,12 +623,14 @@ type Chemins = CheminsPossibles<Formulaire>;
 
 ```typescript
 // Obtenir le type d'une valeur en suivant un chemin
-type ObtenirParChemin<T, Chemin extends string> =
-  Chemin extends `${infer Cle}.${infer Reste}`
-    ? Cle extends keyof T
-      ? ObtenirParChemin<T[Cle], Reste>
-      : never
-    : Chemin extends keyof T
+type ObtenirParChemin<
+  T,
+  Chemin extends string,
+> = Chemin extends `${infer Cle}.${infer Reste}`
+  ? Cle extends keyof T
+    ? ObtenirParChemin<T[Cle], Reste>
+    : never
+  : Chemin extends keyof T
     ? T[Chemin]
     : never;
 
@@ -649,7 +647,7 @@ type V3 = ObtenirParChemin<Formulaire, "utilisateur.adresse">;
 // Combiner pour une fonction get typee
 function obtenir<T, C extends CheminsPossibles<T> & string>(
   objet: T,
-  chemin: C
+  chemin: C,
 ): ObtenirParChemin<T, C> {
   const cles = chemin.split(".");
   let resultat: any = objet;
@@ -680,13 +678,14 @@ const ville = obtenir(formulaire, "utilisateur.adresse.ville");
 ```typescript
 // Creer un builder type-safe
 type Builder<T, Remplis extends keyof T = never> = {
-  [K in keyof T as K extends Remplis ? never : K extends string ? `avec${Capitalize<K>}` : never]:
-    (valeur: T[K]) => Builder<T, Remplis | K>;
-} & (
-  [Exclude<keyof T, Remplis>] extends [never]
-    ? { construire: () => T }
-    : {}
-);
+  [K in keyof T as K extends Remplis
+    ? never
+    : K extends string
+      ? `avec${Capitalize<K>}`
+      : never]: (valeur: T[K]) => Builder<T, Remplis | K>;
+} & ([Exclude<keyof T, Remplis>] extends [never]
+  ? { construire: () => T }
+  : {});
 
 // Simplifie pour l'exemple, en pratique on utilise une implementation
 // a base de Proxy ou de classes
@@ -709,7 +708,7 @@ interface Maison {
 type ExtraireVariante<
   Union,
   Tag extends string,
-  Valeur extends string
+  Valeur extends string,
 > = Union extends { [K in Tag]: Valeur } ? Union : never;
 
 type Action =
@@ -755,7 +754,7 @@ type Promisifie = TupleEnPromises<Original>;
 
 // Cela permet de typer Promise.all correctement
 async function toutCharger<T extends any[]>(
-  promesses: [...TupleEnPromises<T>]
+  promesses: [...TupleEnPromises<T>],
 ): Promise<T> {
   return Promise.all(promesses) as any;
 }
@@ -802,13 +801,13 @@ type ProfilNullable = Nullable<Profil>;
 // }
 
 // Version profonde
-type DeepNullable<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepNullable<T> = T extends Function
+  ? T
+  : T extends object
     ? { [K in keyof T]: DeepNullable<T[K]> | null }
     : T | null;
 ```
+
 </details>
 
 ### Exercice 2 : Transformer les clés d'un objet en camelCase
@@ -826,9 +825,9 @@ type SnakeVersCamel<S extends string> =
     : S;
 
 // Tests unitaires du type
-type SC1 = SnakeVersCamel<"nom_utilisateur">;      // "nomUtilisateur"
-type SC2 = SnakeVersCamel<"date_de_naissance">;     // "dateDeNaissance"
-type SC3 = SnakeVersCamel<"id">;                     // "id"
+type SC1 = SnakeVersCamel<"nom_utilisateur">; // "nomUtilisateur"
+type SC2 = SnakeVersCamel<"date_de_naissance">; // "dateDeNaissance"
+type SC3 = SnakeVersCamel<"id">; // "id"
 
 // Appliquer aux cles d'un objet
 type ObjetCamelCase<T> = {
@@ -854,13 +853,13 @@ type ReponseCamel = ObjetCamelCase<ReponseAPI>;
 // }
 
 // Version recursive (profonde)
-type DeepCamelCase<T> =
-  T extends Function
-    ? T
-    : T extends object
+type DeepCamelCase<T> = T extends Function
+  ? T
+  : T extends object
     ? { [K in keyof T as SnakeVersCamel<string & K>]: DeepCamelCase<T[K]> }
     : T;
 ```
+
 </details>
 
 ### Exercice 3 : Créer un type `PickByType<T, V>`
@@ -903,6 +902,7 @@ type OmitByType<T, V> = {
 type SansStrings = OmitByType<Entite, string>;
 // { id: number; compteur: number; actif: boolean; tags: string[] }
 ```
+
 </details>
 
 ### Exercice 4 : Générer des event names à partir d'un type
@@ -949,7 +949,7 @@ class EmetteurType<T extends Record<string, any>> {
 
   sur<K extends keyof EventMap<T> & string>(
     evenement: K,
-    handler: (payload: EventMap<T>[K]) => void
+    handler: (payload: EventMap<T>[K]) => void,
   ): void {
     if (!this.handlers[evenement]) {
       this.handlers[evenement] = [];
@@ -964,6 +964,7 @@ emetteur.sur("valeur:change", (payload) => {
   console.log(`Valeur: ${payload.ancienneValeur} -> ${payload.nouvelleValeur}`);
 });
 ```
+
 </details>
 
 ### Exercice 5 : Split d'une chaine en tuple
@@ -977,30 +978,31 @@ Creez un type `Split<S, Sep>` qui découpé une chaine en un tuple de sous-chain
 // Decouper une chaine en tuple
 type Split<
   S extends string,
-  Sep extends string
-> =
-  S extends `${infer Debut}${Sep}${infer Fin}`
-    ? [Debut, ...Split<Fin, Sep>]
-    : S extends ""
+  Sep extends string,
+> = S extends `${infer Debut}${Sep}${infer Fin}`
+  ? [Debut, ...Split<Fin, Sep>]
+  : S extends ""
     ? []
     : [S];
 
 // Tests
-type S1 = Split<"a.b.c", ".">;        // ["a", "b", "c"]
-type S2 = Split<"hello world", " ">;   // ["hello", "world"]
+type S1 = Split<"a.b.c", ".">; // ["a", "b", "c"]
+type S2 = Split<"hello world", " ">; // ["hello", "world"]
 type S3 = Split<"un-deux-trois", "-">; // ["un", "deux", "trois"]
-type S4 = Split<"solo", ".">;          // ["solo"]
-type S5 = Split<"", ".">;             // []
+type S4 = Split<"solo", ".">; // ["solo"]
+type S5 = Split<"", ".">; // []
 
 // Application : typer l'acces par chemin
-type AccesParChemin<T, Chemin extends string[]> =
-  Chemin extends [infer Premier, ...infer Reste]
-    ? Premier extends keyof T
-      ? Reste extends string[]
-        ? AccesParChemin<T[Premier], Reste>
-        : T[Premier]
-      : never
-    : T;
+type AccesParChemin<T, Chemin extends string[]> = Chemin extends [
+  infer Premier,
+  ...infer Reste,
+]
+  ? Premier extends keyof T
+    ? Reste extends string[]
+      ? AccesParChemin<T[Premier], Reste>
+      : T[Premier]
+    : never
+  : T;
 
 // Combiner Split et AccesParChemin
 type Get<T, C extends string> = AccesParChemin<T, Split<C, ".">>;
@@ -1017,6 +1019,7 @@ interface Donnees {
 type Nom = Get<Donnees, "utilisateur.profil.nom">; // string
 type Age = Get<Donnees, "utilisateur.profil.age">; // number
 ```
+
 </details>
 
 ---
@@ -1025,26 +1028,26 @@ type Age = Get<Donnees, "utilisateur.profil.age">; // number
 
 ### Mapped Types
 
-| Concept | Syntaxe | Effet |
-|---------|---------|-------|
-| Mapped type de base | `{ [K in keyof T]: ... }` | Itere sur les clés |
-| Ajouter readonly | `{ readonly [K in keyof T]: ... }` | Proprietes en lecture seule |
-| Retirer readonly | `{ -readonly [K in keyof T]: ... }` | Proprietes modifiables |
-| Ajouter optionnel | `{ [K in keyof T]?: ... }` | Proprietes optionnelles |
-| Retirer optionnel | `{ [K in keyof T]-?: ... }` | Proprietes obligatoires |
-| Key remapping | `{ [K in keyof T as ...]: ... }` | Renommer les clés |
-| Filtrer des clés | `as ... ? K : never` | Exclure des propriétés |
+| Concept             | Syntaxe                             | Effet                       |
+| ------------------- | ----------------------------------- | --------------------------- |
+| Mapped type de base | `{ [K in keyof T]: ... }`           | Itere sur les clés          |
+| Ajouter readonly    | `{ readonly [K in keyof T]: ... }`  | Proprietes en lecture seule |
+| Retirer readonly    | `{ -readonly [K in keyof T]: ... }` | Proprietes modifiables      |
+| Ajouter optionnel   | `{ [K in keyof T]?: ... }`          | Proprietes optionnelles     |
+| Retirer optionnel   | `{ [K in keyof T]-?: ... }`         | Proprietes obligatoires     |
+| Key remapping       | `{ [K in keyof T as ...]: ... }`    | Renommer les clés           |
+| Filtrer des clés    | `as ... ? K : never`                | Exclure des propriétés      |
 
 ### Template Literal Types
 
-| Type | Effet | Exemple |
-|------|-------|---------|
-| `` `${A}${B}` `` | Concatenation | `"hello" + "world"` |
-| `Uppercase<T>` | Majuscules | `"hello"` -> `"HELLO"` |
-| `Lowercase<T>` | Minuscules | `"HELLO"` -> `"hello"` |
-| `Capitalize<T>` | Premiere majuscule | `"hello"` -> `"Hello"` |
-| `Uncapitalize<T>` | Premiere minuscule | `"Hello"` -> `"hello"` |
-| `infer` dans template | Pattern matching | Extraire des parties |
+| Type                  | Effet              | Exemple                |
+| --------------------- | ------------------ | ---------------------- |
+| `` `${A}${B}` ``      | Concatenation      | `"hello" + "world"`    |
+| `Uppercase<T>`        | Majuscules         | `"hello"` -> `"HELLO"` |
+| `Lowercase<T>`        | Minuscules         | `"HELLO"` -> `"hello"` |
+| `Capitalize<T>`       | Premiere majuscule | `"hello"` -> `"Hello"` |
+| `Uncapitalize<T>`     | Premiere minuscule | `"Hello"` -> `"hello"` |
+| `infer` dans template | Pattern matching   | Extraire des parties   |
 
 ### Points clés
 
@@ -1065,8 +1068,9 @@ Le prochain module, **[13 — Types récursifs & Type-Level Programming](./13-ty
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 12 mapped template](../screencasts/screencast-12-mapped-template.md)
 2. **Lab** : [lab-12-mapped-template](../labs/lab-12-mapped-template/README)
 3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
 4. **Quiz** : [quiz 12 mapped template](../quizzes/quiz-12-mapped-template.html)
-:::
+   :::

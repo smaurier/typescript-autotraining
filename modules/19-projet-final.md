@@ -244,7 +244,7 @@ export type SontIdentiques<A, B> =
 
 ## Module 2 : Result<T, E> — Gestion d'erreurs fonctionnelle
 
-```typescript
+````typescript
 // src/result.ts
 
 /**
@@ -298,7 +298,7 @@ export namespace Result {
    */
   export function map<T, U, E>(
     resultat: Result<T, E>,
-    fn: (val: T) => U
+    fn: (val: T) => U,
   ): Result<U, E> {
     if (resultat.ok) {
       return ok(fn(resultat.valeur));
@@ -312,7 +312,7 @@ export namespace Result {
    */
   export function flatMap<T, U, E>(
     resultat: Result<T, E>,
-    fn: (val: T) => Result<U, E>
+    fn: (val: T) => Result<U, E>,
   ): Result<U, E> {
     if (resultat.ok) {
       return fn(resultat.valeur);
@@ -325,7 +325,7 @@ export namespace Result {
    */
   export function mapErr<T, E, F>(
     resultat: Result<T, E>,
-    fn: (erreur: E) => F
+    fn: (erreur: E) => F,
   ): Result<T, F> {
     if (!resultat.ok) {
       return err(fn(resultat.erreur));
@@ -367,7 +367,7 @@ export namespace Result {
    * Version asynchrone de capturer
    */
   export async function capturerAsync<T>(
-    fn: () => Promise<T>
+    fn: () => Promise<T>,
   ): Promise<Result<T, Error>> {
     try {
       return ok(await fn());
@@ -382,7 +382,7 @@ export namespace Result {
    * Si un est err, retourne la premiere erreur
    */
   export function tous<T, E>(
-    resultats: readonly Result<T, E>[]
+    resultats: readonly Result<T, E>[],
   ): Result<T[], E> {
     const valeurs: T[] = [];
     for (const r of resultats) {
@@ -396,7 +396,7 @@ export namespace Result {
    * Verifie si un Result est ok (type guard)
    */
   export function estOk<T, E>(
-    resultat: Result<T, E>
+    resultat: Result<T, E>,
   ): resultat is { readonly ok: true; readonly valeur: T } {
     return resultat.ok;
   }
@@ -405,18 +405,18 @@ export namespace Result {
    * Verifie si un Result est err (type guard)
    */
   export function estErr<T, E>(
-    resultat: Result<T, E>
+    resultat: Result<T, E>,
   ): resultat is { readonly ok: false; readonly erreur: E } {
     return !resultat.ok;
   }
 }
-```
+````
 
 ---
 
 ## Module 3 : EventEmitter type-safe
 
-```typescript
+````typescript
 // src/event-emitter.ts
 
 /**
@@ -462,7 +462,7 @@ export class EventEmitter<E extends CarteEvenements> {
    */
   on<K extends keyof E & string>(
     evenement: K,
-    ecouteur: Ecouteur<E[K]>
+    ecouteur: Ecouteur<E[K]>,
   ): () => void {
     if (!this._ecouteurs.has(evenement)) {
       this._ecouteurs.set(evenement, new Set());
@@ -489,7 +489,7 @@ export class EventEmitter<E extends CarteEvenements> {
    */
   once<K extends keyof E & string>(
     evenement: K,
-    ecouteur: Ecouteur<E[K]>
+    ecouteur: Ecouteur<E[K]>,
   ): () => void {
     const desinscrire = this.on(evenement, ((payload: E[K]) => {
       desinscrire();
@@ -514,7 +514,7 @@ export class EventEmitter<E extends CarteEvenements> {
         } catch (erreur) {
           console.error(
             `[EventEmitter] Erreur dans l'ecouteur de "${evenement}":`,
-            erreur
+            erreur,
           );
         }
       }
@@ -552,7 +552,7 @@ export class EventEmitter<E extends CarteEvenements> {
    */
   waitFor<K extends keyof E & string>(
     evenement: K,
-    timeout?: number
+    timeout?: number,
   ): Promise<E[K]> {
     return new Promise((resolve, reject) => {
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -565,19 +565,23 @@ export class EventEmitter<E extends CarteEvenements> {
       if (timeout !== undefined) {
         timer = setTimeout(() => {
           desinscrire();
-          reject(new Error(`Timeout : evenement "${String(evenement)}" non recu apres ${timeout}ms`));
+          reject(
+            new Error(
+              `Timeout : evenement "${String(evenement)}" non recu apres ${timeout}ms`,
+            ),
+          );
         }, timeout);
       }
     });
   }
 }
-```
+````
 
 ---
 
 ## Module 4 : Conteneur DI type-safe
 
-```typescript
+````typescript
 // src/container.ts
 
 import type { ClePropriete } from "./types.js";
@@ -622,7 +626,7 @@ export class Container<Services extends Record<string, unknown>> {
   register<K extends keyof Services & string>(
     nom: K,
     factory: () => Services[K],
-    options: { singleton?: boolean } = {}
+    options: { singleton?: boolean } = {},
   ): this {
     this.definitions.set(nom, {
       factory: factory as () => unknown,
@@ -651,7 +655,7 @@ export class Container<Services extends Record<string, unknown>> {
     if (!definition) {
       throw new Error(
         `[Container] Service "${nom}" non enregistre. ` +
-        `Services disponibles : ${[...this.definitions.keys()].join(", ")}`
+          `Services disponibles : ${[...this.definitions.keys()].join(", ")}`,
       );
     }
 
@@ -699,13 +703,13 @@ export class Container<Services extends Record<string, unknown>> {
     return enfant;
   }
 }
-```
+````
 
 ---
 
 ## Module 5 : pipe & compose
 
-```typescript
+````typescript
 // src/pipe.ts
 
 /**
@@ -725,23 +729,19 @@ export class Container<Services extends Record<string, unknown>> {
  */
 export function pipe<A>(valeur: A): A;
 export function pipe<A, B>(valeur: A, fn1: (a: A) => B): B;
-export function pipe<A, B, C>(
-  valeur: A,
-  fn1: (a: A) => B,
-  fn2: (b: B) => C
-): C;
+export function pipe<A, B, C>(valeur: A, fn1: (a: A) => B, fn2: (b: B) => C): C;
 export function pipe<A, B, C, D>(
   valeur: A,
   fn1: (a: A) => B,
   fn2: (b: B) => C,
-  fn3: (c: C) => D
+  fn3: (c: C) => D,
 ): D;
 export function pipe<A, B, C, D, E>(
   valeur: A,
   fn1: (a: A) => B,
   fn2: (b: B) => C,
   fn3: (c: C) => D,
-  fn4: (d: D) => E
+  fn4: (d: D) => E,
 ): E;
 export function pipe<A, B, C, D, E, F>(
   valeur: A,
@@ -749,7 +749,7 @@ export function pipe<A, B, C, D, E, F>(
   fn2: (b: B) => C,
   fn3: (c: C) => D,
   fn4: (d: D) => E,
-  fn5: (e: E) => F
+  fn5: (e: E) => F,
 ): F;
 export function pipe(
   valeur: unknown,
@@ -772,20 +772,17 @@ export function pipe(
  * ```
  */
 export function flow<A, B>(fn1: (a: A) => B): (a: A) => B;
-export function flow<A, B, C>(
-  fn1: (a: A) => B,
-  fn2: (b: B) => C
-): (a: A) => C;
+export function flow<A, B, C>(fn1: (a: A) => B, fn2: (b: B) => C): (a: A) => C;
 export function flow<A, B, C, D>(
   fn1: (a: A) => B,
   fn2: (b: B) => C,
-  fn3: (c: C) => D
+  fn3: (c: C) => D,
 ): (a: A) => D;
 export function flow<A, B, C, D, E>(
   fn1: (a: A) => B,
   fn2: (b: B) => C,
   fn3: (c: C) => D,
-  fn4: (d: D) => E
+  fn4: (d: D) => E,
 ): (a: A) => E;
 export function flow(
   ...fns: Array<(arg: unknown) => unknown>
@@ -809,31 +806,31 @@ export function flow(
 export function compose<A, B>(fn1: (a: A) => B): (a: A) => B;
 export function compose<A, B, C>(
   fn2: (b: B) => C,
-  fn1: (a: A) => B
+  fn1: (a: A) => B,
 ): (a: A) => C;
 export function compose<A, B, C, D>(
   fn3: (c: C) => D,
   fn2: (b: B) => C,
-  fn1: (a: A) => B
+  fn1: (a: A) => B,
 ): (a: A) => D;
 export function compose<A, B, C, D, E>(
   fn4: (d: D) => E,
   fn3: (c: C) => D,
   fn2: (b: B) => C,
-  fn1: (a: A) => B
+  fn1: (a: A) => B,
 ): (a: A) => E;
 export function compose(
   ...fns: Array<(arg: unknown) => unknown>
 ): (arg: unknown) => unknown {
   return (valeur: unknown) => fns.reduceRight((acc, fn) => fn(acc), valeur);
 }
-```
+````
 
 ---
 
 ## Module 6 : Schema validation (mini-Zod)
 
-```typescript
+````typescript
 // src/schema.ts
 
 import { Result } from "./result.js";
@@ -871,11 +868,13 @@ class SchemaString implements SchemaBase<string> {
 
   parse(donnees: unknown): Result<string, ErreurSchema[]> {
     if (typeof donnees !== "string") {
-      return Result.err([{
-        chemin: [],
-        message: `Attendu string, recu ${typeof donnees}`,
-        valeurRecue: donnees,
-      }]);
+      return Result.err([
+        {
+          chemin: [],
+          message: `Attendu string, recu ${typeof donnees}`,
+          valeurRecue: donnees,
+        },
+      ]);
     }
 
     const erreurs: ErreurSchema[] = [];
@@ -928,10 +927,7 @@ class SchemaString implements SchemaBase<string> {
 
   /** Doit etre un email valide */
   email(): this {
-    return this.regex(
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      "Email invalide"
-    );
+    return this.regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Email invalide");
   }
 }
 
@@ -946,11 +942,13 @@ class SchemaNumber implements SchemaBase<number> {
 
   parse(donnees: unknown): Result<number, ErreurSchema[]> {
     if (typeof donnees !== "number" || Number.isNaN(donnees)) {
-      return Result.err([{
-        chemin: [],
-        message: `Attendu number, recu ${typeof donnees}`,
-        valeurRecue: donnees,
-      }]);
+      return Result.err([
+        {
+          chemin: [],
+          message: `Attendu number, recu ${typeof donnees}`,
+          valeurRecue: donnees,
+        },
+      ]);
     }
 
     const erreurs: ErreurSchema[] = [];
@@ -1015,11 +1013,13 @@ class SchemaNumber implements SchemaBase<number> {
 class SchemaBoolean implements SchemaBase<boolean> {
   parse(donnees: unknown): Result<boolean, ErreurSchema[]> {
     if (typeof donnees !== "boolean") {
-      return Result.err([{
-        chemin: [],
-        message: `Attendu boolean, recu ${typeof donnees}`,
-        valeurRecue: donnees,
-      }]);
+      return Result.err([
+        {
+          chemin: [],
+          message: `Attendu boolean, recu ${typeof donnees}`,
+          valeurRecue: donnees,
+        },
+      ]);
     }
     return Result.ok(donnees);
   }
@@ -1038,18 +1038,24 @@ type InfererSchema<S extends SchemaMap> = {
   [K in keyof S]: S[K] extends SchemaBase<infer T> ? T : never;
 };
 
-class SchemaObject<S extends SchemaMap>
-  implements SchemaBase<InfererSchema<S>>
-{
+class SchemaObject<S extends SchemaMap> implements SchemaBase<
+  InfererSchema<S>
+> {
   constructor(private forme: S) {}
 
   parse(donnees: unknown): Result<InfererSchema<S>, ErreurSchema[]> {
-    if (typeof donnees !== "object" || donnees === null || Array.isArray(donnees)) {
-      return Result.err([{
-        chemin: [],
-        message: `Attendu object, recu ${typeof donnees}`,
-        valeurRecue: donnees,
-      }]);
+    if (
+      typeof donnees !== "object" ||
+      donnees === null ||
+      Array.isArray(donnees)
+    ) {
+      return Result.err([
+        {
+          chemin: [],
+          message: `Attendu object, recu ${typeof donnees}`,
+          valeurRecue: donnees,
+        },
+      ]);
     }
 
     const obj = donnees as Record<string, unknown>;
@@ -1088,11 +1094,13 @@ class SchemaArray<T> implements SchemaBase<T[]> {
 
   parse(donnees: unknown): Result<T[], ErreurSchema[]> {
     if (!Array.isArray(donnees)) {
-      return Result.err([{
-        chemin: [],
-        message: `Attendu array, recu ${typeof donnees}`,
-        valeurRecue: donnees,
-      }]);
+      return Result.err([
+        {
+          chemin: [],
+          message: `Attendu array, recu ${typeof donnees}`,
+          valeurRecue: donnees,
+        },
+      ]);
     }
 
     const erreurs: ErreurSchema[] = [];
@@ -1112,9 +1120,7 @@ class SchemaArray<T> implements SchemaBase<T[]> {
       }
     }
 
-    return erreurs.length > 0
-      ? Result.err(erreurs)
-      : Result.ok(resultats);
+    return erreurs.length > 0 ? Result.err(erreurs) : Result.ok(resultats);
   }
 
   estValide(donnees: unknown): donnees is T[] {
@@ -1158,13 +1164,13 @@ export const s = {
 
 /** Type utilitaire pour extraire le type d'un schema */
 export type Inferer<S> = S extends SchemaBase<infer T> ? T : never;
-```
+````
 
 ---
 
 ## Module 7 : Deep merge type-safe
 
-```typescript
+````typescript
 // src/deep-merge.ts
 
 /**
@@ -1178,7 +1184,7 @@ export type DeepMerge<A, B> = {
       ? A[K] extends object
         ? B[K] extends object
           ? A[K] extends Function
-            ? B[K]          // Les fonctions ne sont pas fusionnees
+            ? B[K] // Les fonctions ne sont pas fusionnees
             : DeepMerge<A[K], B[K]>
           : B[K]
         : B[K]
@@ -1224,7 +1230,7 @@ function estObjetSimple(valeur: unknown): valeur is Record<string, unknown> {
  */
 export function deepMerge<
   A extends Record<string, unknown>,
-  B extends Record<string, unknown>
+  B extends Record<string, unknown>,
 >(cible: A, source: B): DeepMerge<A, B> {
   const resultat: Record<string, unknown> = { ...cible };
 
@@ -1236,7 +1242,7 @@ export function deepMerge<
       // Fusion recursive pour les sous-objets
       resultat[cle] = deepMerge(
         valeurCible as Record<string, unknown>,
-        valeurSource as Record<string, unknown>
+        valeurSource as Record<string, unknown>,
       );
     } else {
       // Ecrasement pour les valeurs primitives, tableaux, etc.
@@ -1257,18 +1263,15 @@ export function deepMergeAll<T extends Record<string, unknown>>(
   ...objets: T[]
 ): T {
   if (objets.length === 0) return {} as T;
-  return objets.reduce(
-    (acc, obj) => deepMerge(acc, obj) as T,
-    {} as T
-  );
+  return objets.reduce((acc, obj) => deepMerge(acc, obj) as T, {} as T);
 }
-```
+````
 
 ---
 
 ## Module 8 : Path-typed object access
 
-```typescript
+````typescript
 // src/path-access.ts
 
 /**
@@ -1290,7 +1293,7 @@ export type Chemins<T, Prefix extends string = ""> = T extends object
  */
 export type TypeDepuisChemin<
   T,
-  Chemin extends string
+  Chemin extends string,
 > = Chemin extends `${infer K}.${infer Reste}`
   ? K extends keyof T
     ? TypeDepuisChemin<T[K], Reste>
@@ -1315,7 +1318,7 @@ export type TypeDepuisChemin<
  */
 export function get<T extends Record<string, unknown>, C extends Chemins<T>>(
   obj: T,
-  chemin: C
+  chemin: C,
 ): TypeDepuisChemin<T, C> {
   const segments = (chemin as string).split(".");
   let courant: unknown = obj;
@@ -1339,13 +1342,10 @@ export function get<T extends Record<string, unknown>, C extends Chemins<T>>(
  * @param valeur - La nouvelle valeur (type verifie)
  * @returns Un nouvel objet avec la valeur modifiee
  */
-export function set<
-  T extends Record<string, unknown>,
-  C extends Chemins<T>
->(
+export function set<T extends Record<string, unknown>, C extends Chemins<T>>(
   obj: T,
   chemin: C,
-  valeur: TypeDepuisChemin<T, C>
+  valeur: TypeDepuisChemin<T, C>,
 ): T {
   const segments = (chemin as string).split(".");
   const resultat = { ...obj } as Record<string, unknown>;
@@ -1366,7 +1366,7 @@ export function set<
   courant[segments[segments.length - 1]!] = valeur;
   return resultat as T;
 }
-```
+````
 
 ---
 
@@ -1475,7 +1475,7 @@ describe("Result", () => {
 
     it("propage la premiere erreur", () => {
       const r = Result.flatMap(Result.ok(10), (n) =>
-        Result.err("erreur calculee")
+        Result.err("erreur calculee"),
       );
       expect(r).toEqual({ ok: false, erreur: "erreur calculee" });
     });
@@ -1511,11 +1511,7 @@ describe("Result", () => {
     });
 
     it("retourne la premiere erreur", () => {
-      const resultats = [
-        Result.ok(1),
-        Result.err("erreur"),
-        Result.ok(3),
-      ];
+      const resultats = [Result.ok(1), Result.err("erreur"), Result.ok(3)];
       const r = Result.tous(resultats);
       expect(r).toEqual({ ok: false, erreur: "erreur" });
     });
@@ -1532,9 +1528,9 @@ import { describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "../src/event-emitter.js";
 
 interface EvenementsTest {
-  "message": { texte: string };
-  "compteur": { valeur: number };
-  "vide": undefined;
+  message: { texte: string };
+  compteur: { valeur: number };
+  vide: undefined;
 }
 
 describe("EventEmitter", () => {
@@ -1724,7 +1720,7 @@ describe("Schema", () => {
 
 ## Documentation TSDoc
 
-```typescript
+````typescript
 // Exemple de documentation TSDoc complete dans les sources
 
 /**
@@ -1766,7 +1762,7 @@ describe("Schema", () => {
  *
  * @see {@link deepMergeAll} pour fusionner plus de deux objets
  */
-```
+````
 
 ---
 
@@ -1823,6 +1819,7 @@ npm pack
 ### Exercice 1 : Etendre le Schema
 
 Ajoutez les schemas suivants a notre mini-Zod :
+
 - `s.optional()` — rend un schema optionnel (accepte undefined)
 - `s.nullable()` — rend un schema nullable (accepte null)
 - `s.union()` — union de deux schemas
@@ -1867,7 +1864,7 @@ class SchemaNullable<T> implements SchemaBase<T | null> {
 class SchemaUnion<A, B> implements SchemaBase<A | B> {
   constructor(
     private schemaA: SchemaBase<A>,
-    private schemaB: SchemaBase<B>
+    private schemaB: SchemaBase<B>,
   ) {}
 
   parse(donnees: unknown): Result<A | B, ErreurSchema[]> {
@@ -1877,11 +1874,13 @@ class SchemaUnion<A, B> implements SchemaBase<A | B> {
     const resultatB = this.schemaB.parse(donnees);
     if (resultatB.ok) return resultatB;
 
-    return Result.err([{
-      chemin: [],
-      message: "Aucun schema de l'union ne correspond",
-      valeurRecue: donnees,
-    }]);
+    return Result.err([
+      {
+        chemin: [],
+        message: "Aucun schema de l'union ne correspond",
+        valeurRecue: donnees,
+      },
+    ]);
   }
 
   estValide(donnees: unknown): donnees is A | B {
@@ -1921,7 +1920,7 @@ Ajoutez un système de middleware au conteneur DI pour intercepter les appels :
 type Middleware<T> = (service: T, nom: string) => T;
 
 class ContainerAvecMiddleware<
-  Services extends Record<string, unknown>
+  Services extends Record<string, unknown>,
 > extends Container<Services> {
   private middlewares = new Map<string, Array<Middleware<unknown>>>();
 
@@ -1930,7 +1929,7 @@ class ContainerAvecMiddleware<
    */
   useMiddleware<K extends keyof Services & string>(
     nom: K,
-    middleware: Middleware<Services[K]>
+    middleware: Middleware<Services[K]>,
   ): this {
     if (!this.middlewares.has(nom)) {
       this.middlewares.set(nom, []);
@@ -1987,7 +1986,7 @@ conteneur.useMiddleware("calculatrice", (service, nom) => {
 
 const calc = conteneur.resolve("calculatrice");
 calc.additionner(2, 3); // Log: [calculatrice] additionner appele avec [2, 3]
-                          // Log: [calculatrice] additionner retourne 5
+// Log: [calculatrice] additionner retourne 5
 ```
 
 </details>
@@ -2039,13 +2038,17 @@ describe("Integration complete", () => {
     conteneur.register("bus", () => bus);
 
     // 4. Pipeline de traitement
-    const donneesEntree = { nom: "  Alice Dupont  ", email: "ALICE@EXEMPLE.FR", age: 30 };
+    const donneesEntree = {
+      nom: "  Alice Dupont  ",
+      email: "ALICE@EXEMPLE.FR",
+      age: 30,
+    };
 
     // Transformer les donnees avec pipe
     const donneesNettoyees = pipe(
       donneesEntree,
       (d) => ({ ...d, nom: d.nom.trim() }),
-      (d) => ({ ...d, email: d.email.toLowerCase() })
+      (d) => ({ ...d, email: d.email.toLowerCase() }),
     );
 
     // Valider avec le schema
@@ -2053,15 +2056,17 @@ describe("Integration complete", () => {
 
     if (resultatValidation.ok) {
       // Deep merge avec un ID genere
-      const utilisateur = deepMerge(
-        resultatValidation.valeur,
-        { id: "usr_001" } as Record<string, unknown>
-      );
+      const utilisateur = deepMerge(resultatValidation.valeur, {
+        id: "usr_001",
+      } as Record<string, unknown>);
 
       // Emettre l'evenement
       const monBus = conteneur.resolve("bus");
       monBus.emit("utilisateur:cree", {
-        id: get(utilisateur as Record<string, unknown>, "id" as never) as string,
+        id: get(
+          utilisateur as Record<string, unknown>,
+          "id" as never,
+        ) as string,
         nom: resultatValidation.valeur.nom,
         email: resultatValidation.valeur.email,
       });
@@ -2085,17 +2090,17 @@ describe("Integration complete", () => {
 
 ## Récapitulatif du projet
 
-| Module            | Fichier              | Lignes | Concepts utilises                       |
-|-------------------|----------------------|--------|------------------------------------------|
-| Types utilitaires | `types.ts`           | ~50    | Mapped types, conditionals, recursive    |
-| Result<T, E>      | `result.ts`          | ~120   | Union discriminee, generics, namespace   |
-| EventEmitter      | `event-emitter.ts`   | ~100   | Generics constraints, Map, Promises      |
-| Container DI      | `container.ts`       | ~80    | Keyof, mapped types, generics            |
-| pipe/compose      | `pipe.ts`            | ~80    | Overloads, type inference chain          |
-| Schema            | `schema.ts`          | ~200   | Classes, generics, inference, branded    |
-| Deep merge        | `deep-merge.ts`      | ~60    | Recursive types, type guards             |
-| Path access       | `path-access.ts`     | ~70    | Template literals, recursive types       |
-| **Total**         |                      | ~760   | **Tous les concepts du cours**           |
+| Module            | Fichier            | Lignes | Concepts utilises                      |
+| ----------------- | ------------------ | ------ | -------------------------------------- |
+| Types utilitaires | `types.ts`         | ~50    | Mapped types, conditionals, recursive  |
+| Result<T, E>      | `result.ts`        | ~120   | Union discriminee, generics, namespace |
+| EventEmitter      | `event-emitter.ts` | ~100   | Generics constraints, Map, Promises    |
+| Container DI      | `container.ts`     | ~80    | Keyof, mapped types, generics          |
+| pipe/compose      | `pipe.ts`          | ~80    | Overloads, type inference chain        |
+| Schema            | `schema.ts`        | ~200   | Classes, generics, inference, branded  |
+| Deep merge        | `deep-merge.ts`    | ~60    | Recursive types, type guards           |
+| Path access       | `path-access.ts`   | ~70    | Template literals, recursive types     |
+| **Total**         |                    | ~760   | **Tous les concepts du cours**         |
 
 ---
 
@@ -2126,17 +2131,18 @@ Bonne continuation dans votre parcours TypeScript !
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 19 projet final](../screencasts/screencast-19-projet-final.md)
 2. **Lab** : [lab-19-projet-final](../labs/lab-19-projet-final/README)
 3. **Quiz** : [quiz 19 projet final](../quizzes/quiz-19-projet-final.html)
-:::
+   :::
 
 ---
 
 <!-- navigation-inter-cours -->
 
 ::: info Cours suivant
-Bravo, tu as termine le cours **TypeScript** ! 
+Bravo, tu as termine le cours **TypeScript** !
 Le prochain cours du curriculum est **JS Runtime**.
 
 [Commencer JS Runtime →](../../02-js-runtime/modules/00-prerequis-et-vue-ensemble.md)

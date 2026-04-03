@@ -107,7 +107,7 @@ const animaux: readonly Animal[] = chats; // Cette fois, le risque est bien plus
 ### Le principe fondamental
 
 En TypeScript, le sous-typage est **structurel**, pas nominal. Cela signifie que
-deux types sont compatibles si leurs *structures* sont compatibles, peu importe
+deux types sont compatibles si leurs _structures_ sont compatibles, peu importe
 leurs noms.
 
 ```typescript
@@ -169,6 +169,7 @@ afficherVehicule(maFerrari); // OK
 ### Definition
 
 Un type générique `F<T>` est **covariant** en `T` si :
+
 - Quand `A extends B`, alors `F<A> extends F<B>`
 - La direction du sous-typage est **preservee**
 
@@ -238,6 +239,7 @@ const animauxReadonly: readonly Animal[] = chatsReadonly; // OK et SUR
 ### Definition
 
 Un type générique `F<T>` est **contravariant** en `T` si :
+
 - Quand `A extends B`, alors `F<B> extends F<A>`
 - La direction du sous-typage est **inversee**
 
@@ -322,6 +324,7 @@ interface MonTableau<T> {
 ### Definition
 
 Un type générique `F<T>` est **invariant** en `T` si :
+
 - `F<A>` n'est assignable a `F<B>` QUE si `A` est identique a `B`
 - Ni covariance, ni contravariance
 
@@ -333,7 +336,7 @@ Un type générique `F<T>` est **invariant** en `T` si :
 ```typescript
 // L'invariance apparait quand T est utilise EN ENTREE ET EN SORTIE
 type Conteneur<T> = {
-  valeur: T;           // Position de sortie (lecture)
+  valeur: T; // Position de sortie (lecture)
   definir(v: T): void; // Position d'entree (ecriture)
 };
 
@@ -470,7 +473,8 @@ type Transformateur<A, B> = (input: A) => B;
 type TransformateurAnimalString = Transformateur<Animal, string>;
 type TransformateurChatString = Transformateur<Chat, string>;
 
-const decrireAnimal: TransformateurAnimalString = (a) => `${a.nom}, ${a.age} ans`;
+const decrireAnimal: TransformateurAnimalString = (a) =>
+  `${a.nom}, ${a.age} ans`;
 
 // Contravariance sur A : Animal est "plus grand" que Chat,
 // donc Transformateur<Animal, string> extends Transformateur<Chat, string>
@@ -508,7 +512,7 @@ const definitif = true; // Type: true (litteral)
 
 // Widening dans les objets
 const config = {
-  port: 3000,      // Type: number (elargi meme dans un const !)
+  port: 3000, // Type: number (elargi meme dans un const !)
   host: "localhost", // Type: string (elargi)
 };
 // Type de config : { port: number; host: string }
@@ -655,7 +659,7 @@ function decrire(animal: Poisson | Oiseau): string {
 // Les fonctions d'assertion affinent le type apres leur appel
 function assertEstNonNull<T>(
   valeur: T,
-  message?: string
+  message?: string,
 ): asserts valeur is NonNullable<T> {
   if (valeur === null || valeur === undefined) {
     throw new Error(message ?? "Valeur nulle inattendue");
@@ -795,8 +799,12 @@ totalEUR(prix1, prix1); // OK
 // totalEUR(prix1, prix2); // Erreur ! USD n'est pas EUR
 
 // Les identifiants aussi sont proteges
-function trouverUtilisateur(id: IdentifiantUtilisateur): void { /* ... */ }
-function trouverProduit(id: IdentifiantProduit): void { /* ... */ }
+function trouverUtilisateur(id: IdentifiantUtilisateur): void {
+  /* ... */
+}
+function trouverProduit(id: IdentifiantProduit): void {
+  /* ... */
+}
 
 const userId = idUtilisateur("usr_123");
 // trouverProduit(userId); // Erreur ! On ne peut pas confondre les ID
@@ -826,8 +834,8 @@ function agePositif(valeur: number): AgePositif {
 
 interface Utilisateur {
   nom: string;
-  email: Email;        // Garanti valide !
-  age: AgePositif;     // Garanti positif et entier !
+  email: Email; // Garanti valide !
+  age: AgePositif; // Garanti positif et entier !
 }
 
 // Pour creer un Utilisateur, on DOIT passer par les fonctions de validation
@@ -842,7 +850,7 @@ const alice: Utilisateur = {
 
 ## Les trous de soundness en TypeScript
 
-TypeScript n'est **pas** un système de types *sound*. Cela signifie qu'il existe
+TypeScript n'est **pas** un système de types _sound_. Cela signifie qu'il existe
 des situations ou le compilateur dit "OK" alors que le code peut planter au
 runtime. C'est un choix delibere pour equilibrer sécurité et productivite.
 
@@ -984,7 +992,7 @@ interface Options {
 
 // Sans le flag, ces deux sont equivalents :
 const o1: Options = { couleur: undefined }; // OK sans le flag
-const o2: Options = {};                     // OK
+const o2: Options = {}; // OK
 
 // AVEC le flag, il y a une difference :
 // const o3: Options = { couleur: undefined }; // ERREUR !
@@ -1079,11 +1087,11 @@ function fahrenheit(valeur: number): Fahrenheit {
 
 // Conversions type-safe
 function celsiusVersFahrenheit(c: Celsius): Fahrenheit {
-  return fahrenheit((c as number) * 9 / 5 + 32);
+  return fahrenheit(((c as number) * 9) / 5 + 32);
 }
 
 function fahrenheitVersCelsius(f: Fahrenheit): Celsius {
-  return celsius(((f as number) - 32) * 5 / 9);
+  return celsius((((f as number) - 32) * 5) / 9);
 }
 
 // Operations type-safe
@@ -1182,13 +1190,15 @@ Ajoutez les annotations de variance correctes (`in`, `out`, `in out`) :
 
 ```typescript
 // Ajoutez les annotations de variance
-type Resultat<T> = {
-  donnee: T;
-  erreur: null;
-} | {
-  donnee: null;
-  erreur: Error;
-};
+type Resultat<T> =
+  | {
+      donnee: T;
+      erreur: null;
+    }
+  | {
+      donnee: null;
+      erreur: Error;
+    };
 
 type Comparateur<T> = (a: T, b: T) => number;
 
@@ -1206,13 +1216,15 @@ type Depot<T> = {
 ```typescript
 // Resultat<T> : T est en position de SORTIE (dans donnee)
 // -> COVARIANT
-type Resultat<out T> = {
-  donnee: T;
-  erreur: null;
-} | {
-  donnee: null;
-  erreur: Error;
-};
+type Resultat<out T> =
+  | {
+      donnee: T;
+      erreur: null;
+    }
+  | {
+      donnee: null;
+      erreur: Error;
+    };
 
 // Comparateur<T> : T est en position d'ENTREE (parametres a et b)
 // -> CONTRAVARIANT
@@ -1235,17 +1247,17 @@ type Depot<in out T> = {
 
 ## Récapitulatif
 
-| Concept                  | Description                                                  |
-|--------------------------|--------------------------------------------------------------|
-| **Covariance** (`out`)   | Même direction : `A <: B => F<A> <: F<B>` (sortie)         |
-| **Contravariance** (`in`)| Direction inversee : `A <: B => F<B> <: F<A>` (entree)     |
-| **Invariance** (`in out`)| Aucune relation : `F<A>` et `F<B>` incompatibles           |
-| **Bivariance**           | Les deux directions (méthodes d'interface, historique)        |
-| **Widening**             | Elargissement automatique des types literaux                 |
-| **Narrowing**            | Affinement des types via le flux de controle                 |
-| **Excess check**         | Vérification speciale sur les objets litteraux               |
-| **Branded types**        | Simulent le typage nominal via une marque invisible          |
-| **Soundness holes**      | Compromis deliberes de TypeScript (any, covariance, etc.)    |
+| Concept                   | Description                                               |
+| ------------------------- | --------------------------------------------------------- |
+| **Covariance** (`out`)    | Même direction : `A <: B => F<A> <: F<B>` (sortie)        |
+| **Contravariance** (`in`) | Direction inversee : `A <: B => F<B> <: F<A>` (entree)    |
+| **Invariance** (`in out`) | Aucune relation : `F<A>` et `F<B>` incompatibles          |
+| **Bivariance**            | Les deux directions (méthodes d'interface, historique)    |
+| **Widening**              | Elargissement automatique des types literaux              |
+| **Narrowing**             | Affinement des types via le flux de controle              |
+| **Excess check**          | Vérification speciale sur les objets litteraux            |
+| **Branded types**         | Simulent le typage nominal via une marque invisible       |
+| **Soundness holes**       | Compromis deliberes de TypeScript (any, covariance, etc.) |
 
 ---
 
@@ -1264,9 +1276,10 @@ travaillerez avec `declare module` et le merging de declarations.
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 15 variance](../screencasts/screencast-15-variance.md)
 2. **Lab** : [lab-15-variance](../labs/lab-15-variance/README)
 3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
 4. **Visualisation** : [Type Narrowing](../visualizations/type-narrowing.html)
 5. **Quiz** : [quiz 15 variance](../quizzes/quiz-15-variance.html)
-:::
+   :::

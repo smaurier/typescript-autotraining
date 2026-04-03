@@ -24,21 +24,6 @@ const { test, assert, assertEqual, assertThrows, summary } =
 //   - methode 'estAdulte()' qui retourne true si age >= 2
 
 // class Animal { ... }
-class Animal {
-  constructor(
-    public nom: string,
-    public age: number,
-    protected espece: string,
-  ) {}
-
-  sePresenter() {
-    return `${this.nom} est un(e) ${this.espece} de ${this.age} an(s)`;
-  }
-
-  estAdulte() {
-    return this.age >= 2;
-  }
-}
 // =============================================================================
 // Exercice 2 : Heritage
 // Creez Chien et Chat qui heritent de Animal.
@@ -52,24 +37,6 @@ class Animal {
 
 // class Chien extends Animal { ... }
 
-class Chien extends Animal {
-  constructor(
-    nom: string,
-    age: number,
-    public race: string,
-  ) {
-    super(nom, age, "chien");
-  }
-
-  aboyer() {
-    return "Ouaf ouaf !";
-  }
-
-  rapporter(objet: string) {
-    return `${this.nom} rapporte ${objet}`;
-  }
-}
-
 // TODO: Creez la classe Chat qui herite de Animal avec :
 //   - propriete 'couleur' (string, public)
 //   - propriete private '_viesRestantes' initialisee a 9
@@ -79,32 +46,6 @@ class Chien extends Animal {
 //   - getter 'viesRestantes' qui retourne _viesRestantes
 
 // class Chat extends Animal { ... }
-class Chat extends Animal {
-  constructor(
-    nom: string,
-    age: number,
-    public couleur: string,
-    private _viesRestantes = 9,
-  ) {
-    super(nom, age, "chat");
-  }
-
-  miauler() {
-    return "Miaou !";
-  }
-
-  perdreUneVie() {
-    if (this._viesRestantes > 0) {
-      this._viesRestantes -= 1;
-    } else {
-      return "X-X";
-    }
-  }
-
-  get viesRestantes() {
-    return this._viesRestantes;
-  }
-}
 // =============================================================================
 // Exercice 3 : Classes abstraites
 // Creez une classe abstraite Forme avec des methodes abstraites.
@@ -119,62 +60,17 @@ class Chat extends Animal {
 
 // abstract class FormeGeometrique { ... }
 
-abstract class FormeGeometrique {
-  abstract nom: string;
-
-  abstract aire(): number;
-
-  abstract perimetre(): number;
-
-  description() {
-    return `${this.nom} — aire: ${this.aire().toFixed(2)}, perimetre: ${this.perimetre().toFixed(2)}`;
-  }
-}
-
 // TODO: Implementez CercleGeo qui etend FormeGeometrique
 //   - propriete 'rayon' (number)
 //   - nom = 'Cercle'
 
 // class CercleGeo extends FormeGeometrique { ... }
 
-class CercleGeo extends FormeGeometrique {
-  nom = "Cercle";
-  constructor(public rayon: number) {
-    super();
-  }
-
-  aire(): number {
-    return Math.PI * this.rayon ** 2;
-  }
-
-  perimetre(): number {
-    return 2 * Math.PI * this.rayon;
-  }
-}
-
 // TODO: Implementez RectangleGeo qui etend FormeGeometrique
 //   - proprietes 'largeur' et 'hauteur' (number)
 //   - nom = 'Rectangle'
 
 // class RectangleGeo extends FormeGeometrique { ... }
-class RectangleGeo extends FormeGeometrique {
-  nom = "Rectangle";
-
-  constructor(
-    public largeur: number,
-    public hauteur: number,
-  ) {
-    super();
-  }
-
-  aire(): number {
-    return this.largeur * this.hauteur;
-  }
-
-  perimetre(): number {
-    return (this.largeur + this.hauteur) * 2;
-  }
-}
 // =============================================================================
 // Exercice 4 : Implements
 // Creez une interface et implementez-la dans plusieurs classes.
@@ -187,8 +83,7 @@ class RectangleGeo extends FormeGeometrique {
 // interface Bruyant { ... }
 
 interface Bruyant {
-  readonly volumeSonore: number;
-  faireDuBruit(): string;
+  // a completer : readonly volumeSonore: number + faireDuBruit(): string
 }
 
 // TODO: Creez la classe Klaxon qui implemente Bruyant
@@ -197,34 +92,18 @@ interface Bruyant {
 
 // class Klaxon implements Bruyant { ... }
 
-class Klaxon implements Bruyant {
-  volumeSonore = 110;
-
-  faireDuBruit(): string {
-    return "POUET POUET !";
-  }
-}
-
 // TODO: Creez la classe Reveil qui implemente Bruyant
 //   - volumeSonore = 80
 //   - propriete 'heure' (string)
 //   - faireDuBruit() retourne "BIP BIP BIP ! Il est {heure} !"
 
-class Reveil implements Bruyant {
-  volumeSonore = 80;
-
-  constructor(public heure: string) {}
-
-  faireDuBruit(): string {
-    return `BIP BIP BIP ! Il est ${this.heure} !`;
-  }
-}
+// class Reveil implements Bruyant { ... }
 
 // TODO: Creez une fonction 'testerVolume' qui accepte un Bruyant
 // et retourne "Fort" si volumeSonore > 100, sinon "Normal"
 function testerVolume(objet: Bruyant): string {
-  // TODO: Implementez
-  return objet.volumeSonore > 100 ? "Fort" : "Normal";
+  // TODO: retournez 'Fort' si volumeSonore > 100, sinon 'Normal'
+  return undefined as any;
 }
 
 // =============================================================================
@@ -237,38 +116,14 @@ function testerVolume(objet: Bruyant): string {
 //   - methode statique 'incrementer()' qui incremente _total
 //   - methode statique 'reinitialiser()' qui remet _total a 0
 
-class CompteurAnimaux {
-  private static _total = 0;
-
-  static get total(): number {
-    return CompteurAnimaux._total;
-  }
-
-  static incrementer() {
-    CompteurAnimaux._total++;
-    return this;
-  }
-
-  static reinitialiser() {
-    CompteurAnimaux._total = 0;
-    return this;
-  }
-}
+// class CompteurAnimaux { ... }
 
 // TODO: Creez la classe AnimalCompte en utilisant des parameter properties
 //   - Utilisez le raccourci constructeur : constructor(public readonly nom: string, ...)
 //   - proprietes : nom (public readonly), espece (public readonly), age (public)
 //   - Le constructeur doit appeler CompteurAnimaux.incrementer()
 
-class AnimalCompte {
-  constructor(
-    public readonly nom: string,
-    public readonly espece: string,
-    public age: number,
-  ) {
-    CompteurAnimaux.incrementer();
-  }
-}
+// class AnimalCompte { ... }
 
 // =============================================================================
 // Exercice 6 : Getters / Setters
@@ -284,33 +139,7 @@ class AnimalCompte {
 //   - setter 'fahrenheit' qui convertit en celsius et stocke
 //   - getter 'kelvin' qui retourne _celsius + 273.15
 
-class Temperature {
-  constructor(private _celsius: number) {}
-
-  get celsius() {
-    return this._celsius;
-  }
-
-  set celsius(valeur: number) {
-    if (valeur >= -273.15) {
-      this._celsius = valeur;
-    } else {
-      throw new Error("Temperature invalide");
-    }
-  }
-
-  get fahrenheit() {
-    return (this._celsius * 9) / 5 + 32;
-  }
-
-  set fahrenheit(valeur: number) {
-    this.celsius = ((valeur - 32) * 5) / 9;
-  }
-
-  get kelvin() {
-    return this._celsius + 273.15;
-  }
-}
+// class Temperature { ... }
 
 // TODO: Creez la classe Intervalle avec :
 //   - proprietes private '_min' et '_max' (number)
@@ -320,55 +149,7 @@ class Temperature {
 //   - methode 'contient(valeur: number)' qui retourne true si min <= valeur <= max
 //   - getter 'taille' qui retourne max - min
 
-class Intervalle {
-  constructor(
-    private _min: number,
-    private _max: number,
-  ) {
-    if (_min > _max) {
-      throw new Error("min doit etre plus grand que max");
-    }
-  }
-
-  //getter/setter 'min' — le setter verifie que la nouvelle valeur <= _max
-  get min() {
-    return this._min;
-  }
-
-  set min(valeur: number) {
-    if (valeur <= this._max) {
-      this._min = valeur;
-    } else {
-      throw new Error("La valeur est plus grande que le maximum");
-    }
-  }
-
-  //getter/setter 'max' — le setter verifie que la nouvelle valeur >= _min
-  get max() {
-    return this._max;
-  }
-
-  set max(valeur: number) {
-    if (valeur >= this._min) {
-      this._max = valeur;
-    } else {
-      throw new Error("La valeur est plus petite que le minimum");
-    }
-  }
-
-  get taille() {
-    return this._max - this._min;
-  }
-
-  //   - methode 'contient(valeur: number)' qui retourne true si min <= valeur <= max
-  contient(valeur: number) {
-    if (this._min <= valeur && valeur <= this._max) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
+// class Intervalle { ... }
 
 // =============================================================================
 // Tests — Ne modifiez pas cette section

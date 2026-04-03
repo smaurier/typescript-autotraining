@@ -4,6 +4,7 @@
 > **Difficulte** : 4/5
 > **Prérequis** : Generics, utility types, unions, intersections
 > **Objectifs** :
+>
 > - Comprendre le fonctionnement des conditional types
 > - Maîtriser le mot-clé `infer` pour extraire des sous-types
 > - Comprendre la distribution des conditional types
@@ -59,9 +60,9 @@ Avant même d'écrire des cas complexes, il faut vraiment fixer la lecture de ce
 
 type EstChaine<T> = T extends string ? true : false;
 
-type Test1 = EstChaine<string>;   // true
-type Test2 = EstChaine<number>;   // false
-type Test3 = EstChaine<"hello">;  // true (un literal string est un string)
+type Test1 = EstChaine<string>; // true
+type Test2 = EstChaine<number>; // false
+type Test3 = EstChaine<"hello">; // true (un literal string est un string)
 ```
 
 ### Avec des generics
@@ -70,38 +71,44 @@ type Test3 = EstChaine<"hello">;  // true (un literal string est un string)
 // Un type conditionnel generique tres utile
 type SiTableau<T> = T extends any[] ? "tableau" : "autre";
 
-type R1 = SiTableau<string[]>;   // "tableau"
-type R2 = SiTableau<number>;     // "autre"
-type R3 = SiTableau<[1, 2, 3]>;  // "tableau" (un tuple est un tableau)
+type R1 = SiTableau<string[]>; // "tableau"
+type R2 = SiTableau<number>; // "autre"
+type R3 = SiTableau<[1, 2, 3]>; // "tableau" (un tuple est un tableau)
 
 // Conditionnel avec des types plus complexes
 type EstFonction<T> = T extends (...args: any[]) => any ? true : false;
 
-type F1 = EstFonction<() => void>;           // true
+type F1 = EstFonction<() => void>; // true
 type F2 = EstFonction<(x: number) => string>; // true
-type F3 = EstFonction<string>;                // false
+type F3 = EstFonction<string>; // false
 ```
 
 ### Conditionnel imbrique
 
 ```typescript
 // On peut imbriquer les conditionnels comme des if/else if/else
-type TypeDe<T> =
-  T extends string ? "chaine" :
-  T extends number ? "nombre" :
-  T extends boolean ? "booleen" :
-  T extends undefined ? "undefined" :
-  T extends null ? "null" :
-  T extends any[] ? "tableau" :
-  T extends (...args: any[]) => any ? "fonction" :
-  "objet";
+type TypeDe<T> = T extends string
+  ? "chaine"
+  : T extends number
+    ? "nombre"
+    : T extends boolean
+      ? "booleen"
+      : T extends undefined
+        ? "undefined"
+        : T extends null
+          ? "null"
+          : T extends any[]
+            ? "tableau"
+            : T extends (...args: any[]) => any
+              ? "fonction"
+              : "objet";
 
-type T1 = TypeDe<string>;       // "chaine"
-type T2 = TypeDe<42>;           // "nombre"
-type T3 = TypeDe<true>;         // "booleen"
-type T4 = TypeDe<number[]>;     // "tableau"
-type T5 = TypeDe<() => void>;   // "fonction"
-type T6 = TypeDe<{ a: 1 }>;     // "objet"
+type T1 = TypeDe<string>; // "chaine"
+type T2 = TypeDe<42>; // "nombre"
+type T3 = TypeDe<true>; // "booleen"
+type T4 = TypeDe<number[]>; // "tableau"
+type T5 = TypeDe<() => void>; // "fonction"
+type T6 = TypeDe<{ a: 1 }>; // "objet"
 ```
 
 ---
@@ -155,6 +162,7 @@ Imaginez un **tapis roulant dans une usine** : chaque élément de l'union passe
 ### Quand la distribution se produit-elle ?
 
 La distribution ne se produit **que** quand :
+
 1. Le type conditionnel utilise un **paramètre de type générique nu** (naked type parameter)
 2. Ce paramètre est directement teste avec `extends`
 
@@ -187,20 +195,19 @@ type R1 = EstJamais<never>; // never (pas true !)
 // Solution : envelopper dans un tuple pour empecher la distribution
 type EstVraimentJamais<T> = [T] extends [never] ? true : false;
 
-type R2 = EstVraimentJamais<never>;    // true
-type R3 = EstVraimentJamais<string>;   // false
+type R2 = EstVraimentJamais<never>; // true
+type R3 = EstVraimentJamais<string>; // false
 ```
 
 ### Exemple pratique : vérifier si un type est une union
 
 ```typescript
 // Ce type detecte si T est un type union
-type EstUnion<T, Copie = T> =
-  T extends unknown
-    ? [Copie] extends [T]
-      ? false
-      : true
-    : never;
+type EstUnion<T, Copie = T> = T extends unknown
+  ? [Copie] extends [T]
+    ? false
+    : true
+  : never;
 
 // Comment ca marche :
 // Si T = string | number, la distribution donne :
@@ -212,9 +219,9 @@ type EstUnion<T, Copie = T> =
 //   string extends unknown ? [string] extends [string] ? false : true
 // = false
 
-type U1 = EstUnion<string | number>;  // true
-type U2 = EstUnion<string>;           // false
-type U3 = EstUnion<1 | 2 | 3>;        // true
+type U1 = EstUnion<string | number>; // true
+type U2 = EstUnion<string>; // false
+type U3 = EstUnion<1 | 2 | 3>; // true
 ```
 
 ---
@@ -243,9 +250,9 @@ Le pattern a retenir est toujours le même :
 // infer R declare une "variable de type" R dans la branche true
 type ExtraireRetour<T> = T extends (...args: any[]) => infer R ? R : never;
 
-type R1 = ExtraireRetour<() => string>;           // string
+type R1 = ExtraireRetour<() => string>; // string
 type R2 = ExtraireRetour<(x: number) => boolean>; // boolean
-type R3 = ExtraireRetour<string>;                  // never (pas une fonction)
+type R3 = ExtraireRetour<string>; // never (pas une fonction)
 ```
 
 ---
@@ -256,8 +263,11 @@ type R3 = ExtraireRetour<string>;                  // never (pas une fonction)
 
 ```typescript
 // C'est exactement l'implementation de ReturnType<T>
-type MonReturnType<T extends (...args: any) => any> =
-  T extends (...args: any) => infer R ? R : any;
+type MonReturnType<T extends (...args: any) => any> = T extends (
+  ...args: any
+) => infer R
+  ? R
+  : any;
 
 function calculer(a: number, b: number): { somme: number; produit: number } {
   return { somme: a + b, produit: a * b };
@@ -271,8 +281,11 @@ type Resultat = MonReturnType<typeof calculer>;
 
 ```typescript
 // Implementation de Parameters<T>
-type MonParameters<T extends (...args: any) => any> =
-  T extends (...args: infer P) => any ? P : never;
+type MonParameters<T extends (...args: any) => any> = T extends (
+  ...args: infer P
+) => any
+  ? P
+  : never;
 
 function enregistrer(nom: string, age: number, actif: boolean): void {}
 
@@ -280,8 +293,12 @@ type Params = MonParameters<typeof enregistrer>;
 // [nom: string, age: number, actif: boolean]
 
 // Extraire un parametre specifique
-type PremierParam<T extends (...args: any) => any> =
-  T extends (premier: infer P, ...reste: any) => any ? P : never;
+type PremierParam<T extends (...args: any) => any> = T extends (
+  premier: infer P,
+  ...reste: any
+) => any
+  ? P
+  : never;
 
 type P1 = PremierParam<typeof enregistrer>; // string
 ```
@@ -292,13 +309,12 @@ type P1 = PremierParam<typeof enregistrer>; // string
 // Extraire le type des elements d'un tableau
 type ElementDe<T> = T extends (infer E)[] ? E : never;
 
-type E1 = ElementDe<string[]>;        // string
-type E2 = ElementDe<number[]>;        // number
+type E1 = ElementDe<string[]>; // string
+type E2 = ElementDe<number[]>; // number
 type E3 = ElementDe<(string | number)[]>; // string | number
 
 // Version plus robuste qui gere aussi les tableaux readonly
-type ElementDeRobuste<T> =
-  T extends readonly (infer E)[] ? E : never;
+type ElementDeRobuste<T> = T extends readonly (infer E)[] ? E : never;
 
 type E4 = ElementDeRobuste<readonly string[]>; // string
 ```
@@ -307,18 +323,15 @@ type E4 = ElementDeRobuste<readonly string[]>; // string
 
 ```typescript
 // Extraire le type a l'interieur d'une Promise
-type DecompresserPromise<T> =
-  T extends Promise<infer C> ? C : T;
+type DecompresserPromise<T> = T extends Promise<infer C> ? C : T;
 
-type P1 = DecompresserPromise<Promise<string>>;  // string
+type P1 = DecompresserPromise<Promise<string>>; // string
 type P2 = DecompresserPromise<Promise<number[]>>; // number[]
-type P3 = DecompresserPromise<string>;             // string (pas une Promise)
+type P3 = DecompresserPromise<string>; // string (pas une Promise)
 
 // Version recursive pour les Promises imbriquees
 type DecompresserPromiseProfond<T> =
-  T extends Promise<infer C>
-    ? DecompresserPromiseProfond<C>
-    : T;
+  T extends Promise<infer C> ? DecompresserPromiseProfond<C> : T;
 
 type P4 = DecompresserPromiseProfond<Promise<Promise<Promise<string>>>>;
 // string
@@ -328,8 +341,7 @@ type P4 = DecompresserPromiseProfond<Promise<Promise<Promise<string>>>>;
 
 ```typescript
 // Extraire le type de la propriete "data" si elle existe
-type ExtraireDonnees<T> =
-  T extends { data: infer D } ? D : never;
+type ExtraireDonnees<T> = T extends { data: infer D } ? D : never;
 
 type D1 = ExtraireDonnees<{ data: string[]; status: number }>;
 // string[]
@@ -354,18 +366,18 @@ type MV = ExtraireCleValeur<Map<string, number>>;
 
 ```typescript
 // Extraire des parties d'une chaine
-type ExtrairePrefixe<T extends string> =
-  T extends `${infer Prefixe}-${string}` ? Prefixe : never;
+type ExtrairePrefixe<T extends string> = T extends `${infer Prefixe}-${string}`
+  ? Prefixe
+  : never;
 
-type Pref1 = ExtrairePrefixe<"btn-primary">;  // "btn"
-type Pref2 = ExtrairePrefixe<"card-header">;   // "card"
-type Pref3 = ExtrairePrefixe<"simple">;         // never
+type Pref1 = ExtrairePrefixe<"btn-primary">; // "btn"
+type Pref2 = ExtrairePrefixe<"card-header">; // "card"
+type Pref3 = ExtrairePrefixe<"simple">; // never
 
 // Extraire les deux parties
-type Decouper<T extends string> =
-  T extends `${infer Gauche}-${infer Droite}`
-    ? { gauche: Gauche; droite: Droite }
-    : never;
+type Decouper<T extends string> = T extends `${infer Gauche}-${infer Droite}`
+  ? { gauche: Gauche; droite: Droite }
+  : never;
 
 type D1 = Decouper<"hello-world">;
 // { gauche: "hello"; droite: "world" }
@@ -375,10 +387,10 @@ type ExtraireRoute<T extends string> =
   T extends `/${infer Segment}/${infer Reste}`
     ? [Segment, ...ExtraireRouteArray<Reste>]
     : T extends `/${infer Segment}`
-    ? [Segment]
-    : T extends `${infer Segment}/${infer Reste}`
-    ? [Segment, ...ExtraireRouteArray<Reste>]
-    : [T];
+      ? [Segment]
+      : T extends `${infer Segment}/${infer Reste}`
+        ? [Segment, ...ExtraireRouteArray<Reste>]
+        : [T];
 
 type ExtraireRouteArray<T extends string> = ExtraireRoute<T>;
 
@@ -394,29 +406,24 @@ type Route1 = ExtraireRoute<"/api/utilisateurs/123">;
 
 ```typescript
 // Premier et dernier element d'un tuple
-type Premier<T extends any[]> =
-  T extends [infer P, ...any[]] ? P : never;
+type Premier<T extends any[]> = T extends [infer P, ...any[]] ? P : never;
 
-type Dernier<T extends any[]> =
-  T extends [...any[], infer D] ? D : never;
+type Dernier<T extends any[]> = T extends [...any[], infer D] ? D : never;
 
-type SaufPremier<T extends any[]> =
-  T extends [any, ...infer R] ? R : never;
+type SaufPremier<T extends any[]> = T extends [any, ...infer R] ? R : never;
 
-type SaufDernier<T extends any[]> =
-  T extends [...infer R, any] ? R : never;
+type SaufDernier<T extends any[]> = T extends [...infer R, any] ? R : never;
 
 // Tests
-type P = Premier<[1, 2, 3]>;         // 1
-type D = Dernier<[1, 2, 3]>;         // 3
-type SP = SaufPremier<[1, 2, 3]>;    // [2, 3]
-type SD = SaufDernier<[1, 2, 3]>;    // [1, 2]
+type P = Premier<[1, 2, 3]>; // 1
+type D = Dernier<[1, 2, 3]>; // 3
+type SP = SaufPremier<[1, 2, 3]>; // [2, 3]
+type SD = SaufDernier<[1, 2, 3]>; // [1, 2]
 
 // Inverser un tuple
-type Inverser<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? [...Inverser<Reste>, Premier]
-    : [];
+type Inverser<T extends any[]> = T extends [infer Premier, ...infer Reste]
+  ? [...Inverser<Reste>, Premier]
+  : [];
 
 type Inv = Inverser<[1, 2, 3, 4]>; // [4, 3, 2, 1]
 ```
@@ -460,50 +467,44 @@ type ServiceMethodes = SeulementMethodes<MonService>;
 ```typescript
 // Implementation robuste de IsEqual
 type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends
-  (<T>() => T extends B ? 1 : 2)
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
     ? true
     : false;
 
-type EQ1 = IsEqual<string, string>;     // true
-type EQ2 = IsEqual<string, number>;     // false
+type EQ1 = IsEqual<string, string>; // true
+type EQ2 = IsEqual<string, number>; // false
 type EQ3 = IsEqual<{ a: 1 }, { a: 1 }>; // true
 type EQ4 = IsEqual<{ a: 1 }, { a: 2 }>; // false
 
 // Attention aux cas subtils
-type EQ5 = IsEqual<any, string>;         // false
-type EQ6 = IsEqual<any, any>;            // true
-type EQ7 = IsEqual<never, never>;        // true
-type EQ8 = IsEqual<unknown, any>;        // false
+type EQ5 = IsEqual<any, string>; // false
+type EQ6 = IsEqual<any, any>; // true
+type EQ7 = IsEqual<never, never>; // true
+type EQ8 = IsEqual<unknown, any>; // false
 ```
 
 ### Flatten : aplatir un type tableau/tuple
 
 ```typescript
 // Aplatir un niveau de tableau
-type Flatten<T> =
-  T extends (infer E)[] ? E : T;
+type Flatten<T> = T extends (infer E)[] ? E : T;
 
-type F1 = Flatten<string[]>;   // string
+type F1 = Flatten<string[]>; // string
 type F2 = Flatten<number[][]>; // number[]
-type F3 = Flatten<string>;     // string
+type F3 = Flatten<string>; // string
 
 // Aplatir recursivement (Deep Flatten)
-type DeepFlatten<T> =
-  T extends (infer E)[]
-    ? DeepFlatten<E>
-    : T;
+type DeepFlatten<T> = T extends (infer E)[] ? DeepFlatten<E> : T;
 
 type DF1 = DeepFlatten<number[][][][]>; // number
-type DF2 = DeepFlatten<string[][]>;     // string
+type DF2 = DeepFlatten<string[][]>; // string
 
 // Aplatir un tuple
-type FlattenTuple<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends any[]
-      ? [...FlattenTuple<Premier>, ...FlattenTuple<Reste>]
-      : [Premier, ...FlattenTuple<Reste>]
-    : [];
+type FlattenTuple<T extends any[]> = T extends [infer Premier, ...infer Reste]
+  ? Premier extends any[]
+    ? [...FlattenTuple<Premier>, ...FlattenTuple<Reste>]
+    : [Premier, ...FlattenTuple<Reste>]
+  : [];
 
 type FT = FlattenTuple<[1, [2, 3], [4, [5, 6]]]>;
 // [1, 2, 3, 4, [5, 6]]  -- un seul niveau
@@ -513,21 +514,16 @@ type FT = FlattenTuple<[1, [2, 3], [4, [5, 6]]]>;
 
 ```typescript
 // Version complete qui gere les Promises imbriquees et les unions
-type UnpackPromise<T> =
-  T extends Promise<infer U>
-    ? UnpackPromise<U>
-    : T;
+type UnpackPromise<T> = T extends Promise<infer U> ? UnpackPromise<U> : T;
 
-type UP1 = UnpackPromise<Promise<string>>;                    // string
-type UP2 = UnpackPromise<Promise<Promise<number>>>;           // number
+type UP1 = UnpackPromise<Promise<string>>; // string
+type UP2 = UnpackPromise<Promise<Promise<number>>>; // number
 type UP3 = UnpackPromise<Promise<Promise<Promise<boolean>>>>; // boolean
-type UP4 = UnpackPromise<string>;                              // string
+type UP4 = UnpackPromise<string>; // string
 
 // Version qui fonctionne aussi avec les PromiseLike
 type UnpackPromiseLike<T> =
-  T extends PromiseLike<infer U>
-    ? UnpackPromiseLike<U>
-    : T;
+  T extends PromiseLike<infer U> ? UnpackPromiseLike<U> : T;
 ```
 
 ---
@@ -546,17 +542,15 @@ interface Evenements {
 }
 
 // Type conditionnel pour obtenir le handler d'un evenement
-type HandlerEvenement<T extends keyof Evenements> =
-  (donnees: Evenements[T]) => void;
+type HandlerEvenement<T extends keyof Evenements> = (
+  donnees: Evenements[T],
+) => void;
 
 // Classe avec typage complet grace aux conditional types
 class Emetteur<E extends Record<string, any>> {
   private ecouteurs: Partial<Record<keyof E, Function[]>> = {};
 
-  sur<K extends keyof E>(
-    evenement: K,
-    handler: (donnees: E[K]) => void
-  ): void {
+  sur<K extends keyof E>(evenement: K, handler: (donnees: E[K]) => void): void {
     if (!this.ecouteurs[evenement]) {
       this.ecouteurs[evenement] = [];
     }
@@ -610,13 +604,16 @@ interface Schema {
 // Type conditionnel : selon l'operation, les champs obligatoires changent
 type OperationBDD<
   Table extends keyof Schema,
-  Op extends "creer" | "lire" | "modifier" | "supprimer"
-> =
-  Op extends "creer" ? Omit<Schema[Table], "id"> :
-  Op extends "lire" ? Schema[Table] :
-  Op extends "modifier" ? Partial<Omit<Schema[Table], "id">> & { id: number } :
-  Op extends "supprimer" ? Pick<Schema[Table], "id"> :
-  never;
+  Op extends "creer" | "lire" | "modifier" | "supprimer",
+> = Op extends "creer"
+  ? Omit<Schema[Table], "id">
+  : Op extends "lire"
+    ? Schema[Table]
+    : Op extends "modifier"
+      ? Partial<Omit<Schema[Table], "id">> & { id: number }
+      : Op extends "supprimer"
+        ? Pick<Schema[Table], "id">
+        : never;
 
 // Utilisation
 type CreerUtilisateur = OperationBDD<"utilisateur", "creer">;
@@ -644,17 +641,19 @@ type SchemaValidation =
   | { type: "objet"; proprietes: Record<string, SchemaValidation> };
 
 // Type conditionnel qui infere le type TypeScript a partir du schema
-type InfererType<S extends SchemaValidation> =
-  S extends { type: "chaine" } ? string :
-  S extends { type: "nombre" } ? number :
-  S extends { type: "booleen" } ? boolean :
-  S extends { type: "tableau"; element: infer E extends SchemaValidation }
-    ? InfererType<E>[]
-  : S extends { type: "objet"; proprietes: infer P }
-    ? P extends Record<string, SchemaValidation>
-      ? { [K in keyof P]: InfererType<P[K] & SchemaValidation> }
-      : never
-  : never;
+type InfererType<S extends SchemaValidation> = S extends { type: "chaine" }
+  ? string
+  : S extends { type: "nombre" }
+    ? number
+    : S extends { type: "booleen" }
+      ? boolean
+      : S extends { type: "tableau"; element: infer E extends SchemaValidation }
+        ? InfererType<E>[]
+        : S extends { type: "objet"; proprietes: infer P }
+          ? P extends Record<string, SchemaValidation>
+            ? { [K in keyof P]: InfererType<P[K] & SchemaValidation> }
+            : never
+          : never;
 
 // Utilisation
 type MonSchema = {
@@ -699,9 +698,9 @@ type TestAny<T> = T extends string ? "chaine" : "autre";
 type R = TestAny<any>; // "chaine" | "autre" (les DEUX !)
 
 // Solution : detecter any explicitement
-type EstAny<T> = 0 extends (1 & T) ? true : false;
-type A1 = EstAny<any>;     // true
-type A2 = EstAny<string>;  // false
+type EstAny<T> = 0 extends 1 & T ? true : false;
+type A1 = EstAny<any>; // true
+type A2 = EstAny<string>; // false
 type A3 = EstAny<unknown>; // false
 ```
 
@@ -709,37 +708,38 @@ type A3 = EstAny<unknown>; // false
 
 ```typescript
 // Mauvais ordre : any[] extends any est true !
-type MauvaisOrdre<T> =
-  T extends any ? "anything" :
-  T extends string ? "chaine" :
-  never;
+type MauvaisOrdre<T> = T extends any
+  ? "anything"
+  : T extends string
+    ? "chaine"
+    : never;
 // Toujours "anything" car tout est assignable a any
 
 // Bon ordre : du plus specifique au plus general
-type BonOrdre<T> =
-  T extends string ? "chaine" :
-  T extends number ? "nombre" :
-  T extends any[] ? "tableau" :
-  "autre";
+type BonOrdre<T> = T extends string
+  ? "chaine"
+  : T extends number
+    ? "nombre"
+    : T extends any[]
+      ? "tableau"
+      : "autre";
 ```
 
 ### Astuce : infer dans la même position avec contrainte
 
 ```typescript
 // Depuis TypeScript 4.7, on peut contraindre infer
-type ExtraireNombres<T> =
-  T extends (infer E extends number)[] ? E : never;
+type ExtraireNombres<T> = T extends (infer E extends number)[] ? E : never;
 
 type N1 = ExtraireNombres<[1, 2, 3]>; // 1 | 2 | 3
 type N2 = ExtraireNombres<[1, "a", 2]>; // never (pas un tableau de nombres)
 
 // Avant 4.7, il fallait faire :
-type ExtraireNombresAvant<T> =
-  T extends (infer E)[]
-    ? E extends number
-      ? E
-      : never
-    : never;
+type ExtraireNombresAvant<T> = T extends (infer E)[]
+  ? E extends number
+    ? E
+    : never
+  : never;
 ```
 
 ---
@@ -749,6 +749,7 @@ type ExtraireNombresAvant<T> =
 ### Exercice 1 : ExtraireTypePromise
 
 Creez un type `ExtraireTypePromise<T>` qui :
+
 - Retourne le type interieur si c'est une `Promise`
 - Fonctionne recursivement pour les `Promise` imbriquees
 - Retourne `T` tel quel si ce n'est pas une `Promise`
@@ -759,7 +760,7 @@ Creez un type `ExtraireTypePromise<T>` qui :
 ```typescript
 type ExtraireTypePromise<T> =
   T extends Promise<infer U>
-    ? ExtraireTypePromise<U>  // Recursion pour les Promises imbriquees
+    ? ExtraireTypePromise<U> // Recursion pour les Promises imbriquees
     : T;
 
 // Tests
@@ -778,6 +779,7 @@ type T4 = ExtraireTypePromise<string>;
 type T5 = ExtraireTypePromise<Promise<string[]>>;
 // string[]
 ```
+
 </details>
 
 ### Exercice 2 : TypeRouteParams
@@ -795,13 +797,11 @@ type ExtraireParams<T extends string> =
   T extends `${string}:${infer Param}/${infer Reste}`
     ? { [K in Param | keyof ExtraireParams<Reste>]: string }
     : T extends `${string}:${infer Param}`
-    ? { [K in Param]: string }
-    : {};
+      ? { [K in Param]: string }
+      : {};
 
 // Version plus propre avec un helper
-type FusionnerParams<T> = T extends object
-  ? { [K in keyof T]: T[K] }
-  : never;
+type FusionnerParams<T> = T extends object ? { [K in keyof T]: T[K] } : never;
 
 type RouteParams<T extends string> = FusionnerParams<ExtraireParams<T>>;
 
@@ -818,6 +818,7 @@ type P3 = RouteParams<"/accueil">;
 type P4 = RouteParams<"/api/:version/utilisateurs/:userId/posts/:postId">;
 // { version: string; userId: string; postId: string }
 ```
+
 </details>
 
 ### Exercice 3 : ConvertirEnAsync
@@ -832,9 +833,9 @@ Creez un type qui prend un type objet dont certaines propriétés sont des fonct
 type ConvertirEnAsync<T> = {
   [K in keyof T]: T[K] extends (...args: infer A) => infer R
     ? R extends Promise<any>
-      ? T[K]  // Deja async, on ne change rien
+      ? T[K] // Deja async, on ne change rien
       : (...args: A) => Promise<R>
-    : T[K];   // Pas une fonction, on ne change rien
+    : T[K]; // Pas une fonction, on ne change rien
 };
 
 // Test
@@ -853,6 +854,7 @@ type ServiceAsync = ConvertirEnAsync<ServiceSync>;
 //   chargerAsync(url: string): Promise<string>;  // Inchange (deja async)
 // }
 ```
+
 </details>
 
 ### Exercice 4 : Implementer un type Filter pour les tuples
@@ -864,12 +866,14 @@ Creez un type `Filtrer<T, Condition>` qui ne garde que les éléments d'un tuple
 
 ```typescript
 // Filtrer les elements d'un tuple selon un type
-type Filtrer<T extends any[], Condition> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends Condition
-      ? [Premier, ...Filtrer<Reste, Condition>]
-      : Filtrer<Reste, Condition>
-    : [];
+type Filtrer<T extends any[], Condition> = T extends [
+  infer Premier,
+  ...infer Reste,
+]
+  ? Premier extends Condition
+    ? [Premier, ...Filtrer<Reste, Condition>]
+    : Filtrer<Reste, Condition>
+  : [];
 
 // Tests
 type F1 = Filtrer<[1, "a", 2, "b", 3], string>;
@@ -885,16 +889,19 @@ type F4 = Filtrer<[1, 2, 3, 4, 5], 1 | 3 | 5>;
 // [1, 3, 5]
 
 // Version avec exclusion (garder tout SAUF la condition)
-type FiltrerExclure<T extends any[], Condition> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends Condition
-      ? FiltrerExclure<Reste, Condition>
-      : [Premier, ...FiltrerExclure<Reste, Condition>]
-    : [];
+type FiltrerExclure<T extends any[], Condition> = T extends [
+  infer Premier,
+  ...infer Reste,
+]
+  ? Premier extends Condition
+    ? FiltrerExclure<Reste, Condition>
+    : [Premier, ...FiltrerExclure<Reste, Condition>]
+  : [];
 
 type FE1 = FiltrerExclure<[1, "a", 2, "b", 3], string>;
 // [1, 2, 3]
 ```
+
 </details>
 
 ### Exercice 5 : Implementer IsEqual
@@ -907,8 +914,7 @@ Implementez un type `IsEqual<A, B>` qui retourne `true` si et seulement si A et 
 ```typescript
 // La methode la plus robuste utilise des fonctions generiques
 type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends
-  (<T>() => T extends B ? 1 : 2)
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
     ? true
     : false;
 
@@ -919,26 +925,26 @@ type IsEqual<A, B> =
 // Cela ne fonctionne que si A et B sont exactement le meme type.
 
 // Tests exhaustifs
-type EQ1 = IsEqual<string, string>;       // true
-type EQ2 = IsEqual<string, number>;       // false
-type EQ3 = IsEqual<any, any>;             // true
-type EQ4 = IsEqual<any, string>;          // false
-type EQ5 = IsEqual<unknown, any>;         // false
-type EQ6 = IsEqual<never, never>;         // true
-type EQ7 = IsEqual<never, string>;        // false
-type EQ8 = IsEqual<{ a: 1 }, { a: 1 }>;   // true
-type EQ9 = IsEqual<{ a: 1 }, { a: 2 }>;   // false
-type EQ10 = IsEqual<[1, 2], [1, 2]>;      // true
-type EQ11 = IsEqual<[1, 2], [2, 1]>;      // false
+type EQ1 = IsEqual<string, string>; // true
+type EQ2 = IsEqual<string, number>; // false
+type EQ3 = IsEqual<any, any>; // true
+type EQ4 = IsEqual<any, string>; // false
+type EQ5 = IsEqual<unknown, any>; // false
+type EQ6 = IsEqual<never, never>; // true
+type EQ7 = IsEqual<never, string>; // false
+type EQ8 = IsEqual<{ a: 1 }, { a: 1 }>; // true
+type EQ9 = IsEqual<{ a: 1 }, { a: 2 }>; // false
+type EQ10 = IsEqual<[1, 2], [1, 2]>; // true
+type EQ11 = IsEqual<[1, 2], [2, 1]>; // false
 
 // Attention : cette approche naive NE fonctionne PAS
-type IsEqualNaif<A, B> =
-  A extends B ? (B extends A ? true : false) : false;
+type IsEqualNaif<A, B> = A extends B ? (B extends A ? true : false) : false;
 
 // Contre-exemples :
-type Naif1 = IsEqualNaif<any, string>;     // boolean (devrait etre false)
-type Naif2 = IsEqualNaif<1 | 2, 1 | 2>;   // boolean (distribution !)
+type Naif1 = IsEqualNaif<any, string>; // boolean (devrait etre false)
+type Naif2 = IsEqualNaif<1 | 2, 1 | 2>; // boolean (distribution !)
 ```
+
 </details>
 
 ---
@@ -955,13 +961,13 @@ type Naif2 = IsEqualNaif<1 | 2, 1 | 2>;   // boolean (distribution !)
 
 ### Quand utiliser les conditional types ?
 
-| Situation | Exemple |
-|-----------|---------|
+| Situation                          | Exemple                              |
+| ---------------------------------- | ------------------------------------ |
 | Transformer un type selon sa forme | `T extends any[] ? ElementDe<T> : T` |
-| Extraire des sous-types | `T extends Promise<infer U> ? U : T` |
-| Filtrer des unions | `Exclude<T, null \| undefined>` |
-| Pattern matching sur les types | Types imbriques avec `infer` |
-| Construire des utility types | `ReturnType`, `Parameters`, etc. |
+| Extraire des sous-types            | `T extends Promise<infer U> ? U : T` |
+| Filtrer des unions                 | `Exclude<T, null \| undefined>`      |
+| Pattern matching sur les types     | Types imbriques avec `infer`         |
+| Construire des utility types       | `ReturnType`, `Parameters`, etc.     |
 
 ### Points importants
 
@@ -982,8 +988,9 @@ Le prochain module, **[12 — Mapped Types & Template Literal Types](./12-mapped
 <!-- parcours-recommande -->
 
 ::: tip Parcours recommandé
+
 1. **Screencast** : [screencast 11 conditional types](../screencasts/screencast-11-conditional-types.md)
 2. **Lab** : [lab-11-conditional-types](../labs/lab-11-conditional-types/README)
 3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
 4. **Quiz** : [quiz 11 conditional types](../quizzes/quiz-11-conditional-types.html)
-:::
+   :::

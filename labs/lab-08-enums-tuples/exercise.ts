@@ -7,8 +7,9 @@
 //   - Exhaustivite avec never
 // =============================================================================
 
-import { createTestRunner } from '../test-utils.ts';
-const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } = createTestRunner('Lab 08 — Enums et Tuples');
+import { createTestRunner } from "../test-utils.ts";
+const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } =
+  createTestRunner("Lab 08 — Enums et Tuples");
 
 // =============================================================================
 // Exercice 1 : State machine avec enums
@@ -27,11 +28,11 @@ const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } = cr
 // }
 enum OrderStatus {
   // TODO: Ajoutez les valeurs de l'enum
-  Pending = 'PENDING',
-  Confirmed = 'CONFIRMED',
-  Shipped = 'SHIPPED',
-  Delivered = 'DELIVERED',
-  Cancelled = 'CANCELLED',
+  Pending = "PENDING",
+  Confirmed = "CONFIRMED",
+  Shipped = "SHIPPED",
+  Delivered = "DELIVERED",
+  Cancelled = "CANCELLED",
 }
 
 // TODO: Definissez un enum OrderAction avec les actions possibles :
@@ -42,10 +43,10 @@ enum OrderStatus {
 // }
 enum OrderAction {
   // TODO: Ajoutez les valeurs de l'enum
-  Confirm = 'CONFIRM',
-  Ship = 'SHIP',
-  Deliver = 'DELIVER',
-  Cancel = 'CANCEL',
+  Confirm = "CONFIRM",
+  Ship = "SHIP",
+  Deliver = "DELIVER",
+  Cancel = "CANCEL",
 }
 
 // TODO: Implementez la fonction transition qui prend un etat courant et une
@@ -74,7 +75,7 @@ function getStatusLabel(status: OrderStatus): string {
   // Shipped -> "Expediee"
   // Delivered -> "Livree"
   // Cancelled -> "Annulee"
-  return ''; // <-- Remplacez
+  return ""; // <-- Remplacez
 }
 
 // =============================================================================
@@ -113,34 +114,41 @@ function mixColors(a: CouleurRGB, b: CouleurRGB): CouleurRGB {
 // Format: "nom,age,email"
 function parseCarnetEntry(csv: string): EntreeCarnet {
   // TODO: Parsez la chaine et retournez le tuple
-  return ['', 0, ''] as any; // <-- Remplacez
+  return ["", 0, ""] as any; // <-- Remplacez
 }
 
 // TODO: Implementez une fonction qui destructure une EntreeCarnet
 // et retourne un objet
-function entreeToObject(entree: EntreeCarnet): { nom: string; age: number; email: string } {
+function entreeToObject(entree: EntreeCarnet): {
+  nom: string;
+  age: number;
+  email: string;
+} {
   // TODO: Destructurez le tuple et retournez un objet
-  return { nom: '', age: 0, email: '' }; // <-- Remplacez
+  return { nom: "", age: 0, email: "" }; // <-- Remplacez
 }
 
 // TODO: Rappel JS — formatez une entree avec destructuring + template literal
 // Format attendu: "Alice (30 ans) <alice@example.com>"
 function formaterEntree(entree: EntreeCarnet): string {
   // TODO: Destructurez le tuple puis utilisez un template literal
-  return ''; // <-- Remplacez
+  return ""; // <-- Remplacez
 }
 
 // TODO: Rappel JS — clonez une entree avec spread puis remplacez l'email
-function clonerAvecNouvelEmail(entree: EntreeCarnet, nouvelEmail: string): EntreeCarnet {
+function clonerAvecNouvelEmail(
+  entree: EntreeCarnet,
+  nouvelEmail: string,
+): EntreeCarnet {
   // TODO: Creez une copie avec l'operateur spread
-  return ['', 0, ''] as any; // <-- Remplacez
+  return ["", 0, ""] as any; // <-- Remplacez
 }
 
 // TODO: Rappel JS — parsez un JSON puis convertissez-le en EntreeCarnet
 // Format JSON: {"nom":"Alice","age":30,"email":"alice@example.com"}
 function parseEntreeJson(json: string): EntreeCarnet {
   // TODO: Utilisez JSON.parse puis destructurez l'objet obtenu
-  return ['', 0, ''] as any; // <-- Remplacez
+  return ["", 0, ""] as any; // <-- Remplacez
 }
 
 // TODO: Rappel JS — verifiez un email avec une RegExp simple
@@ -150,6 +158,31 @@ function estEmailValide(email: string): boolean {
   return false; // <-- Remplacez
 }
 
+// JS-REPETITION: json,regexp,match_all
+
+// TODO: Rappel JS avance — extraire des paires cle=valeur avec RegExp
+// Exemple: "id=42 status=ok user=alice" -> { id: "42", status: "ok", user: "alice" }
+// Indice: utilisez matchAll avec une regex globale /([a-zA-Z_][\w-]*)=([^\s]+)/g
+function extrairePaires(logLine: string): Record<string, string> {
+  // TODO: Extraire toutes les paires key=value
+  return {};
+}
+
+// TODO: Rappel JS avance — anonymiser les emails dans un texte
+// Exemple: "Contact: alice@example.com" -> "Contact: a***@example.com"
+// Contrainte: gardez la premiere lettre du local-part et le domaine.
+function anonymiserEmails(texte: string): string {
+  // TODO: Utilisez String.replace + groupes de capture regex
+  return texte;
+}
+
+// TODO: Rappel JS avance — tagged template pour echapper le HTML
+// Cette fonction doit échapper &, <, >, ", '
+function safeHtml(strings: TemplateStringsArray, ...values: unknown[]): string {
+  // TODO: Implémentez un template tag sécurisé
+  return "";
+}
+
 // =============================================================================
 // Exercice 3 : Exhaustivite avec never
 // Implementez des fonctions avec des switch exhaustifs.
@@ -157,14 +190,14 @@ function estEmailValide(email: string): boolean {
 
 // TODO: Definissez un type union discrimine pour les formes geometriques
 type Forme =
-  | { type: 'cercle'; rayon: number }
-  | { type: 'rectangle'; largeur: number; hauteur: number }
-  | { type: 'triangle'; base: number; hauteur: number };
+  | { type: "cercle"; rayon: number }
+  | { type: "rectangle"; largeur: number; hauteur: number }
+  | { type: "triangle"; base: number; hauteur: number };
 
 // TODO: Implementez une helper function assertNever pour verifier l'exhaustivite
 function assertNever(x: never): never {
   // TODO: Lancez une erreur avec un message descriptif
-  throw new Error('Valeur inattendue'); // <-- A completer
+  throw new Error("Valeur inattendue"); // <-- A completer
 }
 
 // TODO: Implementez une fonction qui calcule l'aire de chaque forme
@@ -183,15 +216,15 @@ function decrireForme(forme: Forme): string {
   // cercle: "Cercle de rayon X"
   // rectangle: "Rectangle de XxY"
   // triangle: "Triangle de base X et hauteur Y"
-  return ''; // <-- Remplacez
+  return ""; // <-- Remplacez
 }
 
 // TODO: Definissez un enum Direction (Nord, Sud, Est, Ouest)
 enum Direction {
-  Nord = 'NORD',
-  Sud = 'SUD',
-  Est = 'EST',
-  Ouest = 'OUEST',
+  Nord = "NORD",
+  Sud = "SUD",
+  Est = "EST",
+  Ouest = "OUEST",
 }
 
 // TODO: Implementez une fonction opposee qui retourne la direction opposee
@@ -206,113 +239,166 @@ function opposee(dir: Direction): Direction {
 // =============================================================================
 
 async function main() {
-  console.log('\n🧪 Lab 08 — Enums et Tuples\n');
+  console.log("\n🧪 Lab 08 — Enums et Tuples\n");
 
   // --- Exercice 1 : State machine ---
-  await test('Ex1 — Enum OrderStatus a les bonnes valeurs', () => {
-    assertEqual(OrderStatus.Pending, 'PENDING');
-    assertEqual(OrderStatus.Confirmed, 'CONFIRMED');
-    assertEqual(OrderStatus.Shipped, 'SHIPPED');
-    assertEqual(OrderStatus.Delivered, 'DELIVERED');
-    assertEqual(OrderStatus.Cancelled, 'CANCELLED');
+  await test("Ex1 — Enum OrderStatus a les bonnes valeurs", () => {
+    assertEqual(OrderStatus.Pending, "PENDING");
+    assertEqual(OrderStatus.Confirmed, "CONFIRMED");
+    assertEqual(OrderStatus.Shipped, "SHIPPED");
+    assertEqual(OrderStatus.Delivered, "DELIVERED");
+    assertEqual(OrderStatus.Cancelled, "CANCELLED");
   });
 
-  await test('Ex1 — Transitions valides', () => {
-    assertEqual(transition(OrderStatus.Pending, OrderAction.Confirm), OrderStatus.Confirmed);
-    assertEqual(transition(OrderStatus.Pending, OrderAction.Cancel), OrderStatus.Cancelled);
-    assertEqual(transition(OrderStatus.Confirmed, OrderAction.Ship), OrderStatus.Shipped);
-    assertEqual(transition(OrderStatus.Confirmed, OrderAction.Cancel), OrderStatus.Cancelled);
-    assertEqual(transition(OrderStatus.Shipped, OrderAction.Deliver), OrderStatus.Delivered);
+  await test("Ex1 — Transitions valides", () => {
+    assertEqual(
+      transition(OrderStatus.Pending, OrderAction.Confirm),
+      OrderStatus.Confirmed,
+    );
+    assertEqual(
+      transition(OrderStatus.Pending, OrderAction.Cancel),
+      OrderStatus.Cancelled,
+    );
+    assertEqual(
+      transition(OrderStatus.Confirmed, OrderAction.Ship),
+      OrderStatus.Shipped,
+    );
+    assertEqual(
+      transition(OrderStatus.Confirmed, OrderAction.Cancel),
+      OrderStatus.Cancelled,
+    );
+    assertEqual(
+      transition(OrderStatus.Shipped, OrderAction.Deliver),
+      OrderStatus.Delivered,
+    );
   });
 
-  await test('Ex1 — Transitions invalides lancent une erreur', () => {
+  await test("Ex1 — Transitions invalides lancent une erreur", () => {
     assertThrows(() => transition(OrderStatus.Delivered, OrderAction.Cancel));
     assertThrows(() => transition(OrderStatus.Cancelled, OrderAction.Confirm));
     assertThrows(() => transition(OrderStatus.Pending, OrderAction.Ship));
     assertThrows(() => transition(OrderStatus.Shipped, OrderAction.Cancel));
   });
 
-  await test('Ex1 — Labels des statuts', () => {
-    assertEqual(getStatusLabel(OrderStatus.Pending), 'En attente');
-    assertEqual(getStatusLabel(OrderStatus.Confirmed), 'Confirmee');
-    assertEqual(getStatusLabel(OrderStatus.Shipped), 'Expediee');
-    assertEqual(getStatusLabel(OrderStatus.Delivered), 'Livree');
-    assertEqual(getStatusLabel(OrderStatus.Cancelled), 'Annulee');
+  await test("Ex1 — Labels des statuts", () => {
+    assertEqual(getStatusLabel(OrderStatus.Pending), "En attente");
+    assertEqual(getStatusLabel(OrderStatus.Confirmed), "Confirmee");
+    assertEqual(getStatusLabel(OrderStatus.Shipped), "Expediee");
+    assertEqual(getStatusLabel(OrderStatus.Delivered), "Livree");
+    assertEqual(getStatusLabel(OrderStatus.Cancelled), "Annulee");
   });
 
   // --- Exercice 2 : Tuples ---
-  await test('Ex2 — Distance entre coordonnees', () => {
+  await test("Ex2 — Distance entre coordonnees", () => {
     const paris: Coordonnees = [48.8566, 2.3522];
     const origin: Coordonnees = [0, 0];
     const point: Coordonnees = [3, 4];
     assertEqual(distance(origin, point), 5);
   });
 
-  await test('Ex2 — Melange de couleurs', () => {
+  await test("Ex2 — Melange de couleurs", () => {
     const rouge: CouleurRGB = [255, 0, 0];
     const bleu: CouleurRGB = [0, 0, 255];
     const melange = mixColors(rouge, bleu);
     assertDeepEqual(melange, [128, 0, 128]);
   });
 
-  await test('Ex2 — Parse CSV en entree de carnet', () => {
-    const entree = parseCarnetEntry('Alice,30,alice@example.com');
-    assertEqual(entree[0], 'Alice');
+  await test("Ex2 — Parse CSV en entree de carnet", () => {
+    const entree = parseCarnetEntry("Alice,30,alice@example.com");
+    assertEqual(entree[0], "Alice");
     assertEqual(entree[1], 30);
-    assertEqual(entree[2], 'alice@example.com');
+    assertEqual(entree[2], "alice@example.com");
   });
 
-  await test('Ex2 — Entree vers objet', () => {
-    const entree: EntreeCarnet = ['Bob', 25, 'bob@example.com'];
+  await test("Ex2 — Entree vers objet", () => {
+    const entree: EntreeCarnet = ["Bob", 25, "bob@example.com"];
     const obj = entreeToObject(entree);
-    assertEqual(obj.nom, 'Bob');
+    assertEqual(obj.nom, "Bob");
     assertEqual(obj.age, 25);
-    assertEqual(obj.email, 'bob@example.com');
+    assertEqual(obj.email, "bob@example.com");
   });
 
-  await test('Ex2 — Formatage avec destructuring et template literal', () => {
-    const entree: EntreeCarnet = ['Alice', 30, 'alice@example.com'];
-    assertEqual(formaterEntree(entree), 'Alice (30 ans) <alice@example.com>');
+  await test("Ex2 — Formatage avec destructuring et template literal", () => {
+    const entree: EntreeCarnet = ["Alice", 30, "alice@example.com"];
+    assertEqual(formaterEntree(entree), "Alice (30 ans) <alice@example.com>");
   });
 
-  await test('Ex2 — Clone avec spread et nouvel email', () => {
-    const entree: EntreeCarnet = ['Bob', 25, 'bob@example.com'];
-    const clone = clonerAvecNouvelEmail(entree, 'bob.new@example.com');
-    assertDeepEqual(clone, ['Bob', 25, 'bob.new@example.com']);
-    assertDeepEqual(entree, ['Bob', 25, 'bob@example.com']);
+  await test("Ex2 — Clone avec spread et nouvel email", () => {
+    const entree: EntreeCarnet = ["Bob", 25, "bob@example.com"];
+    const clone = clonerAvecNouvelEmail(entree, "bob.new@example.com");
+    assertDeepEqual(clone, ["Bob", 25, "bob.new@example.com"]);
+    assertDeepEqual(entree, ["Bob", 25, "bob@example.com"]);
   });
 
-  await test('Ex2 — Parse JSON en entree de carnet', () => {
-    const entree = parseEntreeJson('{"nom":"Chloe","age":28,"email":"chloe@example.com"}');
-    assertDeepEqual(entree, ['Chloe', 28, 'chloe@example.com']);
+  await test("Ex2 — Parse JSON en entree de carnet", () => {
+    const entree = parseEntreeJson(
+      '{"nom":"Chloe","age":28,"email":"chloe@example.com"}',
+    );
+    assertDeepEqual(entree, ["Chloe", 28, "chloe@example.com"]);
   });
 
-  await test('Ex2 — Validation email avec RegExp', () => {
-    assertEqual(estEmailValide('dina@example.com'), true);
-    assertEqual(estEmailValide('pas-un-email'), false);
+  await test("Ex2 — Validation email avec RegExp", () => {
+    assertEqual(estEmailValide("dina@example.com"), true);
+    assertEqual(estEmailValide("pas-un-email"), false);
+  });
+
+  await test("Ex2 — Extraire les paires key=value avec RegExp globale", () => {
+    const parsed = extrairePaires("id=42 status=ok user=alice");
+    assertDeepEqual(parsed, { id: "42", status: "ok", user: "alice" });
+  });
+
+  await test("Ex2 — Anonymiser les emails dans un texte", () => {
+    const anonymise = anonymiserEmails(
+      "Contact: alice@example.com, copie bob@test.io",
+    );
+    assertEqual(anonymise, "Contact: a***@example.com, copie b***@test.io");
+  });
+
+  await test("Ex2 — tagged template safeHtml echappe les caracteres dangereux", () => {
+    const userInput = '<script>alert("xss")</script>';
+    const html = safeHtml`<p>${userInput}</p>`;
+    assertEqual(
+      html,
+      "<p>&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;</p>",
+    );
   });
 
   // --- Exercice 3 : Exhaustivite ---
-  await test('Ex3 — Aire du cercle', () => {
-    const aire = calculerAire({ type: 'cercle', rayon: 5 });
-    assert(Math.abs(aire - Math.PI * 25) < 0.001, `Aire du cercle incorrecte: ${aire}`);
+  await test("Ex3 — Aire du cercle", () => {
+    const aire = calculerAire({ type: "cercle", rayon: 5 });
+    assert(
+      Math.abs(aire - Math.PI * 25) < 0.001,
+      `Aire du cercle incorrecte: ${aire}`,
+    );
   });
 
-  await test('Ex3 — Aire du rectangle', () => {
-    assertEqual(calculerAire({ type: 'rectangle', largeur: 4, hauteur: 6 }), 24);
+  await test("Ex3 — Aire du rectangle", () => {
+    assertEqual(
+      calculerAire({ type: "rectangle", largeur: 4, hauteur: 6 }),
+      24,
+    );
   });
 
-  await test('Ex3 — Aire du triangle', () => {
-    assertEqual(calculerAire({ type: 'triangle', base: 10, hauteur: 5 }), 25);
+  await test("Ex3 — Aire du triangle", () => {
+    assertEqual(calculerAire({ type: "triangle", base: 10, hauteur: 5 }), 25);
   });
 
-  await test('Ex3 — Description des formes', () => {
-    assertEqual(decrireForme({ type: 'cercle', rayon: 5 }), 'Cercle de rayon 5');
-    assertEqual(decrireForme({ type: 'rectangle', largeur: 4, hauteur: 6 }), 'Rectangle de 4x6');
-    assertEqual(decrireForme({ type: 'triangle', base: 10, hauteur: 5 }), 'Triangle de base 10 et hauteur 5');
+  await test("Ex3 — Description des formes", () => {
+    assertEqual(
+      decrireForme({ type: "cercle", rayon: 5 }),
+      "Cercle de rayon 5",
+    );
+    assertEqual(
+      decrireForme({ type: "rectangle", largeur: 4, hauteur: 6 }),
+      "Rectangle de 4x6",
+    );
+    assertEqual(
+      decrireForme({ type: "triangle", base: 10, hauteur: 5 }),
+      "Triangle de base 10 et hauteur 5",
+    );
   });
 
-  await test('Ex3 — Direction opposee', () => {
+  await test("Ex3 — Direction opposee", () => {
     assertEqual(opposee(Direction.Nord), Direction.Sud);
     assertEqual(opposee(Direction.Sud), Direction.Nord);
     assertEqual(opposee(Direction.Est), Direction.Ouest);

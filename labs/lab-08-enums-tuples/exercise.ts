@@ -123,6 +123,33 @@ function entreeToObject(entree: EntreeCarnet): { nom: string; age: number; email
   return { nom: '', age: 0, email: '' }; // <-- Remplacez
 }
 
+// TODO: Rappel JS — formatez une entree avec destructuring + template literal
+// Format attendu: "Alice (30 ans) <alice@example.com>"
+function formaterEntree(entree: EntreeCarnet): string {
+  // TODO: Destructurez le tuple puis utilisez un template literal
+  return ''; // <-- Remplacez
+}
+
+// TODO: Rappel JS — clonez une entree avec spread puis remplacez l'email
+function clonerAvecNouvelEmail(entree: EntreeCarnet, nouvelEmail: string): EntreeCarnet {
+  // TODO: Creez une copie avec l'operateur spread
+  return ['', 0, ''] as any; // <-- Remplacez
+}
+
+// TODO: Rappel JS — parsez un JSON puis convertissez-le en EntreeCarnet
+// Format JSON: {"nom":"Alice","age":30,"email":"alice@example.com"}
+function parseEntreeJson(json: string): EntreeCarnet {
+  // TODO: Utilisez JSON.parse puis destructurez l'objet obtenu
+  return ['', 0, ''] as any; // <-- Remplacez
+}
+
+// TODO: Rappel JS — verifiez un email avec une RegExp simple
+// RegExp suffisante pour le lab : /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+function estEmailValide(email: string): boolean {
+  // TODO: Testez l'email avec la regex
+  return false; // <-- Remplacez
+}
+
 // =============================================================================
 // Exercice 3 : Exhaustivite avec never
 // Implementez des fonctions avec des switch exhaustifs.
@@ -241,6 +268,28 @@ async function main() {
     assertEqual(obj.nom, 'Bob');
     assertEqual(obj.age, 25);
     assertEqual(obj.email, 'bob@example.com');
+  });
+
+  await test('Ex2 — Formatage avec destructuring et template literal', () => {
+    const entree: EntreeCarnet = ['Alice', 30, 'alice@example.com'];
+    assertEqual(formaterEntree(entree), 'Alice (30 ans) <alice@example.com>');
+  });
+
+  await test('Ex2 — Clone avec spread et nouvel email', () => {
+    const entree: EntreeCarnet = ['Bob', 25, 'bob@example.com'];
+    const clone = clonerAvecNouvelEmail(entree, 'bob.new@example.com');
+    assertDeepEqual(clone, ['Bob', 25, 'bob.new@example.com']);
+    assertDeepEqual(entree, ['Bob', 25, 'bob@example.com']);
+  });
+
+  await test('Ex2 — Parse JSON en entree de carnet', () => {
+    const entree = parseEntreeJson('{"nom":"Chloe","age":28,"email":"chloe@example.com"}');
+    assertDeepEqual(entree, ['Chloe', 28, 'chloe@example.com']);
+  });
+
+  await test('Ex2 — Validation email avec RegExp', () => {
+    assertEqual(estEmailValide('dina@example.com'), true);
+    assertEqual(estEmailValide('pas-un-email'), false);
   });
 
   // --- Exercice 3 : Exhaustivite ---

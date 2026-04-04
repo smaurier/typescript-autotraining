@@ -102,6 +102,26 @@ function entreeToObject(entree: EntreeCarnet): { nom: string; age: number; email
   return { nom, age, email };
 }
 
+function formaterEntree(entree: EntreeCarnet): string {
+  const [nom, age, email] = entree;
+  return `${nom} (${age} ans) <${email}>`;
+}
+
+function clonerAvecNouvelEmail(entree: EntreeCarnet, nouvelEmail: string): EntreeCarnet {
+  const clone = [...entree] as EntreeCarnet;
+  clone[2] = nouvelEmail;
+  return clone;
+}
+
+function parseEntreeJson(json: string): EntreeCarnet {
+  const { nom, age, email } = JSON.parse(json) as { nom: string; age: number; email: string };
+  return [nom, age, email];
+}
+
+function estEmailValide(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // =============================================================================
 // Exercice 3 : Exhaustivite avec never
 // =============================================================================
@@ -230,6 +250,28 @@ async function main() {
     assertEqual(obj.nom, 'Bob');
     assertEqual(obj.age, 25);
     assertEqual(obj.email, 'bob@example.com');
+  });
+
+  await test('Ex2 — Formatage avec destructuring et template literal', () => {
+    const entree: EntreeCarnet = ['Alice', 30, 'alice@example.com'];
+    assertEqual(formaterEntree(entree), 'Alice (30 ans) <alice@example.com>');
+  });
+
+  await test('Ex2 — Clone avec spread et nouvel email', () => {
+    const entree: EntreeCarnet = ['Bob', 25, 'bob@example.com'];
+    const clone = clonerAvecNouvelEmail(entree, 'bob.new@example.com');
+    assertDeepEqual(clone, ['Bob', 25, 'bob.new@example.com']);
+    assertDeepEqual(entree, ['Bob', 25, 'bob@example.com']);
+  });
+
+  await test('Ex2 — Parse JSON en entree de carnet', () => {
+    const entree = parseEntreeJson('{"nom":"Chloe","age":28,"email":"chloe@example.com"}');
+    assertDeepEqual(entree, ['Chloe', 28, 'chloe@example.com']);
+  });
+
+  await test('Ex2 — Validation email avec RegExp', () => {
+    assertEqual(estEmailValide('dina@example.com'), true);
+    assertEqual(estEmailValide('pas-un-email'), false);
   });
 
   // --- Exercice 3 : Exhaustivite ---

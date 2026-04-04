@@ -166,6 +166,45 @@ interface ChatEvents extends EventMap {
 }
 
 // =============================================================================
+// Exercice 4 : Rappel JS — prototypes et heritage prototypal
+// =============================================================================
+
+interface LegacyUserInstance {
+  name: string;
+  greet(): string;
+}
+
+type LegacyUserConstructor = new (name: string) => LegacyUserInstance;
+
+const LegacyUser = function (this: LegacyUserInstance, name: string) {
+  this.name = name;
+} as unknown as LegacyUserConstructor;
+
+(LegacyUser as unknown as { prototype: LegacyUserInstance }).prototype.greet = function (this: LegacyUserInstance): string {
+  return `Bonjour ${this.name}`;
+};
+
+interface AdminUserInstance extends LegacyUserInstance {
+  role: 'admin';
+  canManageUsers(): boolean;
+}
+
+type AdminUserConstructor = new (name: string) => AdminUserInstance;
+
+const AdminUser = function (this: AdminUserInstance, name: string) {
+  (LegacyUser as unknown as (this: LegacyUserInstance, name: string) => void).call(this, name);
+  this.role = 'admin';
+} as unknown as AdminUserConstructor;
+
+(AdminUser as unknown as { prototype: AdminUserInstance }).prototype = Object.create(
+  (LegacyUser as unknown as { prototype: LegacyUserInstance }).prototype,
+);
+(AdminUser as unknown as { prototype: AdminUserInstance }).prototype.constructor = AdminUser;
+(AdminUser as unknown as { prototype: AdminUserInstance }).prototype.canManageUsers = function (): boolean {
+  return true;
+};
+
+// =============================================================================
 // Tests
 // =============================================================================
 
@@ -382,6 +421,22 @@ async function main() {
     assert(typingState === true);
     emitter.emit('typing', 'Alice', false);
     assert(typingState === false);
+  });
+
+  await test('LegacyUser utilise une methode sur le prototype', () => {
+    const user = new LegacyUser('Alice');
+    assertEqual(user.greet(), 'Bonjour Alice');
+    assertEqual(Object.prototype.hasOwnProperty.call(user, 'greet'), false);
+    assertEqual(Object.prototype.hasOwnProperty.call(Object.getPrototypeOf(user), 'greet'), true);
+  });
+
+  await test('AdminUser herite de LegacyUser', () => {
+    const admin = new AdminUser('Bob');
+    assert(admin instanceof AdminUser);
+    assert(admin instanceof LegacyUser);
+    assertEqual(admin.greet(), 'Bonjour Bob');
+    assertEqual(admin.role, 'admin');
+    assertEqual(admin.canManageUsers(), true);
   });
 
   summary();

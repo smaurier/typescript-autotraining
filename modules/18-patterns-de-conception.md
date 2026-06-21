@@ -1309,7 +1309,9 @@ if (resultatInscription.ok) {
 
 ---
 
-## Pattern Disposable — `using` et gestion des ressources (ES2025)
+## Pattern Disposable — `using` et gestion des ressources (TC39 Stage 3 / TS 5.2+)
+
+> **Statut (2025)** : `using` est supporté par TypeScript depuis 5.2. C'est une proposition TC39 "Explicit Resource Management" — vérifier la compatibilité runtime (Node.js 22+ en natif, sinon polyfill via `"lib": ["esnext.disposable"]`).
 
 ### Le problème
 
@@ -1342,7 +1344,7 @@ try {
 
 ### Les symboles `Symbol.dispose` et `Symbol.asyncDispose`
 
-ES2025 introduit deux nouveaux symboles globaux qui servent de "contrat" pour
+La proposition TC39 introduit deux nouveaux symboles globaux qui servent de "contrat" pour
 indiquer qu'un objet sait se nettoyer :
 
 ```typescript

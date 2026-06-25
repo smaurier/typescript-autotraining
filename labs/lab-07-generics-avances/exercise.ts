@@ -7,8 +7,9 @@
 //   - Variadic tuples
 // =============================================================================
 
-import { createTestRunner } from '../test-utils.ts';
-const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } = createTestRunner('Lab 07 — Generics avances');
+import { createTestRunner } from "../test-utils.ts";
+const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } =
+  createTestRunner("Lab 07 — Generics avances");
 
 // =============================================================================
 // Exercice 1 : Builder pattern type-safe
@@ -31,6 +32,9 @@ interface User {
 // Exemple : type HasName = { __hasName: true };
 // type HasName = ???
 // type HasEmail = ???
+
+type HasName = { hasName: true };
+type HasEmail = { hasEmail: true };
 
 // TODO: Implementez la classe UserBuilder<State>
 // - setName(name: string) doit retourner un builder avec HasName dans le state
@@ -143,7 +147,7 @@ type Concat<A extends unknown[], B extends unknown[]> = unknown[]; // <-- Rempla
 // avec le typage precis du resultat
 function concat<A extends unknown[], B extends unknown[]>(
   a: [...A],
-  b: [...B]
+  b: [...B],
 ): Concat<A, B> {
   // TODO: Retournez la concatenation des deux tuples
   return [] as any;
@@ -184,88 +188,91 @@ function last<T extends [...unknown[], unknown]>(tuple: T): Last<T> {
 // =============================================================================
 
 async function main() {
-  console.log('\n🧪 Lab 07 — Generics avances\n');
+  console.log("\n🧪 Lab 07 — Generics avances\n");
 
   // --- Exercice 1 : Builder pattern ---
-  await test('Ex1 — Builder avec tous les champs obligatoires', () => {
+  await test("Ex1 — Builder avec tous les champs obligatoires", () => {
     const user = new UserBuilder()
-      .setName('Alice')
-      .setEmail('alice@example.com')
+      .setName("Alice")
+      .setEmail("alice@example.com")
       .build();
-    assertEqual(user.name, 'Alice');
-    assertEqual(user.email, 'alice@example.com');
+    assertEqual(user.name, "Alice");
+    assertEqual(user.email, "alice@example.com");
   });
 
-  await test('Ex1 — Builder avec champ optionnel age', () => {
+  await test("Ex1 — Builder avec champ optionnel age", () => {
     const user = new UserBuilder()
-      .setName('Bob')
-      .setEmail('bob@example.com')
+      .setName("Bob")
+      .setEmail("bob@example.com")
       .setAge(25)
       .build();
-    assertEqual(user.name, 'Bob');
-    assertEqual(user.email, 'bob@example.com');
+    assertEqual(user.name, "Bob");
+    assertEqual(user.email, "bob@example.com");
     assertEqual(user.age, 25);
   });
 
-  await test('Ex1 — Builder dans un ordre different', () => {
+  await test("Ex1 — Builder dans un ordre different", () => {
     const user = new UserBuilder()
-      .setEmail('charlie@example.com')
-      .setName('Charlie')
+      .setEmail("charlie@example.com")
+      .setName("Charlie")
       .build();
-    assertEqual(user.name, 'Charlie');
-    assertEqual(user.email, 'charlie@example.com');
+    assertEqual(user.name, "Charlie");
+    assertEqual(user.email, "charlie@example.com");
   });
 
   // --- Exercice 2 : Branded types ---
-  await test('Ex2 — Creation de USD et EUR', () => {
+  await test("Ex2 — Creation de USD et EUR", () => {
     const dollars = usd(100);
     const euros = eur(85);
     assertEqual(dollars as number, 100);
     assertEqual(euros as number, 85);
   });
 
-  await test('Ex2 — Addition de memes devises', () => {
+  await test("Ex2 — Addition de memes devises", () => {
     const total = addUSD(usd(50), usd(30));
     assertEqual(total as number, 80);
     const totalEur = addEUR(eur(40), eur(20));
     assertEqual(totalEur as number, 60);
   });
 
-  await test('Ex2 — Conversion EUR vers USD', () => {
+  await test("Ex2 — Conversion EUR vers USD", () => {
     const euros = eur(100);
     const dollars = eurToUsd(euros, 1.1);
     assertEqual(dollars as number, 110);
   });
 
   // --- Exercice 3 : Variadic tuples ---
-  await test('Ex3 — Concat de deux tuples', () => {
-    const result = concat([1, 2] as [number, number], ['a', 'b'] as [string, string]);
-    assertDeepEqual(result, [1, 2, 'a', 'b']);
+  await test("Ex3 — Concat de deux tuples", () => {
+    const result = concat(
+      [1, 2] as [number, number],
+      ["a", "b"] as [string, string],
+    );
+    assertDeepEqual(result, [1, 2, "a", "b"]);
   });
 
-  await test('Ex3 — Concat avec tuple vide', () => {
+  await test("Ex3 — Concat avec tuple vide", () => {
     const result = concat([] as [], [1, 2, 3] as [number, number, number]);
     assertDeepEqual(result, [1, 2, 3]);
   });
 
-  await test('Ex3 — Head du tuple', () => {
-    const result = head([1, 'deux', true] as [number, string, boolean]);
+  await test("Ex3 — Head du tuple", () => {
+    const result = head([1, "deux", true] as [number, string, boolean]);
     assertEqual(result, 1);
   });
 
-  await test('Ex3 — Tail du tuple', () => {
-    const result = tail([1, 'deux', true] as [number, string, boolean]);
-    assertDeepEqual(result, ['deux', true]);
+  await test("Ex3 — Tail du tuple", () => {
+    const result = tail([1, "deux", true] as [number, string, boolean]);
+    assertDeepEqual(result, ["deux", true]);
   });
 
-  await test('Ex3 — Last du tuple', () => {
-    const result = last([1, 'deux', true] as [number, string, boolean]);
+  await test("Ex3 — Last du tuple", () => {
+    const result = last([1, "deux", true] as [number, string, boolean]);
     assertEqual(result, true);
   });
 
-  await test('Ex3 — Concat preserv le typage', () => {
-    const result = concat(['hello'] as [string], [42] as [number]);
-    assertDeepEqual(result, ['hello', 42]);
+  await test("Ex3 — Concat preserv le typage", () => {
+    const result = concat(["hello"] as [string], [42] as [number]);
+    assertDeepEqual(result, ["hello", 42]);
   });
 
   summary();

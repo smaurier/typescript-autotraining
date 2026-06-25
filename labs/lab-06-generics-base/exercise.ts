@@ -7,8 +7,9 @@
 //   - Cache generique, factory generique
 // =============================================================================
 
-import { createTestRunner } from '../test-utils.ts';
-const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } = createTestRunner('Lab 06 — Generics (base)');
+import { createTestRunner } from "../test-utils.ts";
+const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } =
+  createTestRunner("Lab 06 — Generics (base)");
 
 // =============================================================================
 // Exercice 1 : Fonction identity generique
@@ -18,23 +19,24 @@ const { test, assert, assertEqual, assertDeepEqual, assertThrows, summary } = cr
 // TODO: Implementez une fonction generique 'identite' qui prend un argument
 // de type T et retourne ce meme argument avec le meme type
 // function identite<T>(valeur: T): T { ... }
-function identite(valeur: any): any {
-  // TODO: Implementez
+function identite<GenericType>(valeur: GenericType) {
   return valeur;
 }
 
 // TODO: Implementez une fonction generique 'premierElement' qui prend
 // un tableau de T et retourne le premier element (T | undefined)
-function premierElement(tableau: any[]): any {
-  // TODO: Implementez
-  return undefined;
+function premierElement<GenericType>(
+  tableau: GenericType[],
+): GenericType | undefined {
+  return tableau[0];
 }
 
 // TODO: Implementez une fonction generique 'dernierElement' qui prend
 // un tableau de T et retourne le dernier element (T | undefined)
-function dernierElement(tableau: any[]): any {
-  // TODO: Implementez
-  return undefined;
+function dernierElement<GenericType>(
+  tableau: GenericType[],
+): GenericType | undefined {
+  return tableau[tableau.length - 1];
 }
 
 // =============================================================================
@@ -54,7 +56,46 @@ function dernierElement(tableau: any[]): any {
 //   - methode 'vider()': void — vide la pile
 //   - methode 'versTableau()': T[] — retourne une copie du tableau interne
 
-// class Stack<T> { ... }
+class Stack<GenericType> {
+  constructor(private elements: GenericType[] = []) {}
+
+  push(element: GenericType): void {
+    this.elements.push(element);
+  }
+  pop(): GenericType {
+    if (this.estVide) {
+      throw new Error("Erreur: pile vide");
+    } else {
+      const lastElement = this.elements[this.elements.length - 1];
+      this.elements.pop();
+      return lastElement;
+    }
+  }
+
+  peek(): GenericType {
+    if (this.estVide) {
+      throw new Error("Erreur: pile vide");
+    } else {
+      return this.elements[this.elements.length - 1];
+    }
+  }
+
+  vider(): void {
+    this.elements = [];
+  }
+
+  versTableau(): GenericType[] {
+    return [...this.elements];
+  }
+
+  get taille(): number {
+    return this.elements.length;
+  }
+
+  get estVide(): boolean {
+    return this.elements.length === 0;
+  }
+}
 
 // =============================================================================
 // Exercice 3 : Cache generique
@@ -64,6 +105,11 @@ function dernierElement(tableau: any[]): any {
 // TODO: Creez l'interface EntreeCache<T> avec :
 //   - valeur: T
 //   - expiration: number (timestamp en ms)
+
+interface EntreeCache<genericType> {
+  valeur: genericType;
+  expiration: number;
+}
 
 // TODO: Creez la classe generique Cache<T> avec :
 //   - propriete privee 'donnees': Map<string, EntreeCache<T>>
@@ -76,7 +122,43 @@ function dernierElement(tableau: any[]): any {
 //   - methode 'supprimer(cle: string)': boolean — supprime une entree
 //   - methode 'vider()': void — vide le cache
 
-// class Cache<T> { ... }
+class Cache<genericType> {
+  constructor(
+    private donnees: Map<string, EntreeCache<genericType>> = new Map(),
+  ) {}
+
+  definir(cle: string, valeur: genericType, dureeMs: number): void {
+    const expiration = Date.now() + dureeMs;
+    this.donnees.set(cle, { valeur, expiration });
+  }
+
+  obtenir(cle: string): genericType | undefined {
+    const entree = this.donnees.get(cle);
+    if (!entree) return undefined;
+    if (entree.expiration > Date.now()) {
+      return entree.valeur;
+    } else {
+      this.donnees.delete(cle);
+      return undefined;
+    }
+  }
+
+  supprimer(cle: string): boolean {
+    if (this.donnees.has(cle)) {
+      this.donnees.delete(cle);
+      return true;
+    }
+    return false;
+  }
+
+  vider(): void {
+    this.donnees.clear();
+  }
+
+  get taille(): number {
+    return this.donnees.size;
+  }
+}
 
 // =============================================================================
 // Exercice 4 : Contraintes generiques
@@ -86,26 +168,35 @@ function dernierElement(tableau: any[]): any {
 // TODO: Creez une fonction generique 'fusionner' qui prend deux objets
 // et retourne un nouvel objet qui combine les proprietes des deux
 // Contrainte : les deux parametres doivent etre des objets (extends object)
-function fusionner(obj1: any, obj2: any): any {
+function fusionner<genericTypeA extends object, genericTypeB extends object>(
+  obj1: genericTypeA,
+  obj2: genericTypeB,
+): genericTypeA & genericTypeB {
   // TODO: Utilisez le spread operator
-  return {};
+  return { ...obj1, ...obj2 };
 }
 
 // TODO: Creez une interface 'AvecLongueur' avec une propriete 'length: number'
 // Puis creez une fonction generique 'afficherLongueur' contrainte a AvecLongueur
 // qui retourne "{valeur} a une longueur de {length}"
-function afficherLongueur(valeur: any): string {
+interface AvecLongueur {
+  length: number;
+}
+
+function afficherLongueur(valeur: AvecLongueur): string {
   // TODO: Implementez avec la contrainte
-  return '';
+  return `${valeur} a une longueur de ${valeur.length}`;
 }
 
 // TODO: Creez une fonction generique 'minimum' qui accepte des valeurs
 // qui implementent une comparaison (extends { valueOf(): number })
 // et retourne la plus petite des deux
 // Pour simplifier, contraignez T a string | number
-function minimum(a: any, b: any): any {
-  // TODO: Implementez
-  return undefined;
+function minimum<GenericType extends string | number>(
+  a: GenericType,
+  b: GenericType,
+): GenericType {
+  return a < b ? a : b;
 }
 
 // =============================================================================
@@ -117,9 +208,9 @@ function minimum(a: any, b: any): any {
 //   - un objet de type T
 //   - une cle de type K (contrainte a keyof T)
 //   et retourne la valeur T[K]
-function obtenirPropriete(obj: any, cle: string): any {
+function obtenirPropriete<T, K extends keyof T>(obj: T, cle: K): T[K] {
   // TODO: Implementez
-  return undefined;
+  return obj[cle];
 }
 
 // TODO: Creez une fonction generique 'definirPropriete' qui prend :
@@ -127,18 +218,27 @@ function obtenirPropriete(obj: any, cle: string): any {
 //   - une cle de type K (contrainte a keyof T)
 //   - une valeur de type T[K]
 //   et retourne un nouvel objet avec la propriete mise a jour
-function definirPropriete(obj: any, cle: string, valeur: any): any {
+function definirPropriete<T, K extends keyof T>(
+  obj: T,
+  cle: K,
+  valeur: T[K],
+): T {
   // TODO: Implementez (retournez un nouvel objet, ne modifiez pas l'original)
-  return {};
+  return { ...obj, [cle]: valeur };
 }
 
 // TODO: Creez une fonction generique 'sousEnsemble' qui prend :
 //   - un objet de type T
 //   - un tableau de cles K[]
 //   et retourne un nouvel objet ne contenant que les cles specifiees
-function sousEnsemble(obj: any, cles: string[]): any {
+function sousEnsemble<T, K extends keyof T>(obj: T, cles: K[]): Pick<T, K> {
   // TODO: Implementez
-  return {};
+  const resultat = {} as Pick<T, K>;
+  for (const cle of cles) {
+    resultat[cle] = obj[cle];
+  }
+
+  return resultat;
 }
 
 // =============================================================================
@@ -148,14 +248,19 @@ function sousEnsemble(obj: any, cles: string[]): any {
 
 // TODO: Creez une interface 'Identifiable' avec :
 //   - id: number
+interface Identifiable {
+  id: number;
+}
 
 // TODO: Creez une fonction generique 'creerEntite' qui :
 //   - prend un id (number) et des donnees partielles (Omit<T, 'id'>)
 //   - retourne un objet de type T
 //   Contrainte : T extends Identifiable
-function creerEntite(id: number, donnees: any): any {
-  // TODO: Implementez
-  return {};
+function creerEntite<T extends Identifiable>(
+  id: number,
+  donnees: Omit<T, "id">,
+): T {
+  return { id, ...donnees } as T;
 }
 
 // TODO: Creez une classe generique 'Registre<T extends Identifiable>' avec :
@@ -166,38 +271,60 @@ function creerEntite(id: number, donnees: any): any {
 //   - methode 'lister()': T[]
 //   - getter 'taille': number
 
-// class Registre<T extends Identifiable> { ... }
+class Registre<T extends Identifiable> {
+  private entites: Map<number, T> = new Map();
+
+  ajouter(entite: T): void {
+    this.entites.set(entite.id, entite);
+  }
+
+  obtenir(id: number): T | undefined {
+    return this.entites.get(id);
+  }
+
+  supprimer(id: number): boolean {
+    return this.entites.delete(id);
+  }
+
+  lister(): T[] {
+    return [...this.entites.values()];
+  }
+
+  get taille(): number {
+    return this.entites.size;
+  }
+}
 
 // =============================================================================
 // Tests — Ne modifiez pas cette section
 // =============================================================================
 
 async function main() {
-  console.log('\n🧪 Lab 06 — Generics (base)\n');
+  console.log("\n🧪 Lab 06 — Generics (base)\n");
 
   // --- Exercice 1 ---
-  await test('Ex1 — identite avec string', () => {
-    assertEqual(identite('bonjour'), 'bonjour');
+  await test("Ex1 — identite avec string", () => {
+    assertEqual(identite("bonjour"), "bonjour");
   });
 
-  await test('Ex1 — identite avec number', () => {
+  await test("Ex1 — identite avec number", () => {
     assertEqual(identite(42), 42);
   });
 
-  await test('Ex1 — premierElement', () => {
+  await test("Ex1 — premierElement", () => {
     assertEqual(premierElement([10, 20, 30]), 10);
-    assertEqual(premierElement(['a', 'b']), 'a');
+    assertEqual(premierElement(["a", "b"]), "a");
     assertEqual(premierElement([]), undefined);
   });
 
-  await test('Ex1 — dernierElement', () => {
+  await test("Ex1 — dernierElement", () => {
     assertEqual(dernierElement([10, 20, 30]), 30);
-    assertEqual(dernierElement(['a', 'b']), 'b');
+    assertEqual(dernierElement(["a", "b"]), "b");
     assertEqual(dernierElement([]), undefined);
   });
 
   // --- Exercice 2 ---
-  await test('Ex2 — Stack push et taille', () => {
+  await test("Ex2 — Stack push et taille", () => {
     const pile = new (Stack as any)<number>();
     assertEqual(pile.taille, 0);
     assertEqual(pile.estVide, true);
@@ -208,29 +335,29 @@ async function main() {
     assertEqual(pile.estVide, false);
   });
 
-  await test('Ex2 — Stack pop', () => {
+  await test("Ex2 — Stack pop", () => {
     const pile = new (Stack as any)<string>();
-    pile.push('a');
-    pile.push('b');
-    pile.push('c');
-    assertEqual(pile.pop(), 'c');
-    assertEqual(pile.pop(), 'b');
+    pile.push("a");
+    pile.push("b");
+    pile.push("c");
+    assertEqual(pile.pop(), "c");
+    assertEqual(pile.pop(), "b");
     assertEqual(pile.taille, 1);
   });
 
-  await test('Ex2 — Stack peek', () => {
+  await test("Ex2 — Stack peek", () => {
     const pile = new (Stack as any)<number>();
     pile.push(42);
     assertEqual(pile.peek(), 42);
     assertEqual(pile.taille, 1); // peek ne retire pas l'element
   });
 
-  await test('Ex2 — Stack pop sur pile vide', () => {
+  await test("Ex2 — Stack pop sur pile vide", () => {
     const pile = new (Stack as any)<number>();
     assertThrows(() => pile.pop());
   });
 
-  await test('Ex2 — Stack versTableau', () => {
+  await test("Ex2 — Stack versTableau", () => {
     const pile = new (Stack as any)<number>();
     pile.push(1);
     pile.push(2);
@@ -238,7 +365,7 @@ async function main() {
     assertDeepEqual(pile.versTableau(), [1, 2, 3]);
   });
 
-  await test('Ex2 — Stack vider', () => {
+  await test("Ex2 — Stack vider", () => {
     const pile = new (Stack as any)<number>();
     pile.push(1);
     pile.push(2);
@@ -248,116 +375,130 @@ async function main() {
   });
 
   // --- Exercice 3 ---
-  await test('Ex3 — Cache definir et obtenir', () => {
+  await test("Ex3 — Cache definir et obtenir", () => {
     const cache = new (Cache as any)<string>();
-    cache.definir('nom', 'Alice', 10000);
-    assertEqual(cache.obtenir('nom'), 'Alice');
+    cache.definir("nom", "Alice", 10000);
+    assertEqual(cache.obtenir("nom"), "Alice");
   });
 
-  await test('Ex3 — Cache cle inexistante', () => {
+  await test("Ex3 — Cache cle inexistante", () => {
     const cache = new (Cache as any)<number>();
-    assertEqual(cache.obtenir('inexistant'), undefined);
+    assertEqual(cache.obtenir("inexistant"), undefined);
   });
 
-  await test('Ex3 — Cache expiration', () => {
+  await test("Ex3 — Cache expiration", () => {
     const cache = new (Cache as any)<string>();
-    cache.definir('temp', 'valeur', 1); // expire dans 1ms
+    cache.definir("temp", "valeur", 1); // expire dans 1ms
     // Attendre un peu pour que l'entree expire
     const debut = Date.now();
-    while (Date.now() - debut < 5) { /* attente active */ }
-    assertEqual(cache.obtenir('temp'), undefined);
+    while (Date.now() - debut < 5) {
+      /* attente active */
+    }
+    assertEqual(cache.obtenir("temp"), undefined);
   });
 
-  await test('Ex3 — Cache supprimer', () => {
+  await test("Ex3 — Cache supprimer", () => {
     const cache = new (Cache as any)<string>();
-    cache.definir('cle', 'valeur', 10000);
-    assertEqual(cache.supprimer('cle'), true);
-    assertEqual(cache.obtenir('cle'), undefined);
-    assertEqual(cache.supprimer('inexistant'), false);
+    cache.definir("cle", "valeur", 10000);
+    assertEqual(cache.supprimer("cle"), true);
+    assertEqual(cache.obtenir("cle"), undefined);
+    assertEqual(cache.supprimer("inexistant"), false);
   });
 
-  await test('Ex3 — Cache vider', () => {
+  await test("Ex3 — Cache vider", () => {
     const cache = new (Cache as any)<number>();
-    cache.definir('a', 1, 10000);
-    cache.definir('b', 2, 10000);
+    cache.definir("a", 1, 10000);
+    cache.definir("b", 2, 10000);
     cache.vider();
     assertEqual(cache.taille, 0);
   });
 
   // --- Exercice 4 ---
-  await test('Ex4 — fusionner objets', () => {
-    const resultat = fusionner({ nom: 'Alice' }, { age: 30 });
-    assertEqual(resultat.nom, 'Alice');
+  await test("Ex4 — fusionner objets", () => {
+    const resultat = fusionner({ nom: "Alice" }, { age: 30 });
+    assertEqual(resultat.nom, "Alice");
     assertEqual(resultat.age, 30);
   });
 
-  await test('Ex4 — afficherLongueur string', () => {
-    assertEqual(afficherLongueur('hello'), 'hello a une longueur de 5');
+  await test("Ex4 — afficherLongueur string", () => {
+    assertEqual(afficherLongueur("hello"), "hello a une longueur de 5");
   });
 
-  await test('Ex4 — afficherLongueur tableau', () => {
-    assertEqual(afficherLongueur([1, 2, 3]), '1,2,3 a une longueur de 3');
+  await test("Ex4 — afficherLongueur tableau", () => {
+    assertEqual(afficherLongueur([1, 2, 3]), "1,2,3 a une longueur de 3");
   });
 
-  await test('Ex4 — minimum nombres', () => {
+  await test("Ex4 — minimum nombres", () => {
     assertEqual(minimum(5, 3), 3);
     assertEqual(minimum(1, 8), 1);
   });
 
-  await test('Ex4 — minimum strings', () => {
-    assertEqual(minimum('banane', 'abricot'), 'abricot');
+  await test("Ex4 — minimum strings", () => {
+    assertEqual(minimum("banane", "abricot"), "abricot");
   });
 
   // --- Exercice 5 ---
-  await test('Ex5 — obtenirPropriete', () => {
-    const obj = { nom: 'Alice', age: 30, ville: 'Paris' };
-    assertEqual(obtenirPropriete(obj, 'nom'), 'Alice');
-    assertEqual(obtenirPropriete(obj, 'age'), 30);
+  await test("Ex5 — obtenirPropriete", () => {
+    const obj = { nom: "Alice", age: 30, ville: "Paris" };
+    assertEqual(obtenirPropriete(obj, "nom"), "Alice");
+    assertEqual(obtenirPropriete(obj, "age"), 30);
   });
 
-  await test('Ex5 — definirPropriete', () => {
-    const obj = { nom: 'Alice', age: 30 };
-    const nouveau = definirPropriete(obj, 'age', 31);
+  await test("Ex5 — definirPropriete", () => {
+    const obj = { nom: "Alice", age: 30 };
+    const nouveau = definirPropriete(obj, "age", 31);
     assertEqual(nouveau.age, 31);
     assertEqual(obj.age, 30); // original non modifie
   });
 
-  await test('Ex5 — sousEnsemble', () => {
-    const obj = { nom: 'Alice', age: 30, ville: 'Paris', email: 'alice@test.fr' };
-    const partiel = sousEnsemble(obj, ['nom', 'email']);
-    assertEqual(partiel.nom, 'Alice');
-    assertEqual(partiel.email, 'alice@test.fr');
+  await test("Ex5 — sousEnsemble", () => {
+    const obj = {
+      nom: "Alice",
+      age: 30,
+      ville: "Paris",
+      email: "alice@test.fr",
+    };
+    const partiel = sousEnsemble(obj, ["nom", "email"]);
+    assertEqual(partiel.nom, "Alice");
+    assertEqual(partiel.email, "alice@test.fr");
     assertEqual(partiel.age, undefined);
   });
 
   // --- Exercice 6 ---
-  await test('Ex6 — creerEntite', () => {
-    interface Utilisateur { id: number; nom: string; email: string; }
-    const user = creerEntite<Utilisateur>(1, { nom: 'Alice', email: 'alice@test.fr' });
+  await test("Ex6 — creerEntite", () => {
+    interface Utilisateur {
+      id: number;
+      nom: string;
+      email: string;
+    }
+    const user = creerEntite<Utilisateur>(1, {
+      nom: "Alice",
+      email: "alice@test.fr",
+    });
     assertEqual(user.id, 1);
-    assertEqual(user.nom, 'Alice');
+    assertEqual(user.nom, "Alice");
   });
 
-  await test('Ex6 — Registre ajouter et obtenir', () => {
+  await test("Ex6 — Registre ajouter et obtenir", () => {
     const registre = new (Registre as any)<{ id: number; nom: string }>();
-    registre.ajouter({ id: 1, nom: 'Alice' });
-    registre.ajouter({ id: 2, nom: 'Bob' });
-    assertEqual(registre.obtenir(1)?.nom, 'Alice');
+    registre.ajouter({ id: 1, nom: "Alice" });
+    registre.ajouter({ id: 2, nom: "Bob" });
+    assertEqual(registre.obtenir(1)?.nom, "Alice");
     assertEqual(registre.taille, 2);
   });
 
-  await test('Ex6 — Registre supprimer', () => {
+  await test("Ex6 — Registre supprimer", () => {
     const registre = new (Registre as any)<{ id: number; nom: string }>();
-    registre.ajouter({ id: 1, nom: 'Alice' });
+    registre.ajouter({ id: 1, nom: "Alice" });
     assertEqual(registre.supprimer(1), true);
     assertEqual(registre.obtenir(1), undefined);
     assertEqual(registre.taille, 0);
   });
 
-  await test('Ex6 — Registre lister', () => {
+  await test("Ex6 — Registre lister", () => {
     const registre = new (Registre as any)<{ id: number; nom: string }>();
-    registre.ajouter({ id: 1, nom: 'Alice' });
-    registre.ajouter({ id: 2, nom: 'Bob' });
+    registre.ajouter({ id: 1, nom: "Alice" });
+    registre.ajouter({ id: 2, nom: "Bob" });
     const liste = registre.lister();
     assertEqual(liste.length, 2);
   });

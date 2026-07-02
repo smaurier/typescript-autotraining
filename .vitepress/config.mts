@@ -8,6 +8,20 @@ export default defineConfig({
 
   ignoreDeadLinks: true,
 
+  // Refonte v1 : le cours vit dans `modules/` + `labs/`. L'ancien `cours/` (v0,
+  // archive/source d'audit) est exclu du build.
+  srcExclude: ['cours/**'],
+
+  // Docs statiques : neutralise l'interpolation Vue `{{ }}` (délimiteurs improbables)
+  // pour que les moustaches en prose et les `${{ }}` (GitHub Actions) ne cassent pas le SSR.
+  vue: {
+    template: {
+      compilerOptions: {
+        delimiters: ['(%(', ')%)'],
+      },
+    },
+  },
+
   themeConfig: {
     nav: [
       { text: 'Modules', link: '/modules/00-prerequis-et-introduction' },

@@ -1,1272 +1,413 @@
-# 15 — Variance, Covariance & Soundness du Type System
+---
+titre: Variance et soundness
+cours: 00-typescript
+notions: [covariance contravariance invariance bivariance, variance des fonctions params contravariants retour covariant, strictFunctionTypes, bivariance des méthodes, covariance des tableaux mutables, zones unsound assumées any assertions index access, annotations de variance in out TS 4.7, praticité contre soundness]
+outcomes: [déterminer la variance d un paramètre de type selon sa position entrée ou sortie, expliquer pourquoi strictFunctionTypes rend les paramètres contravariants et pourquoi les méthodes restent bivariantes, repérer et neutraliser une assignation unsound sur un tableau mutable, annoter la variance d un générique avec in et out et lire l erreur quand elle ne correspond pas]
+prerequis: [14-decorateurs-metadata]
+next: 16-declaration-files-augmentation
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: bus d événements et handlers typés de l admin TribuZen — variance des Handler et des tableaux de membres
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 4 heures
-> **Difficulte** : 5/5
-> **Prérequis** : Modules 1 a 14, generics avances, conditional types, mapped types
-> **Objectifs** :
->
-> - Comprendre la variance et les positions d'entrée/sortie
-> - Identifier les zones d'insécurité volontaire de TypeScript
-> - Savoir pourquoi certaines assignations sont autorisées ou refusées
-> - Écrire du code plus sûr autour des fonctions, collections et callbacks
+# Variance et soundness
+
+> **Outcomes — tu sauras FAIRE :** déterminer la variance d'un paramètre de type selon sa position (entrée / sortie), expliquer pourquoi `strictFunctionTypes` rend les paramètres contravariants et pourquoi les méthodes restent bivariantes, repérer et neutraliser une assignation *unsound* sur un tableau mutable, annoter la variance d'un générique avec `in`/`out`.
+> **Difficulté :** :star::star::star:
+
+## 1. Cas concret d'abord
+
+Tu reprends le bus d'événements de l'admin TribuZen. Il notifie les modules abonnés (audit log, badges, e-mails) quand un membre change. Un collègue a écrit ceci — **ça compile, et ça a planté en prod hier soir.**
+
+```ts
+interface Member {
+  id: string;
+  name: string;
+}
+
+interface AdminMember extends Member {
+  permissions: string[]; // un admin a des droits, un membre normal non
+}
+
+// Le bus stocke des handlers qui reçoivent un AdminMember
+type Handler<T> = (payload: T) => void;
+
+const adminHandlers: Handler<AdminMember>[] = [];
+
+function onAdminEvent(h: Handler<AdminMember>) {
+  adminHandlers.push(h);
+}
+
+// Un handler écrit pour n'importe quel Member — accepté sans broncher
+const logMember: Handler<Member> = (m) => console.log(`event: ${m.name}`);
+onAdminEvent(logMember); // OK ✅ (et c'est SÛR, on verra pourquoi)
+
+// ── Ailleurs, quelqu'un fait l'inverse ──────────────────────────
+const memberHandlers: Handler<Member>[] = [];
+
+function onMemberEvent(h: Handler<Member>) {
+  memberHandlers.push(h);
+}
+
+const notifyAdmins: Handler<AdminMember> = (a) => {
+  a.permissions.forEach((p) => console.log(p)); // lit .permissions
+};
+
+// onMemberEvent(notifyAdmins); // ❌ Erreur avec strictFunctionTypes — heureusement
+```
+
+Deux assignations qui semblent symétriques. **L'une est sûre, l'autre est un bug.** Et le crash de prod venait d'un troisième cas — un tableau — qui, lui, compile *malgré* le danger. Ce module te donne la grille de lecture pour dire, sans exécuter, laquelle est laquelle.
+
+> **Audit d'abord.** Devant une assignation de types qui « passe » ou « ne passe pas » de façon surprenante, la question n'est jamais « le compilateur a-t-il un bug ». C'est : *où le paramètre de type est-il lu (sortie), où est-il écrit (entrée), et cette assignation respecte-t-elle la direction imposée par ces positions ?*
 
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+## 2. Théorie complète, concise
 
-## Introduction — Pourquoi ce module semble théorique mais sert partout ?
+### 2.1 Le vocabulaire : quatre variances
 
-### Le problème qu'on cherche à résoudre
+La **variance** décrit comment le sous-typage d'un paramètre `T` se propage à un type générique `F<T>`. On part toujours de la relation de base : `AdminMember` est un **sous-type** de `Member` (il a tout `Member` + `permissions`). Note `Sub <: Super`.
 
-Tu as sans doute déjà vu des cas déroutants en TypeScript :
+| Variance | Règle | Direction |
+|---|---|---|
+| **Covariance** | `Sub <: Super` ⟹ `F<Sub> <: F<Super>` | préservée |
+| **Contravariance** | `Sub <: Super` ⟹ `F<Super> <: F<Sub>` | inversée |
+| **Invariance** | `F<Sub>` et `F<Super>` incompatibles dans les deux sens | aucune |
+| **Bivariance** | les deux directions acceptées (unsound, historique) | les deux |
 
-- une assignation parait logique mais est refusée
-- une autre parait risquée mais passe quand même
-- certains callbacks acceptent plus ou moins que ce qu'on imaginait
+Le mécanisme sous-jacent : **où `T` apparaît-il dans `F` ?**
+- `T` en **position de sortie** (ce que le type *produit* / renvoie / expose en lecture) → **covariant**.
+- `T` en **position d'entrée** (ce que le type *consomme* / accepte en paramètre / écrit) → **contravariant**.
+- `T` dans **les deux** → **invariant**.
 
-Derrière ces comportements, il y a la **variance** et la **soundness**.
+### 2.2 Position de sortie → covariance
 
-### La solution : raisonner sur le sens des types, pas seulement sur leur forme
+Un producteur de `T` reste utilisable là où on attend un producteur d'un type plus général.
 
-Ce module sert a comprendre pourquoi un type générique ou une fonction peut être plus général, plus spécifique, ou parfois seulement "assez compatible" pour TypeScript.
+```ts
+type Producer<T> = () => T;
 
-### Analogie du zoo
+const getAdmin: Producer<AdminMember> = () => ({ id: "1", name: "Zoe", permissions: [] });
+const getMember: Producer<Member> = getAdmin; // ✅ covariance
+// Logique : on attend « quelque chose qui produit un Member ».
+// Recevoir « quelque chose qui produit un AdminMember » est plus précis → sûr.
+```
 
-Si un enclos accepte des `Animal`, il peut accepter un `Chat`. Mais si un enclos est prévu uniquement pour des `Chat`, on ne peut pas y mettre n'importe quel `Animal`. La variance, c'est cette logique appliquée aux types génériques, surtout quand ils consomment ou produisent des valeurs.
+Idem pour une propriété lue : `{ readonly value: T }` est covariant en `T`. `Promise<T>` est covariant (`T` sort via `.then`/`await`).
 
-> 💡 **Ce qu'il faut retenir** : ici, le but n'est pas de faire de la théorie pour la théorie. Le but est de comprendre les comportements parfois surprenants du compilateur.
+### 2.3 Position d'entrée → contravariance
+
+Un consommateur de `T` reste utilisable là où on attend un consommateur d'un type plus **spécifique**. C'est le sens qui surprend.
+
+```ts
+type Consumer<T> = (x: T) => void;
+
+const handleAnyMember: Consumer<Member> = (m) => console.log(m.name);
+const handleAdmin: Consumer<AdminMember> = handleAnyMember; // ✅ contravariance
+// Logique : on attend un handler qui saura traiter un AdminMember.
+// Un handler qui gère TOUT Member sait forcément gérer un AdminMember (c'en est un).
+// L'inverse serait faux : un handler qui lit .permissions ne survit pas à un Member nu.
+```
+
+C'est exactement le cas concret : `Handler<Member>` est assignable à `Handler<AdminMember>` (sûr), mais **pas** l'inverse.
+
+### 2.4 Position d'entrée ET sortie → invariance
+
+Dès que `T` est à la fois lu et écrit, les deux exigences se contredisent et rien n'est assignable.
+
+```ts
+interface Box<T> {
+  value: T;           // sortie → covariant
+  set(next: T): void; // entrée → contravariant
+}
+// Box<AdminMember> et Box<Member> : incompatibles dans les deux sens → INVARIANT
+```
+
+`Map<K, V>` est invariant (`get` sort `V`, `set` entre `V`). `Array<T>` **devrait** l'être (il a `push`/`[i] =` en entrée et `[i]`/`pop` en sortie)… mais TS le traite comme covariant. C'est le point suivant.
+
+### 2.5 Variance des fonctions et `strictFunctionTypes`
+
+Une signature `(arg: A) => R` compose deux variances :
+- le **paramètre `A` est contravariant** ;
+- le **retour `R` est covariant**.
+
+```ts
+type Fn<A, R> = (arg: A) => R;
+// Fn est contravariant en A, covariant en R.
+
+const f: Fn<Member, AdminMember> = (m) => ({ ...m, permissions: [] });
+const g: Fn<AdminMember, Member> = f; // ✅ A élargi (contra), R rétréci (co)
+```
+
+Le flag **`strictFunctionTypes`** (inclus dans `strict: true`) est ce qui **active la contravariance stricte** des paramètres de fonction. Sans lui, les paramètres sont *bivariants* — plus permissif, mais unsound. C'est l'un des flags qui attrape le plus de bugs de callback silencieux.
+
+```ts
+// SANS strictFunctionTypes : bivariance des paramètres → ceci compilerait à tort
+//   const bad: Consumer<Member> = handleAdmin; // handleAdmin lit .permissions !
+//   bad({ id: "2", name: "Bob" }); // crash : permissions undefined
+// AVEC strictFunctionTypes : rejeté à la compilation. C'est ce qu'on veut.
+```
+
+### 2.6 Le trou historique : la bivariance des méthodes
+
+`strictFunctionTypes` ne s'applique **qu'aux propriétés de type fonction**, pas aux **méthodes** déclarées avec la syntaxe `méthode(x): void`. Les méthodes restent **bivariantes**, volontairement, pour compatibilité rétroactive (sinon `Array<T>`, `Promise<T>`, les handlers du DOM… casseraient partout).
+
+```ts
+interface PropStyle<T> {
+  handle: (x: T) => void; // PROPRIÉTÉ fonction → contravariant (strict)
+}
+interface MethodStyle<T> {
+  handle(x: T): void;     // MÉTHODE → BIVARIANT (trou assumé)
+}
+
+// MethodStyle<Member> accepte un handle(AdminMember) — unsound, mais toléré.
+```
+
+C'est *pourquoi* `arr.push` (une méthode) ne bloque pas les assignations dangereuses de tableaux.
+
+### 2.7 Les zones *unsound* assumées de TypeScript
+
+TS n'est **pas** un système *sound* : le compilateur dit parfois « OK » sur du code qui plantera. C'est un **choix de design** — soundness totale = ergonomie insupportable. Les cinq trous à connaître :
+
+1. **Covariance des tableaux mutables** — `AdminMember[]` assignable à `Member[]`, puis `push` d'un `Member` nu corrompt le tableau.
+2. **Assertions `as`** — tu mens au compilateur ; il te croit.
+3. **Accès par index** — `Record<string, X>[k]` est typé `X` même si la clé n'existe pas (sauf `noUncheckedIndexedAccess`).
+4. **`any`** — désactive tout contrôle, se propage silencieusement.
+5. **Bivariance des méthodes** (§2.6).
+
+```ts
+// Trou n°1 — le plus courant, et l'origine du crash du §1
+const admins: AdminMember[] = [{ id: "1", name: "Zoe", permissions: ["ban"] }];
+const members: Member[] = admins;          // ✅ covariance des tableaux
+members.push({ id: "2", name: "Bob" });    // ✅ compile… mais Bob n'a pas .permissions
+admins[1].permissions.length;              // 💥 undefined au runtime
+```
+
+**Parade** : `readonly`. Un `readonly AdminMember[]` n'a pas de `push`/index-set, donc sa covariance devient *sûre*.
+
+```ts
+const safe: readonly Member[] = admins; // ✅ et sûr : aucune mutation possible
+// safe.push(...) // ❌ n'existe pas sur readonly
+```
+
+### 2.8 Annotations de variance `in` / `out` (TS 4.7+)
+
+Depuis TypeScript 4.7, on peut **annoter explicitement** la variance d'un paramètre de type. TS l'infère déjà tout seul ; l'annotation sert à (1) documenter l'intention, (2) **faire échouer la compilation si l'usage ne correspond pas**, (3) accélérer la vérification sur de gros graphes de types.
+
+```ts
+type Emitter<out T> = { next(): T };            // out = covariant (T en sortie)
+type Sink<in T> = { push(x: T): void };         // in  = contravariant (T en entrée)
+type Channel<in out T> = { next(): T; push(x: T): void }; // in out = invariant
+
+// Le garde-fou : l'annotation est VÉRIFIÉE
+// type Wrong<out T> = { push(x: T): void };
+//   ^ Erreur TS2636 : Type 'Wrong<T>' is not assignable... 'T' is declared as
+//     covariant (out) mais utilisé en position contravariante.
+```
+
+> `out` = **out**put = sortie = covariant. `in` = **in**put = entrée = contravariant. Le mnémotechnique est dans le mot.
 
 ---
 
-## Trois surprises TypeScript qu'on veut enfin expliquer
+## 3. Worked examples
 
-Avant de rentrer dans les définitions, voici trois situations très concrètes qui motivent tout le module.
+### Exemple 1 — Auditer les trois assignations du cas concret
 
-### Surprise 1 : un tableau semble compatible... puis devient dangereux
+Reprenons `Member` / `AdminMember` et raisonnons *sans exécuter*, uniquement par position.
 
-```typescript
-interface Animal {
-  nom: string;
+```ts
+type Handler<T> = (payload: T) => void; // T en ENTRÉE → contravariant
+
+// (a) Handler<Member> là où on attend Handler<AdminMember>
+const logMember: Handler<Member> = (m) => console.log(m.name);
+const asAdminHandler: Handler<AdminMember> = logMember;
+//    ^ Attendu : contravariant. Member est le SUPER-type d'AdminMember.
+//      Contravariance : Handler<Super> <: Handler<Sub>. Donc Handler<Member> <: Handler<AdminMember>.
+//      => ASSIGNATION SÛRE. Quand le bus l'appelle avec un AdminMember,
+//         logMember ne lit que .name, présent sur AdminMember. Aucun risque. ✅
+
+// (b) Handler<AdminMember> là où on attend Handler<Member>
+const notifyAdmins: Handler<AdminMember> = (a) => a.permissions.forEach(() => {});
+// const asMemberHandler: Handler<Member> = notifyAdmins;
+//    ^ Contravariance exige Handler<Super> <: Handler<Sub>. Ici on demande
+//      Handler<Sub(AdminMember)> <: Handler<Super(Member)> : direction INTERDITE.
+//      => Rejeté par strictFunctionTypes. Et heureusement : le bus l'appellerait
+//         avec un Member nu, .permissions serait undefined → crash. ❌ (bien bloqué)
+
+// (c) AdminMember[] là où on attend Member[]
+const admins: AdminMember[] = [{ id: "1", name: "Zoe", permissions: [] }];
+const asMembers: Member[] = admins;
+//    ^ Tableau = covariant (trou de soundness). ACCEPTÉ.
+//      MAIS asMembers.push({ id, name }) insère un Member nu dans `admins`.
+//      => compile, plante au runtime. C'est le VRAI bug. On le neutralise en §4.
+```
+
+Verdict d'audit : (a) sûr et utile, (b) correctement bloqué, (c) accepté mais **unsound** — le seul des trois à surveiller.
+
+### Exemple 2 — Rendre le bus d'événements sûr avec `in`/`out`
+
+On veut un bus où l'on *émet* des événements (sortie) et où l'on *enregistre* des handlers (entrée), chacun annoté pour que TS refuse tout mésusage.
+
+```ts
+// Le type d'événement est produit par le bus → covariant → out
+interface MemberEvent<out T extends Member> {
+  readonly type: string;
+  readonly payload: T;
 }
 
-interface Chat extends Animal {
-  ronronne: boolean;
-}
-
-const chats: Chat[] = [{ nom: "Minou", ronronne: true }];
-const animaux: Animal[] = chats;
-
-// Si on autorisait vraiment tout derrière cette assignation :
-// animaux.push({ nom: "Rex" });
-// On casserait la promesse "ce tableau contient des Chat"
-```
-
-### Surprise 2 : un callback très spécifique n'est pas toujours acceptable
-
-```typescript
-interface Animal {
-  nom: string;
-}
-
-interface Chat extends Animal {
-  ronronne: boolean;
-}
-
-type HandlerAnimal = (animal: Animal) => void;
-
-const gererChatUniquement = (chat: Chat) => {
-  console.log(chat.ronronne);
-};
-
-// Ce serait dangereux de permettre ceci partout :
-// const h: HandlerAnimal = gererChatUniquement;
-// Car quelqu'un pourrait appeler h({ nom: "Rex" })
-```
-
-### Surprise 3 : `readonly` change le niveau de sécurité
-
-```typescript
-interface Animal {
-  nom: string;
-}
-
-interface Chat extends Animal {
-  ronronne: boolean;
-}
-
-const chats: readonly Chat[] = [{ nom: "Minou", ronronne: true }];
-const animaux: readonly Animal[] = chats; // Cette fois, le risque est bien plus faible
-```
-
-> 🎯 **Pourquoi ces trois exemples comptent ?** Parce qu'ils montrent que la compatibilité entre types dépend aussi de la manière dont une valeur est **lue**, **écrite**, **consommée** ou **produite**.
-
----
-
-## Sous-typage en TypeScript
-
-### Le principe fondamental
-
-En TypeScript, le sous-typage est **structurel**, pas nominal. Cela signifie que
-deux types sont compatibles si leurs *structures* sont compatibles, peu importe
-leurs noms.
-
-```typescript
-// Sous-typage structurel : la forme compte, pas le nom
-interface Animal {
-  nom: string;
-  age: number;
-}
-
-interface Chat {
-  nom: string;
-  age: number;
-  ronronne: boolean;
-}
-
-// Chat est un sous-type de Animal car il a TOUTES les proprietes de Animal
-// (et meme plus)
-const minou: Chat = { nom: "Minou", age: 3, ronronne: true };
-const animal: Animal = minou; // OK : Chat est assignable a Animal
-
-// L'inverse ne fonctionne pas
-// const chat: Chat = animal; // Erreur : 'ronronne' manquant
-```
-
-### La relation "est assignable a"
-
-La relation de sous-typage se lit : `A extends B` signifie que `A` est assignable
-a `B`. En d'autres termes, partout ou on attend un `B`, on peut passer un `A`.
-
-```typescript
-// Hierarchie de types
-type Vehicule = { marque: string; vitesseMax: number };
-type Voiture = Vehicule & { nombrePortes: number };
-type VoitureSport = Voiture & { turbo: boolean };
-
-// VoitureSport extends Voiture extends Vehicule
-// VoitureSport est le type le PLUS SPECIFIQUE (le plus "bas")
-// Vehicule est le type le PLUS GENERAL (le plus "haut")
-
-function afficherVehicule(v: Vehicule): void {
-  console.log(`${v.marque} - max ${v.vitesseMax} km/h`);
-}
-
-const maFerrari: VoitureSport = {
-  marque: "Ferrari",
-  vitesseMax: 330,
-  nombrePortes: 2,
-  turbo: true,
-};
-
-// On peut passer un VoitureSport la ou on attend un Vehicule
-afficherVehicule(maFerrari); // OK
-```
-
----
-
-## Covariance (Positions de sortie)
-
-### Definition
-
-Un type générique `F<T>` est **covariant** en `T` si :
-- Quand `A extends B`, alors `F<A> extends F<B>`
-- La direction du sous-typage est **preservee**
-
-> **Analogie de l'usine** : Si une usine produit des Chats (sortie), et que Chat
-> est un sous-type d'Animal, alors cette usine est aussi une "usine a Animaux".
-> La covariance s'applique aux **positions de sortie** (ce qu'on produit/retourne).
-
-> 💡 **Lecture rapide** : covariance = "si je promets quelque chose de plus précis en sortie, ça reste acceptable là où on attend quelque chose de plus général".
-
-```typescript
-// Covariance : les types en position de SORTIE (retour)
-type Producteur<T> = () => T;
-
-type ProducteurAnimal = Producteur<Animal>;
-type ProducteurChat = Producteur<Chat>;
-
-// Un producteur de Chat est-il assignable a un producteur d'Animal ?
-// OUI ! Car si on attend un Animal en sortie, recevoir un Chat est OK.
-const produitChat: ProducteurChat = () => ({
-  nom: "Felix",
-  age: 2,
-  ronronne: true,
-});
-
-const produitAnimal: ProducteurAnimal = produitChat; // OK : covariance
-const resultat: Animal = produitAnimal(); // On recoit un Chat, qui est un Animal
-```
-
-### Covariance dans les tableaux
-
-Les tableaux en TypeScript sont covariants en lecture :
-
-Le point important ici, c'est que le danger n'apparaît pas au moment de la lecture. Il apparaît quand on réutilise cette compatibilité sur une structure **mutable**.
-
-```typescript
-// Les tableaux sont covariants (ce qui est un trou de soundness !)
-const chats: Chat[] = [
-  { nom: "Minou", age: 3, ronronne: true },
-  { nom: "Felix", age: 5, ronronne: false },
-];
-
-// On peut assigner Chat[] a Animal[] (covariance)
-const animaux: Animal[] = chats; // OK... mais dangereux !
-
-// Pourquoi dangereux ? Parce que les tableaux sont MUTABLES
-// animaux.push({ nom: "Rex", age: 4 }); // Compile... mais on vient de mettre
-// un Animal (sans 'ronronne') dans un tableau de Chats !
-```
-
-### readonly et covariance sure
-
-```typescript
-// Avec readonly, la covariance est SURE car on ne peut pas muter
-const chatsReadonly: readonly Chat[] = [
-  { nom: "Minou", age: 3, ronronne: true },
-];
-
-const animauxReadonly: readonly Animal[] = chatsReadonly; // OK et SUR
-// animauxReadonly.push(...) // Erreur : readonly
-// Pas de risque de corruption !
-```
-
----
-
-## Contravariance (Positions d'entree)
-
-### Definition
-
-Un type générique `F<T>` est **contravariant** en `T` si :
-- Quand `A extends B`, alors `F<B> extends F<A>`
-- La direction du sous-typage est **inversee**
-
-> **Analogie du veterinaire** : Un veterinaire qui soigne tous les Animaux peut
-> certainement soigner un Chat. Mais un specialiste des Chats ne peut pas
-> necessairement soigner un Chien. La contravariance s'applique aux **positions
-> d'entree** (ce qu'on consomme/accepte en paramètre).
-
-> 💡 **Lecture rapide** : contravariance = "plus une fonction accepte large en entrée, plus elle peut être réutilisée dans des cas spécifiques".
-
-```typescript
-// Contravariance : les types en position d'ENTREE (parametres)
-type Consommateur<T> = (item: T) => void;
-
-type ConsommateurAnimal = Consommateur<Animal>;
-type ConsommateurChat = Consommateur<Chat>;
-
-// Un consommateur d'Animal est-il assignable a un consommateur de Chat ?
-// OUI ! Car si on va lui donner des Chats, un handler d'Animaux sait les gerer.
-const nourritAnimal: ConsommateurAnimal = (a: Animal) => {
-  console.log(`Nourrir ${a.nom}`);
-};
-
-// Contravariance : la direction est INVERSEE
-// Animal extends... non, Chat extends Animal
-// Mais Consommateur<Animal> extends Consommateur<Chat> !
-const nourritChat: ConsommateurChat = nourritAnimal; // OK avec strictFunctionTypes
-
-// L'inverse serait dangereux :
-const brosseChat: ConsommateurChat = (c: Chat) => {
-  console.log(`Brosser ${c.nom}, ronronne: ${c.ronronne}`);
-};
-// const brosseAnimal: ConsommateurAnimal = brosseChat;
-// Erreur avec strictFunctionTypes ! Car on pourrait passer un Chien
-// qui n'a pas 'ronronne'
-```
-
-### strictFunctionTypes
-
-Le flag `strictFunctionTypes` (inclus dans `strict: true`) active la vérification
-de contravariance pour les paramètres de fonctions.
-
-En pratique, c'est l'une des options qui évite le plus de bugs subtils dans les callbacks.
-
-```typescript
-// SANS strictFunctionTypes : bivariance (permissif, dangereux)
-// Les parametres de fonctions sont a la fois covariants ET contravariants
-
-// AVEC strictFunctionTypes : contravariance stricte (sur)
-// Les parametres de fonctions sont contravariants uniquement
-
-// Exemple de bug sans strictFunctionTypes :
-interface Chien extends Animal {
-  aboie(): void;
-}
-
-// Sans strict, ceci compilerait :
-// const gererAnimal: (a: Animal) => void = (c: Chien) => c.aboie();
-// Puis : gererAnimal({ nom: "Minou", age: 3 }); // Runtime error ! pas de aboie()
-```
-
-### Exception : les méthodes
-
-```typescript
-// ATTENTION : les methodes d'interface restent BIVARIANTES meme avec strict
-interface MonTableau<T> {
-  // Methode : bivariance (pour compatibilite historique)
-  push(item: T): void;
-
-  // Propriete fonction : contravariance stricte
-  map: (fn: (item: T) => unknown) => unknown[];
-}
-
-// C'est pourquoi les methodes d'Array sont bivariantes
-// et permettent des assignations dangereuses
-```
-
----
-
-## Invariance
-
-### Definition
-
-Un type générique `F<T>` est **invariant** en `T` si :
-- `F<A>` n'est assignable a `F<B>` QUE si `A` est identique a `B`
-- Ni covariance, ni contravariance
-
-> **Analogie de la clé USB** : Un port USB-C n'accepte que des cables USB-C.
-> Pas de USB-A, pas de micro-USB. C'est une relation stricte dans les deux sens.
-
-> 💡 **Lecture rapide** : invariance = "dès qu'un type sert a la fois a lire et a écrire, TypeScript ne peut plus se permettre autant de souplesse".
-
-```typescript
-// L'invariance apparait quand T est utilise EN ENTREE ET EN SORTIE
-type Conteneur<T> = {
-  valeur: T;           // Position de sortie (lecture)
-  definir(v: T): void; // Position d'entree (ecriture)
-};
-
-type ConteneurAnimal = Conteneur<Animal>;
-type ConteneurChat = Conteneur<Chat>;
-
-// Ni l'un ni l'autre n'est assignable a l'autre !
-// const a: ConteneurAnimal = {} as ConteneurChat; // Erreur
-// const b: ConteneurChat = {} as ConteneurAnimal; // Erreur
-
-// Pourquoi ?
-// - 'valeur' est covariant : Chat -> Animal OK
-// - 'definir' est contravariant : Animal -> Chat OK
-// - Les deux directions se contredisent = INVARIANCE
-```
-
-### Rendre un type invariant volontairement
-
-```typescript
-// Technique : utiliser T en entree ET en sortie pour forcer l'invariance
-type Invariant<T> = {
-  _lire: () => T;
-  _ecrire: (val: T) => void;
-};
-
-// Ou avec les annotations de variance (TypeScript 4.7+)
-type StrictConteneur<in out T> = {
-  valeur: T;
-  definir(v: T): void;
-};
-// 'in out' = invariant
-// 'in' = contravariant
-// 'out' = covariant
-```
-
----
-
-## Annotations de variance explicites (TypeScript 4.7+)
-
-### Les mots-clés `in` et `out`
-
-Depuis TypeScript 4.7, on peut annoter explicitement la variance des paramètres
-de type :
-
-```typescript
-// 'out' = covariant (T apparait en position de sortie)
-type Lecteur<out T> = {
-  lire(): T;
-};
-
-// 'in' = contravariant (T apparait en position d'entree)
-type Ecrivain<in T> = {
-  ecrire(val: T): void;
-};
-
-// 'in out' = invariant (T apparait dans les deux positions)
-type LecteurEcrivain<in out T> = {
-  lire(): T;
-  ecrire(val: T): void;
-};
-
-// Sans annotation = variance inferee automatiquement par TypeScript
-// L'annotation explicite sert a :
-// 1. Documenter l'intention
-// 2. Detecter les erreurs si la variance reelle ne correspond pas
-// 3. Ameliorer les performances de verification de type
-```
-
-### Performance et annotation de variance
-
-```typescript
-// Dans les grandes bases de code, les annotations de variance
-// ameliorent la vitesse du compilateur car il n'a pas besoin
-// de calculer la variance structurellement
-
-// Exemple concret avec une hierarchie complexe
-type Evenement<out T> = {
-  type: string;
-  payload: T;
-  timestamp: number;
-};
-
-type GestionnaireEvenement<in T> = {
-  traiter(evt: T): void;
-  filtrer(evt: T): boolean;
-};
-
-// TypeScript verifie que l'annotation correspond a l'usage reel
-// type Incorrect<out T> = {
-//   ecrire(val: T): void; // Erreur : T est en position d'entree,
-// };                      // mais annote 'out' (covariant)
-```
-
----
-
-## Variance dans les generics
-
-### Types génériques et variance
-
-```typescript
-// Promise<T> est covariant en T (T est en position de sortie via then/await)
-type PromesseAnimal = Promise<Animal>;
-type PromesseChat = Promise<Chat>;
-
-async function exemple(): Promise<void> {
-  const promesseChat: PromesseChat = Promise.resolve({
-    nom: "Minou",
-    age: 3,
-    ronronne: true,
-  });
-
-  // Covariance : Promise<Chat> est assignable a Promise<Animal>
-  const promesseAnimal: PromesseAnimal = promesseChat; // OK
-  const animal = await promesseAnimal; // Type: Animal
-}
-
-// Map<K, V> est invariant en K et V (lecture ET ecriture)
-const mapChats = new Map<string, Chat>();
-// const mapAnimaux: Map<string, Animal> = mapChats; // Erreur : invariant
-// Car Map a get (sortie) ET set (entree)
-
-// ReadonlyMap<K, V> est covariant en V (lecture seule)
-const readonlyMapChats: ReadonlyMap<string, Chat> = mapChats;
-const readonlyMapAnimaux: ReadonlyMap<string, Animal> = readonlyMapChats; // OK
-```
-
-### Fonctions génériques et variance
-
-```typescript
-// La variance affecte les fonctions d'ordre superieur
-type Transformateur<A, B> = (input: A) => B;
-// A est contravariant (entree), B est covariant (sortie)
-
-type TransformateurAnimalString = Transformateur<Animal, string>;
-type TransformateurChatString = Transformateur<Chat, string>;
-
-const decrireAnimal: TransformateurAnimalString = (a) => `${a.nom}, ${a.age} ans`;
-
-// Contravariance sur A : Animal est "plus grand" que Chat,
-// donc Transformateur<Animal, string> extends Transformateur<Chat, string>
-const decrireChat: TransformateurChatString = decrireAnimal; // OK
-
-// Covariance sur B :
-type TransformateurChatAnimal = Transformateur<Chat, Animal>;
-type TransformateurChatChat = Transformateur<Chat, Chat>;
-
-const chatVersChat: TransformateurChatChat = (c) => ({
-  ...c,
-  nom: c.nom.toUpperCase(),
-});
-const chatVersAnimal: TransformateurChatAnimal = chatVersChat; // OK
-```
-
----
-
-## Type Widening (Elargissement de type)
-
-### Widening automatique
-
-TypeScript "elargit" automatiquement certains types literaux en types plus generaux :
-
-```typescript
-// Widening des types literaux
-let message = "bonjour"; // Type: string (elargi)
-const salut = "bonjour"; // Type: "bonjour" (litteral, pas elargi)
-
-let compteur = 42; // Type: number (elargi)
-const reponse = 42; // Type: 42 (litteral)
-
-let estVrai = true; // Type: boolean (elargi)
-const definitif = true; // Type: true (litteral)
-
-// Widening dans les objets
-const config = {
-  port: 3000,      // Type: number (elargi meme dans un const !)
-  host: "localhost", // Type: string (elargi)
-};
-// Type de config : { port: number; host: string }
-
-// Pour empecher le widening : 'as const'
-const configStrict = {
-  port: 3000,
-  host: "localhost",
-} as const;
-// Type : { readonly port: 3000; readonly host: "localhost" }
-```
-
-### Widening de `null` et `undefined`
-
-```typescript
-// null et undefined ont un comportement special de widening
-let valeur = null; // Type: any (widening de null)
-// Avec strictNullChecks, les choses sont differentes
-
-function trouverUtilisateur(id: number) {
-  if (id === 0) return null;
-  return { id, nom: "Alice" };
-}
-// Type de retour : { id: number; nom: string } | null
-// Pas de widening ici car le type est infere du contexte
-```
-
-### Controle du widening
-
-```typescript
-// Technique 1 : satisfies pour garder le type litteral
-const routes = {
-  accueil: "/",
-  profil: "/profil",
-  parametres: "/parametres",
-} satisfies Record<string, string>;
-// Type : { accueil: "/"; profil: "/profil"; parametres: "/parametres" }
-// (types literaux preserves !)
-
-// Technique 2 : annotation de type explicite
-const direction: "nord" | "sud" | "est" | "ouest" = "nord";
-
-// Technique 3 : as const
-const CODES_HTTP = {
-  OK: 200,
-  NOT_FOUND: 404,
-  SERVER_ERROR: 500,
-} as const;
-
-type CodeHTTP = (typeof CODES_HTTP)[keyof typeof CODES_HTTP]; // 200 | 404 | 500
-```
-
----
-
-## Type Narrowing avance
-
-### Narrowing et flux de controle
-
-```typescript
-// TypeScript suit le flux de controle pour affiner les types
-function traiter(valeur: string | number | null | undefined): string {
-  // Ici : string | number | null | undefined
-
-  if (valeur === null || valeur === undefined) {
-    return "vide";
+// Un handler consomme un événement → contravariant → in
+type EventHandler<in T extends Member> = (event: MemberEvent<T>) => void;
+
+class EventBus<T extends Member> {
+  private handlers: EventHandler<T>[] = [];
+
+  // enregistrer un handler plus GÉNÉRAL est sûr (contravariance)
+  subscribe(h: EventHandler<T>): void {
+    this.handlers.push(h);
   }
-  // Ici : string | number (null et undefined elimines)
 
-  if (typeof valeur === "string") {
-    return valeur.toUpperCase();
-  }
-  // Ici : number (string elimine)
-
-  return valeur.toFixed(2);
-}
-```
-
-### Narrowing avec discriminated unions
-
-```typescript
-// Le narrowing brille avec les unions discriminees
-type Forme =
-  | { type: "cercle"; rayon: number }
-  | { type: "rectangle"; largeur: number; hauteur: number }
-  | { type: "triangle"; base: number; hauteur: number };
-
-function aire(forme: Forme): number {
-  switch (forme.type) {
-    case "cercle":
-      // Ici TypeScript sait que forme est { type: "cercle"; rayon: number }
-      return Math.PI * forme.rayon ** 2;
-
-    case "rectangle":
-      // Ici : { type: "rectangle"; largeur: number; hauteur: number }
-      return forme.largeur * forme.hauteur;
-
-    case "triangle":
-      // Ici : { type: "triangle"; base: number; hauteur: number }
-      return (forme.base * forme.hauteur) / 2;
-
-    default:
-      // Exhaustiveness check : si on ajoute un nouveau type de Forme
-      // sans ajouter de case, cette ligne provoque une erreur
-      const _exhaustif: never = forme;
-      return _exhaustif;
-  }
-}
-```
-
-### Type predicates (predicats de type)
-
-```typescript
-// Les predicats de type permettent un narrowing personnalise
-interface Poisson {
-  nage(): void;
-  ecailles: boolean;
-}
-
-interface Oiseau {
-  vole(): void;
-  plumes: boolean;
-}
-
-// Predicat de type : le retour 'animal is Poisson' informe TypeScript
-function estPoisson(animal: Poisson | Oiseau): animal is Poisson {
-  return "ecailles" in animal;
-}
-
-function decrire(animal: Poisson | Oiseau): string {
-  if (estPoisson(animal)) {
-    // Ici TypeScript sait que animal est Poisson
-    animal.nage();
-    return "C'est un poisson !";
-  }
-  // Ici TypeScript sait que animal est Oiseau
-  animal.vole();
-  return "C'est un oiseau !";
-}
-```
-
-### Assertion functions
-
-```typescript
-// Les fonctions d'assertion affinent le type apres leur appel
-function assertEstNonNull<T>(
-  valeur: T,
-  message?: string
-): asserts valeur is NonNullable<T> {
-  if (valeur === null || valeur === undefined) {
-    throw new Error(message ?? "Valeur nulle inattendue");
+  emit(event: MemberEvent<T>): void {
+    // copie readonly : on empêche un handler de muter la liste des handlers
+    for (const h of this.handlers) h(event);
   }
 }
 
-function traiterUtilisateur(nom: string | null): void {
-  // nom est string | null
-  assertEstNonNull(nom, "Le nom est requis");
-  // Apres l'assertion, nom est string
-  console.log(nom.toUpperCase()); // OK, pas de erreur
-}
+const adminBus = new EventBus<AdminMember>();
 
-// Assertion avec condition
-function assertEstChaine(val: unknown): asserts val is string {
-  if (typeof val !== "string") {
-    throw new TypeError(`Attendu string, recu ${typeof val}`);
-  }
-}
+// ✅ handler générique Member : accepté (contravariance) et sûr
+const audit: EventHandler<Member> = (e) => console.log("audit", e.payload.name);
+adminBus.subscribe(audit);
+
+// ❌ handler qui exige AdminMember, branché sur un bus qui pourrait émettre moins :
+// const admins = new EventBus<Member>();
+// admins.subscribe((e: MemberEvent<AdminMember>) => e.payload.permissions);
+//   -> rejeté : EventHandler<AdminMember> n'est pas assignable à EventHandler<Member>.
+```
+
+Ce que les annotations apportent : si un jour quelqu'un ajoute une méthode `push(x: T)` dans `MemberEvent<out T>`, la compilation **échoue immédiatement** (TS2636) au lieu de laisser passer un `MemberEvent` devenu invariant.
+
+---
+
+## 4. Pièges & misconceptions
+
+### PIÈGE #1 — Croire que la contravariance est « à l'envers de la logique »
+
+Beaucoup lisent « `Handler<Member>` marche là où on veut `Handler<AdminMember>` » comme un bug. C'est l'inverse : c'est **la seule direction sûre**.
+
+```ts
+// Intuition fausse : « AdminMember est plus précis, donc Handler<AdminMember> devrait passer partout »
+// Réalité : un handler doit ACCEPTER ce qu'on lui donne. Plus il accepte large, plus il est réutilisable.
+const generic: Handler<Member> = (m) => console.log(m.name);      // accepte tout Member
+const specific: Handler<AdminMember> = (a) => a.permissions.pop(); // exige un admin
+// generic peut remplacer specific (sûr). specific NE PEUT PAS remplacer generic (dangereux).
+```
+
+**Règle** : sur un paramètre, « accepter plus large » = « plus assignable ». Entrée = contravariant.
+
+### PIÈGE #2 — Confondre propriété-fonction et méthode
+
+Le même code change de sûreté selon la syntaxe. C'est le trou de la bivariance des méthodes.
+
+```ts
+interface WithProp { on: (x: Member) => void; } // contravariant strict
+interface WithMethod { on(x: Member): void; }    // bivariant (toléré)
+
+// Un on(x: AdminMember) est refusé sur WithProp, accepté sur WithMethod.
+```
+
+**Règle** : pour un vrai contrôle de variance sur un callback stocké, déclare-le en **propriété fonction** (`on: (x: T) => void`), pas en méthode.
+
+### PIÈGE #3 — Faire confiance à un `Type[]` élargi
+
+Assigner `AdminMember[]` à `Member[]` ne « convertit » rien : c'est le **même tableau**, deux vues. Muter par la vue élargie corrompt l'originale.
+
+```ts
+const admins: AdminMember[] = [{ id: "1", name: "Zoe", permissions: [] }];
+const view: Member[] = admins;
+view.push({ id: "2", name: "Bob" }); // compile
+admins.forEach((a) => a.permissions.length); // 💥 sur Bob
+```
+
+**Règle** : dès qu'on passe un tableau « en lecture seule » à une frontière, type-le `readonly T[]` (ou `ReadonlyArray<T>`). La covariance redevient sûre et `push` disparaît de l'API.
+
+### PIÈGE #4 — Prendre `in`/`out` pour de la config runtime
+
+Les annotations de variance sont **purement statiques** : zéro impact sur le JS émis. Ce ne sont pas des modificateurs d'accès ni du readonly. Elles ne *forcent* pas la variance — elles **vérifient** que l'usage la respecte.
+
+```ts
+type C<out T> = { get(): T }; // n'émet rien, ne protège rien au runtime
+// Si tu écris get(): T mais aussi set(x: T), l'annotation `out` casse la COMPILATION,
+// elle n'empêche pas un `as any` de contourner au runtime.
+```
+
+**Règle** : `in`/`out` = documentation vérifiée + garde-fou de compilation, pas une garantie d'exécution.
+
+### PIÈGE #5 — Croire que `strict: true` bouche tous les trous
+
+`strict` active `strictFunctionTypes` (contravariance des paramètres) mais **ne** rend **pas** les tableaux invariants, ni les méthodes contravariantes, ni ne borne les index. Ces trous restent, par design.
+
+```ts
+// même avec strict:true, ceci compile :
+const members: Member[] = admins;        // covariance tableau
+const x: number = ({} as Record<string, number>)["absent"]; // index unsound
+```
+
+**Règle** : ajoute `noUncheckedIndexedAccess` pour le trou n°3, et `readonly` pour le trou n°1. `strict` ne les couvre pas.
+
+---
+
+## 5. Ancrage TribuZen
+
+Le **bus d'événements de l'admin** (`src/core/event-bus.ts`) est l'endroit où la variance se joue en vrai. Quand un membre est promu, banni, ou change de famille, le bus diffuse un `MemberEvent` aux modules abonnés : journal d'audit, recalcul des badges, envoi d'e-mails.
+
+- **Handlers contravariants** — le module audit s'abonne avec un `EventHandler<Member>` générique (il ne lit que `id` + `name`). Le module « permissions » veut un `EventHandler<AdminMember>`. Grâce à la contravariance, le handler audit est accepté sur le bus admin (sûr), mais un handler qui exige `.permissions` **ne peut pas** s'abonner à un bus de membres ordinaires — bloqué à la compilation. C'est exactement le bug du §1, désormais impossible.
+
+- **Tableaux `readonly` aux frontières** — la liste des membres d'une famille (`Family.members`) est exposée en `readonly Member[]` aux composants d'affichage. Impossible d'y `push` un membre nu via une vue élargie : le trou n°1 est neutralisé là où des données réelles transitent.
+
+- **Annotations `in`/`out` sur les types partagés** — `MemberEvent<out T>` et `EventHandler<in T>` sont annotés dans le fichier de types partagé. Si un contributeur ajoute par erreur une méthode qui met `T` en entrée sur `MemberEvent`, la CI TypeScript échoue (TS2636) avant la revue.
+
+Fichiers cibles dans `smaurier/tribuzen` :
+```
+tribuzen/src/
+  core/
+    event-bus.ts        // EventBus<T>, subscribe/emit
+    events.ts           // MemberEvent<out T>, EventHandler<in T>
+  domain/
+    member.ts           // Member, AdminMember
+  features/
+    family/
+      FamilyMembers.tsx  // reçoit readonly Member[]
 ```
 
 ---
 
-## Excess Property Checking (Vérification des propriétés excedentaires)
+## 6. Points clés
 
-### Le mécanisme interne
+1. La variance décrit comment le sous-typage de `T` se propage à `F<T>` ; elle se lit à la **position** de `T` : sortie → covariant, entrée → contravariant, les deux → invariant.
+2. Une fonction est **contravariante en son paramètre** et **covariante en son retour** ; « accepter plus large en entrée » = « plus assignable ».
+3. `strictFunctionTypes` (dans `strict`) active la contravariance stricte des **propriétés fonction** ; sans lui, les paramètres sont bivariants (unsound).
+4. Les **méthodes** (`m(x): void`) restent **bivariantes** volontairement — trou historique pour ne pas casser `Array`, `Promise`, le DOM.
+5. Les **tableaux mutables sont covariants** (unsound) : `Sub[]` → `Super[]` compile, mais `push` corrompt l'original ; parade = `readonly T[]`.
+6. Zones unsound assumées de TS : covariance des tableaux, `as`, accès par index, `any`, bivariance des méthodes — TS choisit la praticité sur la soundness totale.
+7. `in`/`out` (TS 4.7+) annotent la variance ; purement statiques, ils **vérifient** l'usage et échouent (TS2636) si `T` sort de la position déclarée.
 
-```typescript
-// TypeScript a une verification SPECIALE pour les objets litteraux
-interface Config {
-  port: number;
-  host: string;
-}
+---
 
-// CAS 1 : Objet litteral -> verification stricte
-// const config: Config = {
-//   port: 3000,
-//   host: "localhost",
-//   debug: true, // Erreur ! Propriete excedentaire
-// };
+## 7. Seeds Anki
 
-// CAS 2 : Variable intermediaire -> pas de verification excedentaire
-const objetComplet = { port: 3000, host: "localhost", debug: true };
-const config2: Config = objetComplet; // OK ! Pas d'erreur
-
-// Pourquoi cette difference ?
-// Les proprietes excedentaires sur un litteral sont probablement une ERREUR
-// (faute de frappe, propriete obsolete). Mais une variable existante
-// peut legitimement avoir des proprietes supplementaires (sous-typage).
 ```
-
-### Contournement et bonnes pratiques
-
-```typescript
-// Methode 1 : satisfies (recommande en TypeScript 4.9+)
-const maConfig = {
-  port: 3000,
-  host: "localhost",
-  debug: true, // Erreur avec satisfies si pas dans le type
-} satisfies Config;
-
-// Methode 2 : Index signature pour proprietes dynamiques
-interface ConfigFlexible {
-  port: number;
-  host: string;
-  [cle: string]: unknown; // Accepte les proprietes supplementaires
-}
-
-const configFlex: ConfigFlexible = {
-  port: 3000,
-  host: "localhost",
-  debug: true, // OK grace a l'index signature
-};
-
-// Methode 3 : Type d'aide pour desactiver la verification
-type SansVerifExcedentaire<T> = T & Record<string, unknown>;
+Comment lit-on la variance d'un paramètre de type T dans F<T> ?|À sa position : T en sortie (lecture, retour, produit) → covariant ; T en entrée (paramètre, écriture, consommé) → contravariant ; T dans les deux → invariant.
+Une fonction (arg: A) => R : quelle variance en A et en R ?|Contravariante en A (paramètre = entrée), covariante en R (retour = sortie). Donc élargir l'entrée et rétrécir le retour préserve l'assignabilité.
+Handler<T> = (x: T) => void : Handler<Member> est-il assignable à Handler<AdminMember> (AdminMember <: Member) ?|Oui. Contravariance : Handler<Super> <: Handler<Sub>. Un handler qui gère tout Member gère forcément un AdminMember. L'inverse est rejeté (dangereux).
+Que fait précisément le flag strictFunctionTypes ?|Il rend les paramètres des propriétés fonction contravariants (vérification stricte). Sans lui ils sont bivariants (permissif, unsound). Inclus dans strict:true. Ne s'applique PAS aux méthodes.
+Pourquoi les méthodes (m(x): void) restent-elles bivariantes même en strict ?|Choix de compatibilité rétroactive : les rendre contravariantes casserait Array<T>, Promise<T>, les handlers du DOM. C'est un trou de soundness assumé.
+Pourquoi Sub[] assignable à Super[] est-il unsound, et comment le neutraliser ?|Les tableaux mutables sont traités covariants ; via la vue Super[] on peut push un Super nu qui corrompt le tableau Sub original (crash au runtime). Parade : typer readonly T[] (plus de push/index-set).
+Cite trois zones unsound assumées de TypeScript.|Covariance des tableaux mutables, assertions as, accès par index (Record[k] typé même si absent), any, bivariance des méthodes. TS privilégie la praticité sur la soundness totale.
+À quoi servent les annotations in / out (TS 4.7) et que se passe-t-il si l'usage ne correspond pas ?|out = covariant (T en sortie), in = contravariant (T en entrée), in out = invariant. Purement statiques : elles documentent et VÉRIFIENT la variance ; si T apparaît dans une position contraire, erreur de compilation TS2636.
 ```
 
 ---
 
-## Structural vs Nominal Typing
+## Pont vers le lab
 
-### Le problème du typage structurel
-
-```typescript
-// En TypeScript, les types sont structurels
-type EUR = number;
-type USD = number;
-
-// EUR et USD sont IDENTIQUES pour TypeScript !
-let prixEuros: EUR = 100;
-let prixDollars: USD = 120;
-prixEuros = prixDollars; // Aucune erreur... mais c'est un bug logique !
-
-// On peut melanger des euros et des dollars sans aucune erreur de type
-function additionner(a: EUR, b: EUR): EUR {
-  return a + b;
-}
-additionner(prixEuros, prixDollars); // Compile... catastrophe financiere !
-```
-
-### Branded Types : simuler le typage nominal
-
-```typescript
-// Les branded types ajoutent une "marque" invisible au type
-type Marque<T, Nom extends string> = T & { readonly __marque: Nom };
-
-type EUR = Marque<number, "EUR">;
-type USD = Marque<number, "USD">;
-type IdentifiantUtilisateur = Marque<string, "IdentifiantUtilisateur">;
-type IdentifiantProduit = Marque<string, "IdentifiantProduit">;
-
-// Fonctions de creation (constructeurs de marque)
-function eur(montant: number): EUR {
-  return montant as EUR;
-}
-
-function usd(montant: number): USD {
-  return montant as USD;
-}
-
-function idUtilisateur(id: string): IdentifiantUtilisateur {
-  return id as IdentifiantUtilisateur;
-}
-
-// Maintenant les types sont DISTINCTS
-const prix1 = eur(100);
-const prix2 = usd(120);
-
-// prix1 = prix2; // Erreur ! Les marques different
-
-function totalEUR(a: EUR, b: EUR): EUR {
-  return eur((a as number) + (b as number));
-}
-
-totalEUR(prix1, prix1); // OK
-// totalEUR(prix1, prix2); // Erreur ! USD n'est pas EUR
-
-// Les identifiants aussi sont proteges
-function trouverUtilisateur(id: IdentifiantUtilisateur): void { /* ... */ }
-function trouverProduit(id: IdentifiantProduit): void { /* ... */ }
-
-const userId = idUtilisateur("usr_123");
-// trouverProduit(userId); // Erreur ! On ne peut pas confondre les ID
-```
-
-### Branded Types avec validation
-
-```typescript
-// Combiner branding et validation pour des types encore plus surs
-type Email = Marque<string, "Email">;
-type AgePositif = Marque<number, "AgePositif">;
-
-function email(valeur: string): Email {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!regex.test(valeur)) {
-    throw new Error(`Email invalide : ${valeur}`);
-  }
-  return valeur as Email;
-}
-
-function agePositif(valeur: number): AgePositif {
-  if (!Number.isInteger(valeur) || valeur < 0 || valeur > 150) {
-    throw new Error(`Age invalide : ${valeur}`);
-  }
-  return valeur as AgePositif;
-}
-
-interface Utilisateur {
-  nom: string;
-  email: Email;        // Garanti valide !
-  age: AgePositif;     // Garanti positif et entier !
-}
-
-// Pour creer un Utilisateur, on DOIT passer par les fonctions de validation
-const alice: Utilisateur = {
-  nom: "Alice",
-  email: email("alice@exemple.fr"),
-  age: agePositif(30),
-};
-```
-
----
-
-## Les trous de soundness en TypeScript
-
-TypeScript n'est **pas** un système de types *sound*. Cela signifie qu'il existe
-des situations ou le compilateur dit "OK" alors que le code peut planter au
-runtime. C'est un choix delibere pour equilibrer sécurité et productivite.
-
-### Trou 1 : Covariance des tableaux mutables
-
-```typescript
-// Deja vu, mais c'est le trou le plus courant
-const chats: Chat[] = [{ nom: "Minou", age: 3, ronronne: true }];
-const animaux: Animal[] = chats; // OK (covariance)
-
-animaux.push({ nom: "Rex", age: 5 }); // OK pour TypeScript...
-// mais maintenant chats[1] n'a pas 'ronronne' !
-console.log(chats[1].ronronne); // undefined au runtime, mais type dit 'boolean'
-```
-
-### Trou 2 : Assertions de type (as)
-
-```typescript
-// 'as' permet de mentir au compilateur
-const valeur: unknown = "pas un nombre";
-const nombre = valeur as number; // OK pour TypeScript
-console.log(nombre.toFixed(2)); // Crash au runtime !
-
-// Double assertion pour contourner les verifications
-const chat = { nom: "Minou" } as unknown as Chat;
-// TypeScript accepte, mais ronronne sera undefined
-```
-
-### Trou 3 : Index signatures
-
-```typescript
-// Les index signatures pretendent que TOUTE cle retourne le type
-const dico: Record<string, number> = { a: 1, b: 2 };
-const valeurC: number = dico["c"]; // Type: number, mais c'est undefined !
-
-// Solution partielle : noUncheckedIndexedAccess
-// Avec ce flag, dico["c"] est de type number | undefined
-```
-
-### Trou 4 : any
-
-```typescript
-// 'any' desactive completement le type checking
-function dangereux(): any {
-  return "pas un tableau";
-}
-
-const tableau: number[] = dangereux(); // Pas d'erreur
-tableau.map((n) => n * 2); // Crash : "pas un tableau".map is not a function
-```
-
-### Trou 5 : Bivariance des méthodes
-
-```typescript
-// Comme vu precedemment, les methodes restent bivariantes
-interface Gestionnaire {
-  traiter(evt: Animal): void; // Methode = bivariance
-}
-
-const gestionnaireChat: Gestionnaire = {
-  traiter(evt: Chat) {
-    // TypeScript accepte (bivariance), mais evt pourrait ne pas etre Chat
-    console.log(evt.ronronne); // Potentiel undefined
-  },
-};
-```
-
----
-
-## Flags de strictness individuels
-
-```typescript
-// tsconfig.json — chaque flag strict explique
-
-{
-  "compilerOptions": {
-    // Active TOUS les flags strict (recommande)
-    "strict": true,
-
-    // Equivalent a activer individuellement :
-
-    // Verifie que 'this' a un type explicite dans les fonctions
-    "noImplicitThis": true,
-
-    // Interdit les parametres et variables implicitement 'any'
-    "noImplicitAny": true,
-
-    // null et undefined sont des types distincts
-    "strictNullChecks": true,
-
-    // Contravariance stricte pour les parametres de fonctions
-    "strictFunctionTypes": true,
-
-    // Verifie l'initialisation des proprietes de classe
-    "strictPropertyInitialization": true,
-
-    // Verifie les appels bind/call/apply
-    "strictBindCallApply": true,
-
-    // Les catch clauses sont 'unknown' par defaut (pas 'any')
-    "useUnknownInCatchVariables": true,
-
-    // Force 'override' explicite dans les classes derivees
-    "noImplicitOverride": true,
-
-    // --- Flags supplementaires hors strict ---
-
-    // Les acces par index retournent T | undefined
-    "noUncheckedIndexedAccess": true,
-
-    // Detecte le code mort
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-
-    // Force return dans toutes les branches
-    "noImplicitReturns": true,
-
-    // Force les case a avoir break ou return
-    "noFallthroughCasesInSwitch": true,
-
-    // Force les types d'import consistants
-    "forceConsistentCasingInFileNames": true,
-
-    // Mode exact pour les champs optionnels
-    "exactOptionalPropertyTypes": true
-  }
-}
-```
-
-### exactOptionalPropertyTypes
-
-```typescript
-// Un flag souvent meconnu mais tres utile
-// AVEC exactOptionalPropertyTypes :
-
-interface Options {
-  couleur?: string;
-}
-
-// Sans le flag, ces deux sont equivalents :
-const o1: Options = { couleur: undefined }; // OK sans le flag
-const o2: Options = {};                     // OK
-
-// AVEC le flag, il y a une difference :
-// const o3: Options = { couleur: undefined }; // ERREUR !
-// Car 'couleur?: string' signifie "peut etre absent"
-// Mais pas "peut etre undefined"
-// Pour autoriser undefined : couleur?: string | undefined
-```
-
----
-
-## Pratique
-
-### Exercice 1 : Identifier la variance
-
-Determinez si chaque type générique est covariant, contravariant ou invariant en `T` :
-
-```typescript
-// Quel est la variance de T dans chacun de ces types ?
-type A<T> = () => T;
-type B<T> = (arg: T) => void;
-type C<T> = (arg: T) => T;
-type D<T> = { readonly valeur: T };
-type E<T> = { valeur: T; definir: (v: T) => void };
-type F<T> = Promise<T>;
-type G<T> = (cb: (item: T) => void) => void;
-```
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// A<T> = () => T
-// T est en position de SORTIE uniquement -> COVARIANT
-
-// B<T> = (arg: T) => void
-// T est en position d'ENTREE uniquement -> CONTRAVARIANT
-
-// C<T> = (arg: T) => T
-// T est en position d'ENTREE ET de SORTIE -> INVARIANT
-
-// D<T> = { readonly valeur: T }
-// T est en position de SORTIE uniquement (readonly) -> COVARIANT
-
-// E<T> = { valeur: T; definir: (v: T) => void }
-// valeur : T en sortie (covariant)
-// definir : T en entree (contravariant)
-// -> INVARIANT (les deux positions se contredisent)
-
-// F<T> = Promise<T>
-// T est en position de SORTIE (then, await) -> COVARIANT
-
-// G<T> = (cb: (item: T) => void) => void
-// T apparait dans un callback qui est lui-meme un parametre
-// Parametre d'un parametre = double inversion = COVARIANT
-// (contravariant * contravariant = covariant)
-```
-
-</details>
-
-### Exercice 2 : Créer des branded types
-
-Creez un système de types branded pour gérer des temperatures en Celsius et Fahrenheit
-sans risque de confusion :
-
-```typescript
-// A faire :
-// 1. Creer les types Celsius et Fahrenheit (branded)
-// 2. Creer les fonctions constructeurs celsius() et fahrenheit()
-// 3. Creer les fonctions de conversion celsiusVers Fahrenheit() et fahrenheitVersCelsius()
-// 4. S'assurer qu'on ne peut pas additionner Celsius + Fahrenheit directement
-```
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Systeme de branded types pour les temperatures
-
-type Marque<T, Nom extends string> = T & { readonly __marque: Nom };
-
-type Celsius = Marque<number, "Celsius">;
-type Fahrenheit = Marque<number, "Fahrenheit">;
-
-// Constructeurs
-function celsius(valeur: number): Celsius {
-  return valeur as Celsius;
-}
-
-function fahrenheit(valeur: number): Fahrenheit {
-  return valeur as Fahrenheit;
-}
-
-// Conversions type-safe
-function celsiusVersFahrenheit(c: Celsius): Fahrenheit {
-  return fahrenheit((c as number) * 9 / 5 + 32);
-}
-
-function fahrenheitVersCelsius(f: Fahrenheit): Celsius {
-  return celsius(((f as number) - 32) * 5 / 9);
-}
-
-// Operations type-safe
-function additionnerCelsius(a: Celsius, b: Celsius): Celsius {
-  return celsius((a as number) + (b as number));
-}
-
-function additionnerFahrenheit(a: Fahrenheit, b: Fahrenheit): Fahrenheit {
-  return fahrenheit((a as number) + (b as number));
-}
-
-// Utilisation
-const tempParis = celsius(22);
-const tempNewYork = fahrenheit(72);
-
-// additionnerCelsius(tempParis, tempNewYork); // ERREUR !
-const tempParisF = celsiusVersFahrenheit(tempParis);
-const total = additionnerFahrenheit(tempParisF, tempNewYork); // OK
-console.log(`Total : ${total} F`);
-```
-
-</details>
-
-### Exercice 3 : Corriger les trous de soundness
-
-Le code suivant compile mais a des bugs au runtime. Corrigez-le :
-
-```typescript
-// Code a corriger (compile mais crashe au runtime)
-interface Personne {
-  nom: string;
-  adresse: {
-    ville: string;
-    codePostal: string;
-  };
-}
-
-const personnes: Personne[] = [];
-const items: { nom: string }[] = personnes;
-items.push({ nom: "Bob" }); // Pas d'adresse !
-
-const premierePersonne = personnes[0];
-console.log(premierePersonne.adresse.ville); // Crash !
-
-const donnees: Record<string, number> = {};
-const valeur: number = donnees["inexistant"];
-console.log(valeur.toFixed(2)); // Crash !
-```
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Corrections :
-
-interface Personne {
-  nom: string;
-  adresse: {
-    ville: string;
-    codePostal: string;
-  };
-}
-
-// 1. Utiliser readonly pour empecher la covariance mutable
-const personnes: Personne[] = [];
-const items: readonly { nom: string }[] = personnes; // readonly !
-// items.push({ nom: "Bob" }); // ERREUR : readonly
-
-// 2. Verifier que le tableau n'est pas vide
-const premierePersonne = personnes[0]; // Avec noUncheckedIndexedAccess: Personne | undefined
-if (premierePersonne) {
-  console.log(premierePersonne.adresse.ville); // OK
-} else {
-  console.log("Aucune personne dans le tableau");
-}
-
-// 3. Verifier l'existence de la cle dans le Record
-const donnees: Record<string, number> = {};
-const valeur: number | undefined = donnees["inexistant"]; // Avec noUncheckedIndexedAccess
-if (valeur !== undefined) {
-  console.log(valeur.toFixed(2)); // OK, garanti non-undefined
-} else {
-  console.log("Cle inexistante");
-}
-
-// Aussi : activer ces flags dans tsconfig.json
-// "noUncheckedIndexedAccess": true
-// "exactOptionalPropertyTypes": true
-```
-
-</details>
-
-### Exercice 4 : Annoter la variance
-
-Ajoutez les annotations de variance correctes (`in`, `out`, `in out`) :
-
-```typescript
-// Ajoutez les annotations de variance
-type Resultat<T> = {
-  donnee: T;
-  erreur: null;
-} | {
-  donnee: null;
-  erreur: Error;
-};
-
-type Comparateur<T> = (a: T, b: T) => number;
-
-type Depot<T> = {
-  sauvegarder(entite: T): void;
-  trouverParId(id: string): T | null;
-  listerTout(): T[];
-  mettreAJour(id: string, entite: T): void;
-};
-```
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Resultat<T> : T est en position de SORTIE (dans donnee)
-// -> COVARIANT
-type Resultat<out T> = {
-  donnee: T;
-  erreur: null;
-} | {
-  donnee: null;
-  erreur: Error;
-};
-
-// Comparateur<T> : T est en position d'ENTREE (parametres a et b)
-// -> CONTRAVARIANT
-type Comparateur<in T> = (a: T, b: T) => number;
-
-// Depot<T> : T est en ENTREE (sauvegarder, mettreAJour)
-//            ET en SORTIE (trouverParId, listerTout)
-// -> INVARIANT
-type Depot<in out T> = {
-  sauvegarder(entite: T): void;
-  trouverParId(id: string): T | null;
-  listerTout(): T[];
-  mettreAJour(id: string, entite: T): void;
-};
-```
-
-</details>
-
----
-
-## Récapitulatif
-
-| Concept                  | Description                                                  |
-|--------------------------|--------------------------------------------------------------|
-| **Covariance** (`out`)   | Même direction : `A <: B => F<A> <: F<B>` (sortie)         |
-| **Contravariance** (`in`)| Direction inversee : `A <: B => F<B> <: F<A>` (entree)     |
-| **Invariance** (`in out`)| Aucune relation : `F<A>` et `F<B>` incompatibles           |
-| **Bivariance**           | Les deux directions (méthodes d'interface, historique)        |
-| **Widening**             | Elargissement automatique des types literaux                 |
-| **Narrowing**            | Affinement des types via le flux de controle                 |
-| **Excess check**         | Vérification speciale sur les objets litteraux               |
-| **Branded types**        | Simulent le typage nominal via une marque invisible          |
-| **Soundness holes**      | Compromis deliberes de TypeScript (any, covariance, etc.)    |
-
----
-
-## Pour aller plus loin
-
-Dans le prochain module, **Module 16 — Declaration Files & Module Augmentation**,
-nous verrons comment créer et manipuler les fichiers `.d.ts` pour typer des
-bibliotheques JavaScript existantes et etendre les types de modules tiers.
-
-La maîtrise de la variance vous sera indispensable pour comprendre pourquoi
-certaines declarations de types fonctionnent et d'autres non, notamment quand vous
-travaillerez avec `declare module` et le merging de declarations.
-
----
-
-<!-- parcours-recommande -->
-
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 15 variance](../screencasts/screencast-15-variance.md)
-2. **Lab** : [lab-15-variance](../labs/lab-15-variance/README)
-3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
-4. **Visualisation** : [Type Narrowing](../visualizations/type-narrowing.html)
-5. **Quiz** : [quiz 15 variance](../quizzes/quiz-15-variance.html)
-:::
+> Lab associé : `00-typescript/labs/lab-15-variance/README.md`. Auditer les assignations de `Handler` et de tableaux du bus TribuZen, corriger le trou de covariance avec `readonly`, et annoter `in`/`out` sur les types d'événements — corrigé complet inclus.

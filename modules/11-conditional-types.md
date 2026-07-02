@@ -1,989 +1,460 @@
-# 11 — Conditional Types & infer
+---
+titre: Conditional types et infer
+cours: 00-typescript
+notions: [conditional types, infer, distributive conditional types, désactiver la distribution avec un tuple, conditional types imbriqués, reconstruire les utility types du module 10]
+outcomes: [lire et écrire un type T extends U ? X : Y, extraire un sous-type avec infer, prévoir et contrôler la distribution sur les unions, reconstruire ReturnType et Exclude à la main]
+prerequis: [10-utility-types]
+next: 12-mapped-types-template-literals
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: types de la couche API TribuZen (Unwrap du payload, MemberEvent discriminé, rôles distribués)
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 5 heures
-> **Difficulte** : 4/5
-> **Prérequis** : Generics, utility types, unions, intersections
-> **Objectifs** :
-> - Comprendre le fonctionnement des conditional types
-> - Maîtriser le mot-clé `infer` pour extraire des sous-types
-> - Comprendre la distribution des conditional types
-> - Implementer des types utilitaires avances
+# Conditional types et infer
+
+> **Outcomes — tu sauras FAIRE :** lire et écrire un conditional type `T extends U ? X : Y`, extraire un sous-type avec `infer`, prévoir et contrôler la distribution sur les unions, reconstruire `ReturnType` et `Exclude` à la main.
+> **Difficulté :** :star::star::star::star:
+
+## 1. Cas concret d'abord
+
+Tu branches le front TribuZen sur l'API. Toutes les réponses HTTP sont enveloppées dans la même structure :
+
+```ts
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  timestamp: string;
+}
+
+// Endpoints réels de TribuZen
+type GetMemberResponse = ApiResponse<{ id: string; name: string; role: 'admin' | 'member' }>;
+type GetFamilyResponse = ApiResponse<{ id: string; name: string; memberCount: number }>;
+```
+
+Dans le store, tu ne veux jamais manipuler l'enveloppe : tu veux **juste le `data`**. Écrire à la main chaque payload est une duplication qui va dériver dès que l'API change :
+
+```ts
+// ❌ Duplication : ce type recopie le contenu de ApiResponse au lieu de le dériver
+type Member = { id: string; name: string; role: 'admin' | 'member' };
+// Si l'API ajoute un champ, ce type ment silencieusement.
+```
+
+Ce qu'on veut vraiment, c'est un opérateur de type qui prend `ApiResponse<X>` et **rend `X`**, quel que soit `X` :
+
+```ts
+type Member = Unwrap<GetMemberResponse>;
+// { id: string; name: string; role: 'admin' | 'member' }  — dérivé, jamais recopié
+```
+
+`Unwrap<T>` n'est pas un utility type fourni par TypeScript. Pour l'écrire, il faut deux outils : un **conditional type** (choisir un type selon un test) et `infer` (capturer le type enveloppé). C'est exactement le programme de ce module.
 
 ---
 
-## Introduction — Pourquoi les conditional types existent ?
+## 2. Théorie complète, concise
 
-### Le problème qu'on cherche à résoudre
+### 2.1 La forme fondamentale — `T extends U ? X : Y`
 
-Avec les generics et les utility types, on sait déjà représenter beaucoup de choses. Mais il manque encore une capacité essentielle : choisir un type en fonction d'un autre.
+Un conditional type est un `if / else` au niveau des types. Il se lit en trois morceaux :
 
-Exemples typiques :
+- `T extends U` — « est-ce que `T` est **assignable** à `U` ? » (même relation que pour affecter une valeur)
+- `? X` — si oui, le type résultat est `X`
+- `: Y` — sinon, c'est `Y`
 
-- si l'entrée est un tableau, je veux un type ; sinon un autre
-- si je reçois une fonction, je veux récupérer son type de retour
-- si une union contient certains membres, je veux les garder ou les retirer
+```ts
+type IsString<T> = T extends string ? true : false;
 
-Sans conditional types, ces transformations deviennent vite impossibles ou très verbeuses.
-
-### La solution : des `if / else` au niveau des types
-
-Les conditional types sont exactement cela : des branchements dans le système de types.
-
-La lecture de base est simple :
-
-`T extends U ? X : Y`
-
-Cela signifie : "si `T` est compatible avec `U`, alors le résultat est `X`, sinon c'est `Y`".
-
-### Analogie
-
-Imagine un aiguillage de train : selon la nature du train, on l'envoie sur une voie ou sur une autre. Les conditional types font la même chose avec les types.
-
-> 💡 **Conseil de lecture** : lis toujours un conditional type a voix haute. Tant que tu ne peux pas le paraphraser en français simple, il restera flou.
-
----
-
-## Syntaxe de base
-
-### La forme fondamentale
-
-Avant même d'écrire des cas complexes, il faut vraiment fixer la lecture de cette forme :
-
-- `T extends U` = "est-ce que `T` est assignable a `U` ?"
-- `? X` = "si oui, prends `X`"
-- `: Y` = "sinon, prends `Y`"
-
-```typescript
-// Syntaxe : T extends U ? X : Y
-// Si T est assignable a U, le type est X, sinon Y
-
-type EstChaine<T> = T extends string ? true : false;
-
-type Test1 = EstChaine<string>;   // true
-type Test2 = EstChaine<number>;   // false
-type Test3 = EstChaine<"hello">;  // true (un literal string est un string)
+type A = IsString<string>;   // true
+type B = IsString<number>;   // false
+type C = IsString<'hello'>;  // true  — un littéral string EST un string
 ```
 
-### Avec des generics
+Conseil qui change tout : **lis chaque conditional type à voix haute en français**. Tant que tu ne sais pas le paraphraser, il reste opaque.
 
-```typescript
-// Un type conditionnel generique tres utile
-type SiTableau<T> = T extends any[] ? "tableau" : "autre";
+### 2.2 Conditional types imbriqués — la chaîne `else if`
 
-type R1 = SiTableau<string[]>;   // "tableau"
-type R2 = SiTableau<number>;     // "autre"
-type R3 = SiTableau<[1, 2, 3]>;  // "tableau" (un tuple est un tableau)
+On chaîne les conditionnels comme un `if / else if / else`. TypeScript évalue **de haut en bas** et s'arrête à la première branche vraie.
 
-// Conditionnel avec des types plus complexes
-type EstFonction<T> = T extends (...args: any[]) => any ? true : false;
+```ts
+type TypeName<T> =
+  T extends string  ? 'string'  :
+  T extends number  ? 'number'  :
+  T extends boolean ? 'boolean' :
+  T extends undefined ? 'undefined' :
+  T extends Function ? 'function' :
+  'object';
 
-type F1 = EstFonction<() => void>;           // true
-type F2 = EstFonction<(x: number) => string>; // true
-type F3 = EstFonction<string>;                // false
+type T1 = TypeName<'x'>;        // 'string'
+type T2 = TypeName<42>;         // 'number'
+type T3 = TypeName<() => void>; // 'function'
+type T4 = TypeName<{ a: 1 }>;   // 'object'
 ```
 
-### Conditionnel imbrique
+L'ordre compte : il faut aller **du plus spécifique au plus général** (voir Piège #3).
 
-```typescript
-// On peut imbriquer les conditionnels comme des if/else if/else
-type TypeDe<T> =
-  T extends string ? "chaine" :
-  T extends number ? "nombre" :
-  T extends boolean ? "booleen" :
-  T extends undefined ? "undefined" :
-  T extends null ? "null" :
-  T extends any[] ? "tableau" :
-  T extends (...args: any[]) => any ? "fonction" :
-  "objet";
+### 2.3 `infer` — capturer un sous-type
 
-type T1 = TypeDe<string>;       // "chaine"
-type T2 = TypeDe<42>;           // "nombre"
-type T3 = TypeDe<true>;         // "booleen"
-type T4 = TypeDe<number[]>;     // "tableau"
-type T5 = TypeDe<() => void>;   // "fonction"
-type T6 = TypeDe<{ a: 1 }>;     // "objet"
+`infer R` déclare une **variable de type** à l'intérieur de la clause `extends`. Tu proposes une *forme cible* ; si `T` correspond, TypeScript **remplit `R`** avec la pièce manquante. Sinon, on tombe dans la branche `else`.
+
+Image mentale : `infer` est un **trou dans un puzzle**. Tu présentes `T` au puzzle ; s'il s'emboîte, le morceau qui manquait devient `R`.
+
+```ts
+// « Si T a la forme (…args) => quelque chose, capture ce quelque chose dans R »
+type ReturnOf<T> = T extends (...args: any[]) => infer R ? R : never;
+
+type R1 = ReturnOf<() => string>;            // string
+type R2 = ReturnOf<(x: number) => boolean>;  // boolean
+type R3 = ReturnOf<number>;                  // never  — pas une fonction, la forme ne colle pas
 ```
 
----
+Trois règles à retenir sur `infer` :
 
-## Conditional types distributifs
+1. `infer` ne s'utilise **que** dans la clause `extends` d'un conditional type.
+2. Il ne « devine dans le vide » jamais : il faut lui proposer une forme (`Promise<infer C>`, `(infer E)[]`, `{ data: infer D }`, …).
+3. La variable inférée n'existe que dans la branche `? X` (le `true`), pas dans le `: Y`.
 
-### Le comportement par defaut
+Quelques formes cibles courantes :
 
-Quand un conditional type est applique à une **union**, il se **distribue** automatiquement sur chaque membre de l'union. C'est l'un des comportements les plus importants (et parfois deroutants) de TypeScript.
+```ts
+type ElementOf<T>  = T extends (infer E)[] ? E : never;            // élément d'un tableau
+type Awaited1<T>   = T extends Promise<infer C> ? C : T;           // contenu d'une Promise
+type DataOf<T>     = T extends { data: infer D } ? D : never;      // propriété data
+type FirstArg<T>   = T extends (a: infer P, ...r: any[]) => any ? P : never; // 1er paramètre
 
-### Comment le lire sans te perdre ?
-
-Quand tu vois un conditional type appliqué a une union, imagine une boucle mentale : TypeScript prend chaque membre un par un, applique le test, puis reconstruit le résultat final.
-
-```typescript
-type EstChaine<T> = T extends string ? true : false;
-
-// Avec une union, le conditionnel est applique a CHAQUE membre
-type R = EstChaine<string | number>;
-// Se decompose en :
-// EstChaine<string> | EstChaine<number>
-// = true | false
-// = boolean  (car true | false = boolean)
+type E = ElementOf<string[]>;                 // string
+type C = Awaited1<Promise<number[]>>;         // number[]
+type D = DataOf<{ data: boolean; ok: 1 }>;    // boolean
 ```
 
-### Comment la distribution fonctionne étape par étape
+`infer` peut aussi être **récursif** : on rappelle le type sur la partie capturée.
 
-```typescript
-// Prenons Exclude comme exemple
-type Exclude<T, U> = T extends U ? never : T;
+```ts
+// Déballe des Promises imbriquées jusqu'au fond (comme le vrai Awaited)
+type DeepAwait<T> = T extends Promise<infer C> ? DeepAwait<C> : T;
 
-type Resultat = Exclude<"a" | "b" | "c" | "d", "a" | "c">;
-
-// Etape 1 : Distribution sur chaque membre de T
-// = ("a" extends "a" | "c" ? never : "a")
-// | ("b" extends "a" | "c" ? never : "b")
-// | ("c" extends "a" | "c" ? never : "c")
-// | ("d" extends "a" | "c" ? never : "d")
-
-// Etape 2 : Evaluation de chaque branche
-// = never | "b" | never | "d"
-
-// Etape 3 : Simplification (never disparait des unions)
-// = "b" | "d"
+type X = DeepAwait<Promise<Promise<Promise<string>>>>; // string
 ```
 
-### Analogie de la distribution
+### 2.4 Distributive conditional types — le comportement sur les unions
 
-Imaginez un **tapis roulant dans une usine** : chaque élément de l'union passe individuellement devant un capteur (la condition `extends`), et selon le résultat, il est envoye dans un bac ou un autre. A la fin, on reunit tous les éléments des bacs pour former la nouvelle union.
+Point le plus important du module. Quand un conditional type est appliqué à une **union** *via un paramètre de type nu*, il se **distribue** : TypeScript applique le test à **chaque membre séparément**, puis **ré-unit** les résultats.
 
-### Quand la distribution se produit-elle ?
+Image mentale : un **tapis roulant**. Chaque membre de l'union passe devant le capteur `extends` un par un, atterrit dans un bac, et à la fin on recolle tous les bacs en une nouvelle union.
 
-La distribution ne se produit **que** quand :
-1. Le type conditionnel utilise un **paramètre de type générique nu** (naked type parameter)
-2. Ce paramètre est directement teste avec `extends`
+```ts
+type IsString<T> = T extends string ? true : false;
 
-```typescript
-// Distribution : T est un parametre generique nu
-type Distributif<T> = T extends string ? "oui" : "non";
-type R1 = Distributif<string | number>; // "oui" | "non"
-
-// PAS de distribution : T est enveloppe dans un tuple
-type NonDistributif<T> = [T] extends [string] ? "oui" : "non";
-type R2 = NonDistributif<string | number>; // "non"
-// Car [string | number] n'est PAS assignable a [string]
+type R = IsString<string | number>;
+// se décompose en :  IsString<string> | IsString<number>
+//                  =  true            | false
+//                  =  boolean
 ```
 
----
+« Paramètre de type **nu** » (*naked type parameter*) = le paramètre est testé **directement**, sans emballage. C'est la condition de déclenchement de la distribution.
 
-## Empecher la distribution
+Application phare : `Exclude`, qui retire des membres d'une union, **repose entièrement** sur la distribution.
 
-### Avec la technique du tuple
+```ts
+type MyExclude<T, U> = T extends U ? never : T;
 
-L'astuce du tuple sert a dire a TypeScript : "n'examine pas chaque membre séparément, regarde tout le type comme un bloc".
+type Roles = 'admin' | 'moderator' | 'member' | 'guest';
+type Privileged = MyExclude<Roles, 'member' | 'guest'>;
 
-```typescript
-// Parfois on veut evaluer l'union ENTIERE, pas chaque membre
-type EstJamais<T> = T extends never ? true : false;
-
-// Probleme : avec never (union vide), le conditionnel ne s'execute jamais
-type R1 = EstJamais<never>; // never (pas true !)
-
-// Solution : envelopper dans un tuple pour empecher la distribution
-type EstVraimentJamais<T> = [T] extends [never] ? true : false;
-
-type R2 = EstVraimentJamais<never>;    // true
-type R3 = EstVraimentJamais<string>;   // false
+// Distribution, membre par membre :
+//   ('admin'     extends 'member' | 'guest' ? never : 'admin')      -> 'admin'
+// | ('moderator' extends 'member' | 'guest' ? never : 'moderator')  -> 'moderator'
+// | ('member'    extends 'member' | 'guest' ? never : 'member')     -> never
+// | ('guest'     extends 'member' | 'guest' ? never : 'guest')      -> never
+// = 'admin' | 'moderator' | never | never
+// = 'admin' | 'moderator'   (never disparaît des unions)
 ```
 
-### Exemple pratique : vérifier si un type est une union
+Deux corollaires à graver :
 
-```typescript
-// Ce type detecte si T est un type union
-type EstUnion<T, Copie = T> =
-  T extends unknown
-    ? [Copie] extends [T]
-      ? false
-      : true
-    : never;
+- `never` est l'**union vide**. Un conditional distributif sur `never` ne tourne « sur rien » → le résultat est `never`, pas la branche `false`.
+- `never` s'**absorbe** dans une union (`X | never = X`). C'est ce qui rend `Exclude` propre.
 
-// Comment ca marche :
-// Si T = string | number, la distribution donne :
-//   (string extends unknown ? [string | number] extends [string] ? false : true)
-// | (number extends unknown ? [string | number] extends [number] ? false : true)
-// = true | true = true
+### 2.5 Désactiver la distribution — l'astuce du tuple `[T] extends [U]`
 
-// Si T = string (pas une union) :
-//   string extends unknown ? [string] extends [string] ? false : true
-// = false
+Parfois on veut tester l'union **en bloc**, pas membre par membre. On emballe les deux côtés dans un tuple d'un élément : le paramètre n'est plus « nu », donc **pas de distribution**.
 
-type U1 = EstUnion<string | number>;  // true
-type U2 = EstUnion<string>;           // false
-type U3 = EstUnion<1 | 2 | 3>;        // true
+```ts
+type Naked<T>   = T   extends string ? 'oui' : 'non';
+type Wrapped<T> = [T] extends [string] ? 'oui' : 'non';
+
+type A = Naked<string | number>;   // 'oui' | 'non'  — distribué sur chaque membre
+type B = Wrapped<string | number>; // 'non'          — [string | number] n'est pas assignable à [string]
 ```
 
----
+Cas d'école : détecter `never`. Sans emballage, impossible (l'union vide ne déclenche rien).
 
-## Le mot-clé `infer`
+```ts
+type IsNeverBad<T>  = T   extends never ? true : false;
+type IsNeverGood<T> = [T] extends [never] ? true : false;
 
-### Principe
-
-Le mot-clé `infer` permet de **capturer** (extraire) un sous-type a l'interieur d'une condition `extends`. C'est comme declarer une variable de type qui sera automatiquement remplie par TypeScript.
-
-> 💡 **Repère simple** : `infer` ne devine pas dans le vide. Il capture une partie d'un type seulement si tu lui proposes une forme a faire correspondre.
-
-### Analogie
-
-Pensez a `infer` comme à un **trou dans un puzzle** : vous presentez votre type au puzzle (la condition `extends`), et si la forme correspond, TypeScript remplit le trou avec le type qui manquait.
-
-### Syntaxe de base
-
-Le pattern a retenir est toujours le même :
-
-- tu proposes une forme cible
-- si `T` correspond a cette forme, `infer` récupère la partie utile
-- sinon tu tombes dans la branche de repli
-
-```typescript
-// infer R declare une "variable de type" R dans la branche true
-type ExtraireRetour<T> = T extends (...args: any[]) => infer R ? R : never;
-
-type R1 = ExtraireRetour<() => string>;           // string
-type R2 = ExtraireRetour<(x: number) => boolean>; // boolean
-type R3 = ExtraireRetour<string>;                  // never (pas une fonction)
+type N1 = IsNeverBad<never>;   // never  ❌ (jamais true)
+type N2 = IsNeverGood<never>;  // true   ✅
+type N3 = IsNeverGood<string>; // false
 ```
 
----
+Retiens la règle : **distribution voulue → paramètre nu ; test global → emballe dans `[ ]`.**
 
-## Usages courants de `infer`
+### 2.6 Reconstruire les utility types du module 10
 
-### Extraire le type de retour d'une fonction
+Les utility types intégrés ne sont pas magiques : ce sont des conditional types + `infer` + mapped types. En savoir la source, c'est pouvoir en écrire des sur-mesure.
 
-```typescript
-// C'est exactement l'implementation de ReturnType<T>
-type MonReturnType<T extends (...args: any) => any> =
+```ts
+// ReturnType : capturer le type de retour d'une fonction
+type MyReturnType<T extends (...args: any) => any> =
   T extends (...args: any) => infer R ? R : any;
 
-function calculer(a: number, b: number): { somme: number; produit: number } {
-  return { somme: a + b, produit: a * b };
-}
-
-type Resultat = MonReturnType<typeof calculer>;
-// { somme: number; produit: number }
-```
-
-### Extraire les paramètres d'une fonction
-
-```typescript
-// Implementation de Parameters<T>
-type MonParameters<T extends (...args: any) => any> =
+// Parameters : capturer le tuple des paramètres
+type MyParameters<T extends (...args: any) => any> =
   T extends (...args: infer P) => any ? P : never;
 
-function enregistrer(nom: string, age: number, actif: boolean): void {}
+// Exclude : distribution (2.4)
+type MyExclude2<T, U> = T extends U ? never : T;
 
-type Params = MonParameters<typeof enregistrer>;
-// [nom: string, age: number, actif: boolean]
+// Extract : le complément d'Exclude
+type MyExtract<T, U> = T extends U ? T : never;
 
-// Extraire un parametre specifique
-type PremierParam<T extends (...args: any) => any> =
-  T extends (premier: infer P, ...reste: any) => any ? P : never;
-
-type P1 = PremierParam<typeof enregistrer>; // string
+// NonNullable : Exclude appliqué à null | undefined
+type MyNonNullable<T> = T extends null | undefined ? never : T;
 ```
 
-### Extraire le type d'élément d'un tableau
-
-```typescript
-// Extraire le type des elements d'un tableau
-type ElementDe<T> = T extends (infer E)[] ? E : never;
-
-type E1 = ElementDe<string[]>;        // string
-type E2 = ElementDe<number[]>;        // number
-type E3 = ElementDe<(string | number)[]>; // string | number
-
-// Version plus robuste qui gere aussi les tableaux readonly
-type ElementDeRobuste<T> =
-  T extends readonly (infer E)[] ? E : never;
-
-type E4 = ElementDeRobuste<readonly string[]>; // string
-```
-
-### Extraire le contenu d'une Promise
-
-```typescript
-// Extraire le type a l'interieur d'une Promise
-type DecompresserPromise<T> =
-  T extends Promise<infer C> ? C : T;
-
-type P1 = DecompresserPromise<Promise<string>>;  // string
-type P2 = DecompresserPromise<Promise<number[]>>; // number[]
-type P3 = DecompresserPromise<string>;             // string (pas une Promise)
-
-// Version recursive pour les Promises imbriquees
-type DecompresserPromiseProfond<T> =
-  T extends Promise<infer C>
-    ? DecompresserPromiseProfond<C>
-    : T;
-
-type P4 = DecompresserPromiseProfond<Promise<Promise<Promise<string>>>>;
-// string
-```
-
-### Extraire des types à partir de structures complexes
-
-```typescript
-// Extraire le type de la propriete "data" si elle existe
-type ExtraireDonnees<T> =
-  T extends { data: infer D } ? D : never;
-
-type D1 = ExtraireDonnees<{ data: string[]; status: number }>;
-// string[]
-
-type D2 = ExtraireDonnees<{ data: { nom: string }; erreur: null }>;
-// { nom: string }
-
-type D3 = ExtraireDonnees<{ status: number }>;
-// never (pas de propriete "data")
-
-// Extraire les types de cle et valeur d'un Map
-type ExtraireCleValeur<T> =
-  T extends Map<infer K, infer V> ? { cle: K; valeur: V } : never;
-
-type MV = ExtraireCleValeur<Map<string, number>>;
-// { cle: string; valeur: number }
-```
+`ReturnType` / `Parameters` reposent sur `infer` ; `Exclude` / `Extract` / `NonNullable` reposent sur la distribution. Deux mécanismes, tout le module 10 « avancé » en découle.
 
 ---
 
-## Infer dans les template literal types
+## 3. Worked examples
 
-```typescript
-// Extraire des parties d'une chaine
-type ExtrairePrefixe<T extends string> =
-  T extends `${infer Prefixe}-${string}` ? Prefixe : never;
+### Exemple 1 — Écrire `Unwrap<T>` du cas concret, pas à pas
 
-type Pref1 = ExtrairePrefixe<"btn-primary">;  // "btn"
-type Pref2 = ExtrairePrefixe<"card-header">;   // "card"
-type Pref3 = ExtrairePrefixe<"simple">;         // never
+Objectif : `Unwrap<ApiResponse<X>>` doit rendre `X`.
 
-// Extraire les deux parties
-type Decouper<T extends string> =
-  T extends `${infer Gauche}-${infer Droite}`
-    ? { gauche: Gauche; droite: Droite }
-    : never;
+**Étape 1 — la forme cible.** Une `ApiResponse<X>` a un champ `data: X`. On propose donc la forme `{ data: infer D }` et on capture `D`.
 
-type D1 = Decouper<"hello-world">;
-// { gauche: "hello"; droite: "world" }
-
-// Parser un chemin d'URL
-type ExtraireRoute<T extends string> =
-  T extends `/${infer Segment}/${infer Reste}`
-    ? [Segment, ...ExtraireRouteArray<Reste>]
-    : T extends `/${infer Segment}`
-    ? [Segment]
-    : T extends `${infer Segment}/${infer Reste}`
-    ? [Segment, ...ExtraireRouteArray<Reste>]
-    : [T];
-
-type ExtraireRouteArray<T extends string> = ExtraireRoute<T>;
-
-type Route1 = ExtraireRoute<"/api/utilisateurs/123">;
-// ["api", "utilisateurs", "123"]
-```
-
----
-
-## Pattern matching avance avec infer
-
-### Inferrer dans les tuples
-
-```typescript
-// Premier et dernier element d'un tuple
-type Premier<T extends any[]> =
-  T extends [infer P, ...any[]] ? P : never;
-
-type Dernier<T extends any[]> =
-  T extends [...any[], infer D] ? D : never;
-
-type SaufPremier<T extends any[]> =
-  T extends [any, ...infer R] ? R : never;
-
-type SaufDernier<T extends any[]> =
-  T extends [...infer R, any] ? R : never;
-
-// Tests
-type P = Premier<[1, 2, 3]>;         // 1
-type D = Dernier<[1, 2, 3]>;         // 3
-type SP = SaufPremier<[1, 2, 3]>;    // [2, 3]
-type SD = SaufDernier<[1, 2, 3]>;    // [1, 2]
-
-// Inverser un tuple
-type Inverser<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? [...Inverser<Reste>, Premier]
-    : [];
-
-type Inv = Inverser<[1, 2, 3, 4]>; // [4, 3, 2, 1]
-```
-
-### Inferrer dans les types d'objets
-
-```typescript
-// Extraire les cles dont les valeurs sont des fonctions
-type ClesMethodes<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? K : never;
-}[keyof T];
-
-interface MonService {
-  nom: string;
-  version: number;
-  demarrer(): void;
-  arreter(): void;
-  configurer(opts: object): boolean;
+```ts
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  timestamp: string;
 }
 
-type Methodes = ClesMethodes<MonService>;
-// "demarrer" | "arreter" | "configurer"
-
-// Extraire uniquement les methodes dans un nouveau type
-type SeulementMethodes<T> = Pick<T, ClesMethodes<T>>;
-
-type ServiceMethodes = SeulementMethodes<MonService>;
-// {
-//   demarrer(): void;
-//   arreter(): void;
-//   configurer(opts: object): boolean;
-// }
+type Unwrap<T> = T extends { data: infer D } ? D : never;
 ```
 
----
+**Étape 2 — tester la branche vraie.**
 
-## Implementations classiques
+```ts
+type GetMemberResponse = ApiResponse<{ id: string; name: string; role: 'admin' | 'member' }>;
 
-### IsEqual : vérifier si deux types sont identiques
-
-```typescript
-// Implementation robuste de IsEqual
-type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends
-  (<T>() => T extends B ? 1 : 2)
-    ? true
-    : false;
-
-type EQ1 = IsEqual<string, string>;     // true
-type EQ2 = IsEqual<string, number>;     // false
-type EQ3 = IsEqual<{ a: 1 }, { a: 1 }>; // true
-type EQ4 = IsEqual<{ a: 1 }, { a: 2 }>; // false
-
-// Attention aux cas subtils
-type EQ5 = IsEqual<any, string>;         // false
-type EQ6 = IsEqual<any, any>;            // true
-type EQ7 = IsEqual<never, never>;        // true
-type EQ8 = IsEqual<unknown, any>;        // false
+type Member = Unwrap<GetMemberResponse>;
+// { id: string; name: string; role: 'admin' | 'member' }
 ```
 
-### Flatten : aplatir un type tableau/tuple
+**Étape 3 — tester la branche fausse.** Un type sans `data` tombe dans le `else` :
 
-```typescript
-// Aplatir un niveau de tableau
-type Flatten<T> =
-  T extends (infer E)[] ? E : T;
-
-type F1 = Flatten<string[]>;   // string
-type F2 = Flatten<number[][]>; // number[]
-type F3 = Flatten<string>;     // string
-
-// Aplatir recursivement (Deep Flatten)
-type DeepFlatten<T> =
-  T extends (infer E)[]
-    ? DeepFlatten<E>
-    : T;
-
-type DF1 = DeepFlatten<number[][][][]>; // number
-type DF2 = DeepFlatten<string[][]>;     // string
-
-// Aplatir un tuple
-type FlattenTuple<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends any[]
-      ? [...FlattenTuple<Premier>, ...FlattenTuple<Reste>]
-      : [Premier, ...FlattenTuple<Reste>]
-    : [];
-
-type FT = FlattenTuple<[1, [2, 3], [4, [5, 6]]]>;
-// [1, 2, 3, 4, [5, 6]]  -- un seul niveau
+```ts
+type Nope = Unwrap<{ status: number }>; // never — pas de champ data
 ```
 
-### UnpackPromise récursif
+**Étape 4 — variante ciblée sur `ApiResponse`.** Si on veut refuser tout ce qui n'est pas exactement une `ApiResponse`, on resserre la forme cible :
 
-```typescript
-// Version complete qui gere les Promises imbriquees et les unions
-type UnpackPromise<T> =
-  T extends Promise<infer U>
-    ? UnpackPromise<U>
-    : T;
+```ts
+type UnwrapApi<T> = T extends ApiResponse<infer D> ? D : never;
 
-type UP1 = UnpackPromise<Promise<string>>;                    // string
-type UP2 = UnpackPromise<Promise<Promise<number>>>;           // number
-type UP3 = UnpackPromise<Promise<Promise<Promise<boolean>>>>; // boolean
-type UP4 = UnpackPromise<string>;                              // string
-
-// Version qui fonctionne aussi avec les PromiseLike
-type UnpackPromiseLike<T> =
-  T extends PromiseLike<infer U>
-    ? UnpackPromiseLike<U>
-    : T;
+type Family = UnwrapApi<ApiResponse<{ id: string; memberCount: number }>>;
+// { id: string; memberCount: number }
 ```
 
----
+Les deux marchent ; `{ data: infer D }` est plus permissif (structural), `ApiResponse<infer D>` est plus intentionnel.
 
-## Cas d'usage réels
+### Exemple 2 — `MemberEvent<T>` : mapper un nom d'événement vers son payload
 
-### Typage d'un event emitter
+TribuZen émet des événements membres. Selon le nom (`'invite'`, `'join'`, `'leave'`), le payload change. Un conditional type imbriqué relie le nom au bon type.
 
-```typescript
-// Definir les evenements possibles
-interface Evenements {
-  connexion: { utilisateurId: string; timestamp: Date };
-  deconnexion: { utilisateurId: string; raison: string };
-  message: { de: string; contenu: string };
-  erreur: { code: number; message: string };
-}
+```ts
+interface InviteEvent { email: string; invitedBy: string }
+interface JoinEvent   { memberId: string; joinedAt: string }
+interface LeaveEvent  { memberId: string; reason: string }
 
-// Type conditionnel pour obtenir le handler d'un evenement
-type HandlerEvenement<T extends keyof Evenements> =
-  (donnees: Evenements[T]) => void;
-
-// Classe avec typage complet grace aux conditional types
-class Emetteur<E extends Record<string, any>> {
-  private ecouteurs: Partial<Record<keyof E, Function[]>> = {};
-
-  sur<K extends keyof E>(
-    evenement: K,
-    handler: (donnees: E[K]) => void
-  ): void {
-    if (!this.ecouteurs[evenement]) {
-      this.ecouteurs[evenement] = [];
-    }
-    this.ecouteurs[evenement]!.push(handler);
-  }
-
-  emettre<K extends keyof E>(evenement: K, donnees: E[K]): void {
-    this.ecouteurs[evenement]?.forEach((fn) => fn(donnees));
-  }
-}
-
-const emetteur = new Emetteur<Evenements>();
-
-// Autocompletion et verification de type complete
-emetteur.sur("connexion", (donnees) => {
-  // donnees est type { utilisateurId: string; timestamp: Date }
-  console.log(`Connexion de ${donnees.utilisateurId}`);
-});
-
-emetteur.sur("message", (donnees) => {
-  // donnees est type { de: string; contenu: string }
-  console.log(`${donnees.de}: ${donnees.contenu}`);
-});
-```
-
-### Typage conditionnel pour un ORM
-
-```typescript
-// Simuler un ORM avec des types conditionnels
-interface Schema {
-  utilisateur: {
-    id: number;
-    nom: string;
-    email: string;
-    age: number;
-  };
-  article: {
-    id: number;
-    titre: string;
-    contenu: string;
-    auteurId: number;
-  };
-  commentaire: {
-    id: number;
-    texte: string;
-    articleId: number;
-    auteurId: number;
-  };
-}
-
-// Type conditionnel : selon l'operation, les champs obligatoires changent
-type OperationBDD<
-  Table extends keyof Schema,
-  Op extends "creer" | "lire" | "modifier" | "supprimer"
-> =
-  Op extends "creer" ? Omit<Schema[Table], "id"> :
-  Op extends "lire" ? Schema[Table] :
-  Op extends "modifier" ? Partial<Omit<Schema[Table], "id">> & { id: number } :
-  Op extends "supprimer" ? Pick<Schema[Table], "id"> :
+type MemberEvent<T extends string> =
+  T extends 'invite' ? InviteEvent :
+  T extends 'join'   ? JoinEvent   :
+  T extends 'leave'  ? LeaveEvent  :
   never;
 
-// Utilisation
-type CreerUtilisateur = OperationBDD<"utilisateur", "creer">;
-// { nom: string; email: string; age: number }
-
-type LireUtilisateur = OperationBDD<"utilisateur", "lire">;
-// { id: number; nom: string; email: string; age: number }
-
-type ModifierUtilisateur = OperationBDD<"utilisateur", "modifier">;
-// { id: number; nom?: string; email?: string; age?: number }
-
-type SupprimerArticle = OperationBDD<"article", "supprimer">;
-// { id: number }
+type P1 = MemberEvent<'invite'>; // InviteEvent
+type P2 = MemberEvent<'leave'>;  // LeaveEvent
+type P3 = MemberEvent<'ping'>;   // never — nom inconnu, verrouillé par le compilateur
 ```
 
-### Infer pour un système de validation
+Un handler typé en découle directement, sans `any` :
 
-```typescript
-// Definir des schemas de validation
-type SchemaValidation =
-  | { type: "chaine"; minLongueur?: number; maxLongueur?: number }
-  | { type: "nombre"; min?: number; max?: number }
-  | { type: "booleen" }
-  | { type: "tableau"; element: SchemaValidation }
-  | { type: "objet"; proprietes: Record<string, SchemaValidation> };
-
-// Type conditionnel qui infere le type TypeScript a partir du schema
-type InfererType<S extends SchemaValidation> =
-  S extends { type: "chaine" } ? string :
-  S extends { type: "nombre" } ? number :
-  S extends { type: "booleen" } ? boolean :
-  S extends { type: "tableau"; element: infer E extends SchemaValidation }
-    ? InfererType<E>[]
-  : S extends { type: "objet"; proprietes: infer P }
-    ? P extends Record<string, SchemaValidation>
-      ? { [K in keyof P]: InfererType<P[K] & SchemaValidation> }
-      : never
-  : never;
-
-// Utilisation
-type MonSchema = {
-  type: "objet";
-  proprietes: {
-    nom: { type: "chaine"; minLongueur: 2 };
-    age: { type: "nombre"; min: 0; max: 150 };
-    actif: { type: "booleen" };
-    tags: { type: "tableau"; element: { type: "chaine" } };
-  };
-};
-
-type TypeInfere = InfererType<MonSchema>;
-// {
-//   nom: string;
-//   age: number;
-//   actif: boolean;
-//   tags: string[];
-// }
-```
-
----
-
-## Astuces et pieges courants
-
-### Piege 1 : la distribution avec `never`
-
-```typescript
-// never est l'union vide, donc un conditional distributif ne s'execute jamais
-type Piege<T> = T extends string ? "oui" : "non";
-type R = Piege<never>; // never (PAS "non" !)
-
-// Solution : desactiver la distribution
-type PiegeCorrige<T> = [T] extends [string] ? "oui" : "non";
-type R2 = PiegeCorrige<never>; // "non"
-```
-
-### Piege 2 : `any` satisfait les deux branches
-
-```typescript
-type TestAny<T> = T extends string ? "chaine" : "autre";
-type R = TestAny<any>; // "chaine" | "autre" (les DEUX !)
-
-// Solution : detecter any explicitement
-type EstAny<T> = 0 extends (1 & T) ? true : false;
-type A1 = EstAny<any>;     // true
-type A2 = EstAny<string>;  // false
-type A3 = EstAny<unknown>; // false
-```
-
-### Piege 3 : l'ordre des conditions compte
-
-```typescript
-// Mauvais ordre : any[] extends any est true !
-type MauvaisOrdre<T> =
-  T extends any ? "anything" :
-  T extends string ? "chaine" :
-  never;
-// Toujours "anything" car tout est assignable a any
-
-// Bon ordre : du plus specifique au plus general
-type BonOrdre<T> =
-  T extends string ? "chaine" :
-  T extends number ? "nombre" :
-  T extends any[] ? "tableau" :
-  "autre";
-```
-
-### Astuce : infer dans la même position avec contrainte
-
-```typescript
-// Depuis TypeScript 4.7, on peut contraindre infer
-type ExtraireNombres<T> =
-  T extends (infer E extends number)[] ? E : never;
-
-type N1 = ExtraireNombres<[1, 2, 3]>; // 1 | 2 | 3
-type N2 = ExtraireNombres<[1, "a", 2]>; // never (pas un tableau de nombres)
-
-// Avant 4.7, il fallait faire :
-type ExtraireNombresAvant<T> =
-  T extends (infer E)[]
-    ? E extends number
-      ? E
-      : never
-    : never;
-```
-
----
-
-## Pratique : Exercices
-
-### Exercice 1 : ExtraireTypePromise
-
-Creez un type `ExtraireTypePromise<T>` qui :
-- Retourne le type interieur si c'est une `Promise`
-- Fonctionne recursivement pour les `Promise` imbriquees
-- Retourne `T` tel quel si ce n'est pas une `Promise`
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-type ExtraireTypePromise<T> =
-  T extends Promise<infer U>
-    ? ExtraireTypePromise<U>  // Recursion pour les Promises imbriquees
-    : T;
-
-// Tests
-type T1 = ExtraireTypePromise<Promise<string>>;
-// string
-
-type T2 = ExtraireTypePromise<Promise<Promise<number>>>;
-// number
-
-type T3 = ExtraireTypePromise<Promise<Promise<Promise<boolean>>>>;
-// boolean
-
-type T4 = ExtraireTypePromise<string>;
-// string (pas une Promise, retourne tel quel)
-
-type T5 = ExtraireTypePromise<Promise<string[]>>;
-// string[]
-```
-</details>
-
-### Exercice 2 : TypeRouteParams
-
-Creez un type qui extrait les paramètres d'une route URL (`:param`) à partir d'une chaine.
-
-Par exemple : `"/utilisateurs/:id/articles/:articleId"` doit donner `{ id: string; articleId: string }`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Extraire les parametres d'une route
-type ExtraireParams<T extends string> =
-  T extends `${string}:${infer Param}/${infer Reste}`
-    ? { [K in Param | keyof ExtraireParams<Reste>]: string }
-    : T extends `${string}:${infer Param}`
-    ? { [K in Param]: string }
-    : {};
-
-// Version plus propre avec un helper
-type FusionnerParams<T> = T extends object
-  ? { [K in keyof T]: T[K] }
-  : never;
-
-type RouteParams<T extends string> = FusionnerParams<ExtraireParams<T>>;
-
-// Tests
-type P1 = RouteParams<"/utilisateurs/:id">;
-// { id: string }
-
-type P2 = RouteParams<"/utilisateurs/:id/articles/:articleId">;
-// { id: string; articleId: string }
-
-type P3 = RouteParams<"/accueil">;
-// {}
-
-type P4 = RouteParams<"/api/:version/utilisateurs/:userId/posts/:postId">;
-// { version: string; userId: string; postId: string }
-```
-</details>
-
-### Exercice 3 : ConvertirEnAsync
-
-Creez un type qui prend un type objet dont certaines propriétés sont des fonctions, et les transforme en fonctions asynchrones (retournant une Promise).
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Convertir les fonctions d'un objet en fonctions async
-type ConvertirEnAsync<T> = {
-  [K in keyof T]: T[K] extends (...args: infer A) => infer R
-    ? R extends Promise<any>
-      ? T[K]  // Deja async, on ne change rien
-      : (...args: A) => Promise<R>
-    : T[K];   // Pas une fonction, on ne change rien
-};
-
-// Test
-interface ServiceSync {
-  nom: string;
-  obtenirUtilisateur(id: number): { nom: string; email: string };
-  sauvegarder(donnees: object): boolean;
-  chargerAsync(url: string): Promise<string>; // Deja async
+```ts
+function onMemberEvent<T extends 'invite' | 'join' | 'leave'>(
+  type: T,
+  payload: MemberEvent<T>,
+): void {
+  // payload est resserré au bon type selon `type`
 }
 
-type ServiceAsync = ConvertirEnAsync<ServiceSync>;
-// {
-//   nom: string;  // Inchange
-//   obtenirUtilisateur(id: number): Promise<{ nom: string; email: string }>;
-//   sauvegarder(donnees: object): Promise<boolean>;
-//   chargerAsync(url: string): Promise<string>;  // Inchange (deja async)
-// }
+onMemberEvent('invite', { email: 'a@b.c', invitedBy: 'admin-1' }); // OK
+// onMemberEvent('invite', { memberId: 'm1', reason: 'x' });       // ❌ erreur de type
 ```
-</details>
 
-### Exercice 4 : Implementer un type Filter pour les tuples
+### Exemple 3 (fading) — distribution sur une union de rôles
 
-Creez un type `Filtrer<T, Condition>` qui ne garde que les éléments d'un tuple qui satisfont une condition.
+On veut, à partir de l'union des rôles TribuZen, ne garder que les rôles ayant des droits d'admin. On combine distribution (`Extract`) et un test sur une union cible.
 
-<details>
-<summary>Solution</summary>
+```ts
+type Role = 'owner' | 'admin' | 'moderator' | 'member' | 'guest';
 
-```typescript
-// Filtrer les elements d'un tuple selon un type
-type Filtrer<T extends any[], Condition> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends Condition
-      ? [Premier, ...Filtrer<Reste, Condition>]
-      : Filtrer<Reste, Condition>
-    : [];
+// On garde owner | admin | moderator via la distribution
+type StaffRole = Extract<Role, 'owner' | 'admin' | 'moderator'>;
+// 'owner' | 'admin' | 'moderator'
 
-// Tests
-type F1 = Filtrer<[1, "a", 2, "b", 3], string>;
-// ["a", "b"]
-
-type F2 = Filtrer<[1, "a", 2, "b", 3], number>;
-// [1, 2, 3]
-
-type F3 = Filtrer<[true, 1, false, "hello", null], boolean>;
-// [true, false]
-
-type F4 = Filtrer<[1, 2, 3, 4, 5], 1 | 3 | 5>;
-// [1, 3, 5]
-
-// Version avec exclusion (garder tout SAUF la condition)
-type FiltrerExclure<T extends any[], Condition> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends Condition
-      ? FiltrerExclure<Reste, Condition>
-      : [Premier, ...FiltrerExclure<Reste, Condition>]
-    : [];
-
-type FE1 = FiltrerExclure<[1, "a", 2, "b", 3], string>;
-// [1, 2, 3]
+// L'inverse : les rôles "simples" (non-staff)
+type BasicRole = Exclude<Role, StaffRole>;
+// 'member' | 'guest'
 ```
-</details>
 
-### Exercice 5 : Implementer IsEqual
-
-Implementez un type `IsEqual<A, B>` qui retourne `true` si et seulement si A et B sont exactement le même type.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// La methode la plus robuste utilise des fonctions generiques
-type IsEqual<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends
-  (<T>() => T extends B ? 1 : 2)
-    ? true
-    : false;
-
-// Pourquoi cette technique fonctionne ?
-// TypeScript compare les deux fonctions generiques structurellement.
-// Pour que les deux fonctions soient compatibles, les conditions
-// T extends A et T extends B doivent etre equivalentes pour tout T.
-// Cela ne fonctionne que si A et B sont exactement le meme type.
-
-// Tests exhaustifs
-type EQ1 = IsEqual<string, string>;       // true
-type EQ2 = IsEqual<string, number>;       // false
-type EQ3 = IsEqual<any, any>;             // true
-type EQ4 = IsEqual<any, string>;          // false
-type EQ5 = IsEqual<unknown, any>;         // false
-type EQ6 = IsEqual<never, never>;         // true
-type EQ7 = IsEqual<never, string>;        // false
-type EQ8 = IsEqual<{ a: 1 }, { a: 1 }>;   // true
-type EQ9 = IsEqual<{ a: 1 }, { a: 2 }>;   // false
-type EQ10 = IsEqual<[1, 2], [1, 2]>;      // true
-type EQ11 = IsEqual<[1, 2], [2, 1]>;      // false
-
-// Attention : cette approche naive NE fonctionne PAS
-type IsEqualNaif<A, B> =
-  A extends B ? (B extends A ? true : false) : false;
-
-// Contre-exemples :
-type Naif1 = IsEqualNaif<any, string>;     // boolean (devrait etre false)
-type Naif2 = IsEqualNaif<1 | 2, 1 | 2>;   // boolean (distribution !)
-```
-</details>
+À toi de compléter mentalement : quel est le résultat de `Exclude<Role, 'guest'>` ? Déroule la distribution des 5 membres et vérifie que seul `'guest'` devient `never`.
 
 ---
 
-## Résumé
+## 4. Pièges & misconceptions
 
-### Concepts clés
+### PIÈGE #1 — `never` en entrée d'un conditional distributif
 
-1. **Conditional types** : `T extends U ? X : Y` — le "if/else" du système de types
-2. **Distribution** : les conditional types se distribuent automatiquement sur les unions
-3. **Anti-distribution** : `[T] extends [U]` empeche la distribution
-4. **`infer`** : permet de capturer un sous-type dans la branche `true`
-5. **Imbrication** : les conditional types peuvent etre imbriques pour du pattern matching complexe
+```ts
+type Label<T> = T extends string ? 'oui' : 'non';
+type R = Label<never>; // never  ❌ (on attendait 'non')
+```
 
-### Quand utiliser les conditional types ?
+**Pourquoi :** `never` est l'union vide ; la distribution ne tourne « sur aucun membre » → `never`. **Correct :** emballer pour tester en bloc.
 
-| Situation | Exemple |
-|-----------|---------|
-| Transformer un type selon sa forme | `T extends any[] ? ElementDe<T> : T` |
-| Extraire des sous-types | `T extends Promise<infer U> ? U : T` |
-| Filtrer des unions | `Exclude<T, null \| undefined>` |
-| Pattern matching sur les types | Types imbriques avec `infer` |
-| Construire des utility types | `ReturnType`, `Parameters`, etc. |
+```ts
+type LabelFixed<T> = [T] extends [string] ? 'oui' : 'non';
+type R2 = LabelFixed<never>; // 'non'
+```
 
-### Points importants
+### PIÈGE #2 — `any` satisfait les DEUX branches
 
-- La distribution est **automatique** et peut surprendre
-- `never` dans un conditional distributif donne `never`
-- `any` satisfait les deux branches simultanement
-- `infer` ne peut etre utilise que dans la clause `extends` d'un conditional type
-- L'ordre des conditions imbriquees compte : du plus spécifique au plus général
+```ts
+type Test<T> = T extends string ? 'string' : 'other';
+type R = Test<any>; // 'string' | 'other'  — les deux à la fois
+```
+
+**Pourquoi :** `any` est assignable à tout ET tout lui est assignable, donc les deux branches « réussissent ». **Correct :** détecter `any` explicitement quand c'est un risque.
+
+```ts
+type IsAny<T> = 0 extends (1 & T) ? true : false;
+type A1 = IsAny<any>;     // true
+type A2 = IsAny<string>;  // false
+type A3 = IsAny<unknown>; // false
+```
+
+### PIÈGE #3 — ordre des branches imbriquées inversé
+
+```ts
+// ❌ any en tête : tout matche, les branches suivantes sont mortes
+type Bad<T> =
+  T extends any    ? 'anything' :
+  T extends string ? 'string' :
+  never;
+// toujours 'anything'
+
+// ✅ du plus spécifique au plus général
+type Good<T> =
+  T extends string  ? 'string' :
+  T extends number  ? 'number' :
+  T extends any[]   ? 'array' :
+  'other';
+```
+
+**Règle :** comme un `switch`, la première branche vraie gagne — place les cas larges en dernier.
+
+### PIÈGE #4 — croire que `infer` fonctionne dans la branche `else`
+
+```ts
+// ❌ R n'existe pas dans la branche fausse
+// type Broken<T> = T extends (...a: any[]) => infer R ? number : R;
+//                                                                ^ R inconnu ici
+```
+
+**Pourquoi :** la variable inférée n'est visible que dans la branche `? X` (le `true`). Dans le `: Y`, elle n'a jamais été capturée. **Correct :** n'utiliser `R` que côté vrai.
+
+### PIÈGE #5 — distribution non voulue qui « casse » une comparaison d'union
+
+```ts
+type SameShape<T> = T extends { id: string } ? true : false;
+type R = SameShape<{ id: string } | { id: number }>;
+// true | false = boolean  — distribué, alors qu'on voulait un verdict unique
+```
+
+**Correct :** si tu veux un seul verdict sur l'union entière, emballe :
+
+```ts
+type SameShapeAll<T> = [T] extends [{ id: string }] ? true : false;
+```
 
 ---
 
-## Pour aller plus loin
+## 5. Ancrage TribuZen
 
-Le prochain module, **[12 — Mapped Types & Template Literal Types](./12-mapped-types-template-literals.md)**, explore les mapped types et les template literal types, deux autres piliers du système de types avance de TypeScript qui, combines aux conditional types, permettent des transformations de types quasi illimitees.
+La couche API de TribuZen est le terrain naturel des conditional types — c'est là qu'on transforme des types « bruts serveur » en types « propres client ».
+
+**`Unwrap<T>`** (`src/lib/api/types.ts`) — toutes les réponses HTTP sont des `ApiResponse<T>`. Le store et les hooks ne veulent que le `data`. `Unwrap` (Exemple 1) dérive le payload sans jamais recopier sa forme ; quand l'API évolue, les types du front suivent tout seuls.
+
+**`MemberEvent<T>`** (`src/lib/events/member.ts`) — le bus d'événements membres (invitation, arrivée, départ) mappe chaque nom d'événement vers son payload via un conditional imbriqué (Exemple 2). Les handlers sont typés sans `any` et un nom d'événement inconnu devient `never`, donc rejeté à la compilation.
+
+**Distribution sur les rôles** (`src/lib/auth/roles.ts`) — l'union `Role` de TribuZen sert à dériver des sous-ensembles (`StaffRole`, `BasicRole`) avec `Extract` / `Exclude`, qui reposent tous deux sur la distribution (Exemple 3). Un seul point de vérité pour les rôles, des sous-ensembles dérivés.
+
+**`Unwrap` + `infer` récursif** — pour les endpoints paginés (`ApiResponse<Paginated<T>>`), on empile deux extractions par `infer` pour atteindre l'élément de liste. Même mécanique que `DeepAwait` (2.3).
+
+Fichiers cibles dans `smaurier/tribuzen` :
+
+```
+tribuzen/src/lib/
+  api/
+    types.ts        # ApiResponse<T>, Unwrap<T>, UnwrapApi<T>
+  events/
+    member.ts       # InviteEvent/JoinEvent/LeaveEvent, MemberEvent<T>
+  auth/
+    roles.ts        # Role, StaffRole, BasicRole (Extract/Exclude)
+```
 
 ---
 
-<!-- parcours-recommande -->
+## 6. Points clés
 
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 11 conditional types](../screencasts/screencast-11-conditional-types.md)
-2. **Lab** : [lab-11-conditional-types](../labs/lab-11-conditional-types/README)
-3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
-4. **Quiz** : [quiz 11 conditional types](../quizzes/quiz-11-conditional-types.html)
-:::
+1. Un conditional type `T extends U ? X : Y` est un `if / else` de types : `U` est le test d'assignabilité, `X` la branche vraie, `Y` la fausse.
+2. On imbrique les conditionnels comme un `else if` ; la première branche vraie gagne, donc on ordonne du spécifique au général.
+3. `infer R` capture un sous-type dans la clause `extends` en proposant une forme cible ; `R` n'existe que dans la branche vraie.
+4. Appliqué à une union via un paramètre **nu**, un conditional se **distribue** : test membre par membre, puis ré-union des résultats.
+5. `never` est l'union vide : en entrée distributive il donne `never`, et il s'absorbe dans les unions (`X | never = X`) — c'est le moteur d'`Exclude`.
+6. Emballer les deux côtés dans un tuple (`[T] extends [U]`) **désactive** la distribution pour tester l'union en bloc.
+7. `any` satisfait les deux branches à la fois ; détecte-le avec `0 extends (1 & T)` quand c'est risqué.
+8. Les utility types du module 10 se reconstruisent : `ReturnType` / `Parameters` avec `infer`, `Exclude` / `Extract` / `NonNullable` avec la distribution.
+
+---
+
+## 7. Seeds Anki
+
+```
+Comment lire T extends U ? X : Y ?|Si T est assignable à U, le type résultat est X, sinon c'est Y. C'est un if/else au niveau des types.
+À quoi sert le mot-clé infer et où peut-on l'utiliser ?|infer capture un sous-type en proposant une forme cible dans la clause extends d'un conditional type. La variable inférée n'existe que dans la branche vraie (? X), jamais dans le else.
+Qu'est-ce que la distribution des conditional types ?|Quand un conditional s'applique à une union via un paramètre de type nu, il teste chaque membre séparément puis ré-unit les résultats. Ex : IsString<string | number> = true | false = boolean.
+Comment désactiver la distribution d'un conditional type ?|En emballant les deux côtés dans un tuple d'un élément : [T] extends [U]. Le paramètre n'est plus nu, donc TypeScript teste l'union en bloc au lieu de membre par membre.
+Pourquoi T extends string ? 'oui' : 'non' donne never pour T = never ?|never est l'union vide ; un conditional distributif ne tourne sur aucun membre et rend never. Correction : [T] extends [string] pour tester en bloc.
+Comment reconstruire ReturnType<T> avec infer ?|type MyReturnType<T extends (...a:any)=>any> = T extends (...a:any) => infer R ? R : any. On capture le type de retour via infer R.
+Comment reconstruire Exclude<T, U> et sur quel mécanisme repose-t-il ?|type MyExclude<T,U> = T extends U ? never : T. Il repose sur la distribution : chaque membre devient never s'il matche U, et never s'absorbe dans l'union résultat.
+Pourquoi any satisfait-il les deux branches d'un conditional ?|any est assignable à tout et tout lui est assignable, donc T extends string réussit ET échoue. On détecte any avec 0 extends (1 & T) ? true : false.
+```
+
+---
+
+## Pont vers le lab
+
+> Lab associé : `00-typescript/labs/lab-11-conditional-types/README.md`. Écrire `Unwrap<T>`, `MemberEvent<T>` et reconstruire `MyReturnType` / `MyExclude` à la main, puis contrôler la distribution sur une union de rôles.

@@ -1,832 +1,160 @@
-# 00 — Prérequis & Introduction a TypeScript
-
-> **Duree estimee** : 3h00
-> **Difficulte** : 1/5
-> **Prérequis** : Connaître les bases de JavaScript (variables, fonctions, objets, tableaux)
-> **Objectifs** :
-> - Comprendre **pourquoi** TypeScript existe et quels problèmes il resout
-> - Installer TypeScript et configurer un projet
-> - Écrire et compiler un premier fichier `.ts`
-> - Comprendre le concept de **type erasure**
-> - Maîtriser les bases de `tsconfig.json` et le mode strict
-
+---
+titre: Prérequis et introduction à TypeScript
+cours: 00-typescript
+notions: [pourquoi le typage statique, TypeScript vs JavaScript, installation de TypeScript, compilateur tsc, exécution avec tsx, tsconfig.json de base, mode strict, type erasure, où TypeScript s'intègre (Node, Vite, build), workflow de développement typé]
+outcomes: [installer TypeScript et exécuter un premier fichier ts, compiler avec tsc et exécuter avec tsx, écrire un tsconfig.json de base en mode strict, expliquer ce que TypeScript apporte à JavaScript et ce qui disparaît à la compilation]
+prerequis: []
+next: 01-types-primitifs-et-inference
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: poser le projet TribuZen typé et annoncer tribuzen/types/index.ts comme source unique de vérité des types métier
+last-reviewed: 2026-07
 ---
 
-## Pourquoi TypeScript ?
+# Prérequis et introduction à TypeScript
 
-### Le problème avec JavaScript
+> **Outcomes — tu sauras FAIRE :** installer TypeScript et exécuter ton premier fichier `.ts`, compiler avec `tsc` et exécuter avec `tsx`, écrire un `tsconfig.json` de base en mode strict, expliquer ce que TypeScript apporte à JavaScript et ce qui disparaît à la compilation.
+> **Difficulté :** :star:
+>
+> **Portée :** ce module d'introduction pose le vocabulaire, l'outillage et le premier projet. Pas de lab — la pratique reprend au module 01 avec les types primitifs et l'inférence. Les blocs de code ci-dessous sont tous exécutables tels quels : installe l'outillage une fois, puis rejoue-les.
 
-JavaScript est un langage **dynamiquement type**. Cela signifie que les types des variables ne sont pas verifies avant l'exécution du programme. Cela mene a des bugs silencieux :
+| ← Précédent | Suivant → |
+|---|---|
+| *(début du cours)* | [01 — Types primitifs et inférence](./01-types-primitifs-et-inference.md) |
+
+## 1. Cas concret d'abord
+
+Tu rejoins le projet **TribuZen** (un réseau familial privé). Un collègue a écrit ce helper de facturation d'abonnement en JavaScript. Il « marche » en démo, puis casse en production :
 
 ```javascript
-// JavaScript — Ce code ne produit aucune erreur... jusqu'a l'execution
-function calculerPrix(quantite, prixUnitaire) {
-  return quantite * prixUnitaire;
+// billing.js — JavaScript pur, aucun garde-fou
+function calculerAbonnement(nbMembres, prixParMembre) {
+  return nbMembres * prixParMembre;
 }
 
-// Oups ! On passe une chaine au lieu d'un nombre
-const total = calculerPrix("5", 10);
-console.log(total); // 50 — ca marche par chance (coercion)
+// Les données viennent d'un formulaire HTML : tout arrive en string.
+const total = calculerAbonnement("5", 10);
+console.log(total); // 50 — ça marche PAR CHANCE (coercion "5" * 10)
 
-const total2 = calculerPrix("cinq", 10);
-console.log(total2); // NaN — bug silencieux !
+const totalBug = calculerAbonnement("cinq", 10);
+console.log(totalBug); // NaN — bug silencieux, facturé 0 €, découvert 3 semaines plus tard
 ```
 
-Avec TypeScript, ce bug est **détecté avant même d'exécuter le code** :
+Rien ne signale l'erreur : ni l'éditeur, ni Node, ni le linter. Le bug ne se voit qu'au moment où un client est mal facturé.
+
+La même fonction en TypeScript refuse de compiler **avant** même d'exécuter le code :
 
 ```typescript
-// TypeScript — Erreur detectee immediatement
-function calculerPrix(quantite: number, prixUnitaire: number): number {
-  return quantite * prixUnitaire;
+// billing.ts — le type verrouille le contrat
+function calculerAbonnement(nbMembres: number, prixParMembre: number): number {
+  return nbMembres * prixParMembre;
 }
 
-// Erreur de compilation :
-// Argument of type 'string' is not assignable to parameter of type 'number'
-const total = calculerPrix("cinq", 10);
+calculerAbonnement("cinq", 10);
+// ✖ Argument of type 'string' is not assignable to parameter of type 'number'.
 ```
 
-### Analogie — Le correcteur orthographique
-
-Pense a TypeScript comme un **correcteur orthographique** pour ton code.
-
-- **Sans correcteur** (JavaScript) : tu ecris un email de 500 mots. Tu ne vois les fautes que quand ton patron te repond "je n'ai rien compris".
-- **Avec correcteur** (TypeScript) : les fautes sont soulignees en rouge **pendant que tu ecris**. Tu les corriges avant d'envoyer.
-
-TypeScript ne change pas le langage fondamentalement — il ajoute une couche de **vérification** qui t'alerte des problèmes **avant** qu'ils n'arrivent en production.
-
-### Les 3 super-pouvoirs de TypeScript
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   TYPESCRIPT = JAVASCRIPT +                    │
-├────────────────────┬────────────────────┬────────────────────┤
-│  1. DETECTION      │  2. AUTOCOMPLETION  │  3. DOCUMENTATION  │
-│     DE BUGS        │     INTELLIGENTE    │     VIVANTE        │
-│                    │                    │                    │
-│  Erreurs trouvees  │  Ton editeur sait  │  Les types servent │
-│  AVANT execution   │  exactement quelles│  de documentation  │
-│  (compile-time)    │  proprietes et     │  qui ne peut pas   │
-│                    │  methodes existent │  devenir obsolete  │
-└────────────────────┴────────────────────┴────────────────────┘
-```
-
-#### 1. Detection de bugs à la compilation
-
-```typescript
-// TypeScript detecte les erreurs classiques :
-
-// Erreur : propriete inexistante
-const utilisateur = { nom: "Alice", age: 30 };
-console.log(utilisateur.prenom); // Property 'prenom' does not exist
-
-// Erreur : appel avec mauvais nombre d'arguments
-function saluer(nom: string): string {
-  return `Bonjour ${nom}`;
-}
-saluer("Alice", "Bob"); // Expected 1 arguments, but got 2
-
-// Erreur : operation impossible
-const resultat = "hello" - 5; // The left-hand side of an arithmetic operation
-                               // must be of type 'any', 'number', 'bigint'
-```
-
-#### 2. Autocompletion (IntelliSense)
-
-```typescript
-// Quand tu tapes 'utilisateur.', ton editeur propose :
-// - nom (string)
-// - age (number)
-// Pas besoin de deviner ou de lire la documentation !
-
-interface Utilisateur {
-  nom: string;
-  age: number;
-  email: string;
-}
-
-const utilisateur: Utilisateur = {
-  nom: "Alice",
-  age: 30,
-  email: "alice@example.com",
-};
-
-// L'editeur propose automatiquement .nom, .age, .email
-utilisateur.
-```
-
-#### 3. Documentation vivante
-
-```typescript
-// Les types SONT la documentation
-// Impossible qu'elle devienne obsolete car le compilateur verifie
-
-/**
- * Calcule le montant TTC a partir du montant HT
- */
-function calculerTTC(montantHT: number, tauxTVA: number = 0.2): number {
-  return montantHT * (1 + tauxTVA);
-}
-
-// En survolant la fonction, tu vois immediatement :
-// - Les types des parametres
-// - La valeur par defaut de tauxTVA
-// - Le type de retour
-```
+Ce module te donne l'outillage pour passer de la première version à la seconde : installer TypeScript, écrire un `.ts`, le configurer et l'exécuter.
 
 ---
 
-## Histoire & Versions de TypeScript
+## 2. Théorie complète, concise
 
-### Origines
+### 2.1 Pourquoi le typage statique
 
-TypeScript a ete créé par **Anders Hejlsberg** (le createur de C# et Delphi) chez **Microsoft**. La première version publique est sortie en **octobre 2012**.
+JavaScript est **typé dynamiquement** : le type d'une valeur n'est connu qu'à l'exécution, et une variable peut changer de type en cours de route. TypeScript ajoute un **typage statique** : les types sont vérifiés *avant* l'exécution, à la compilation.
 
-```
-Chronologie des versions majeures :
-──────────────────────────────────────────────────────────
-2012  │  TypeScript 0.8    — Premiere version publique
-2014  │  TypeScript 1.0    — Version stable
-2016  │  TypeScript 2.0    — strict null checks, control flow analysis
-2018  │  TypeScript 3.0    — Tuples, project references
-2020  │  TypeScript 4.0    — Variadic tuple types, labeled tuples
-2023  │  TypeScript 5.0    — Decorators ES, const type parameters
-2024  │  TypeScript 5.4+   — NoInfer, improved narrowing
-2025  │  TypeScript 5.8+   — Derniere version stable
-──────────────────────────────────────────────────────────
-```
+Trois bénéfices concrets, valables dès la première ligne :
 
-### TypeScript aujourd'hui
+1. **Détection de bugs à la compilation** — les erreurs de type sont trouvées pendant que tu écris, pas en production.
+2. **Autocomplétion (IntelliSense)** — l'éditeur connaît les propriétés et méthodes disponibles, tu ne devines plus.
+3. **Documentation vivante** — les types *sont* la doc, et le compilateur garantit qu'elle ne devient jamais obsolète.
 
-TypeScript est devenu un **standard de l'industrie** :
+Analogie : TypeScript est un **correcteur orthographique** pour le code. Sans lui (JS), tu vois les fautes quand le lecteur répond « je n'ai rien compris ». Avec lui (TS), elles sont soulignées pendant la frappe.
 
-- **Angular** est écrit en TypeScript depuis Angular 2
-- **React** à un support TypeScript natif via `npm create vite@latest -- --template react-ts`
+### 2.2 TypeScript vs JavaScript
 
-> **Note** : `create-react-app` est deprecie depuis fevrier 2025. Utilisez Vite, Next.js, ou Remix pour les nouveaux projets React + TypeScript.
+TypeScript est un **surensemble** de JavaScript : tout JS valide est du TS valide. TS n'invente pas un nouveau langage, il ajoute une **couche de types** au-dessus de JS et un compilateur qui la vérifie.
 
-- **Vue 3** est écrit en TypeScript
-- **Node.js** supporte TypeScript nativement depuis la v22.6+ (flag `--experimental-strip-types`)
-- **Deno** et **Bun** supportent TypeScript nativement
-- Plus de **40 millions** de telechargements npm par semaine
+| | JavaScript | TypeScript |
+|---|---|---|
+| Vérification des types | à l'exécution (runtime) | à la compilation (compile-time) |
+| Fichiers | `.js` / `.mjs` | `.ts` / `.tsx` |
+| Exécution directe | Node, navigateur | non — il faut compiler ou transpiler |
+| Erreurs de type | plantage ou `NaN` silencieux | refus de compiler |
+| Ce qui reste au runtime | tout | uniquement le JS (les types sont effacés) |
 
----
+Le point clé de la dernière ligne s'appelle le **type erasure** (2.6).
 
-## Installation
+### 2.3 Installer TypeScript
 
-### Prérequis
-
-Avant d'installer TypeScript, tu as besoin de :
-
-1. **Node.js** (version 18 ou superieure recommandee)
-2. **npm** (installe automatiquement avec Node.js)
-3. Un **editeur de code** (VS Code fortement recommande)
+Prérequis : **Node.js 18+** (idéalement 20 ou 22) et **npm**, installés ensemble.
 
 ```bash
-# Verifier que Node.js est installe
-node --version
-# v20.11.0 (ou superieur)
-
-# Verifier que npm est installe
-npm --version
-# 10.2.4 (ou superieur)
+node --version   # v22.x (ou 20.x / 18.x)
+npm --version    # 10.x
 ```
 
-### Installer TypeScript globalement
+On installe deux outils. En pratique, on les met en **devDependency d'un projet** (préférable à `-g` : la version est figée par projet) :
 
 ```bash
-# Installation globale du compilateur TypeScript
-npm install -g typescript
-
-# Verifier l'installation
-tsc --version
-# Version 5.8.x
+npm init -y
+npm install --save-dev typescript tsx
 ```
 
-### Installer tsx (TypeScript Execute)
+- **typescript** fournit le compilateur `tsc`.
+- **tsx** exécute directement un fichier `.ts` sans étape de compilation manuelle (idéal en dev).
 
-`tsx` est un outil qui permet d'**exécuter directement** des fichiers TypeScript sans étape de compilation manuelle. Très pratique pour le développement :
+On lance les binaires locaux via `npx` (ou via des scripts npm) :
 
 ```bash
-# Installation globale de tsx
-npm install -g tsx
-
-# Verifier l'installation
-tsx --version
+npx tsc --version   # Version 5.x
+npx tsx --version
 ```
 
-### Différence entre tsc et tsx
+> Installer en `-g` (`npm install -g typescript tsx`) reste possible pour du bricolage rapide, mais chaque projet sérieux fige sa propre version en devDependency.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    tsc vs tsx                                   │
-├──────────────────────────────┬───────────────────────────────┤
-│           tsc                │            tsx                 │
-├──────────────────────────────┼───────────────────────────────┤
-│ Compilateur officiel         │ Executeur rapide               │
-│ Verifie les types            │ Ne verifie PAS les types       │
-│ Produit des fichiers .js     │ Execute directement en memoire │
-│ Utilise en CI/CD, build      │ Utilise en developpement       │
-│ Lent (analyse complete)      │ Rapide (transpilation seule)   │
-└──────────────────────────────┴───────────────────────────────┘
-```
+### 2.4 Premier fichier `.ts`, compiler avec `tsc`, exécuter avec `tsx`
 
-```bash
-# Avec tsc : compilation puis execution
-tsc mon-fichier.ts        # produit mon-fichier.js
-node mon-fichier.js       # execute le JS
-
-# Avec tsx : execution directe
-tsx mon-fichier.ts         # compile et execute en une etape
-```
-
----
-
-## Premier fichier TypeScript
-
-### Créer le fichier
-
-Cree un fichier `bonjour.ts` :
+Un fichier TypeScript, c'est du JS avec des **annotations de type** (`: string`, `: number`) :
 
 ```typescript
-// bonjour.ts — Notre premier fichier TypeScript !
-
-// On declare une variable avec son type
+// bonjour.ts
 const message: string = "Bonjour, TypeScript !";
 
-// On declare une fonction avec des types
 function saluer(nom: string, age: number): string {
   return `Salut ${nom}, tu as ${age} ans.`;
 }
 
-// Utilisation
-const resultat = saluer("Alice", 30);
 console.log(message);
-console.log(resultat);
-
-// TypeScript detecte les erreurs :
-// saluer(42, "Alice"); // Erreur ! Les arguments sont dans le mauvais ordre
+console.log(saluer("Alice", 30));
 ```
 
-### Compiler et exécuter
+Deux workflows pour l'exécuter :
 
 ```bash
-# Methode 1 : Compilation explicite avec tsc
-tsc bonjour.ts
-# Cree un fichier bonjour.js
-
+# Workflow 1 — tsc : compile en .js, puis Node exécute le .js
+npx tsc bonjour.ts     # produit bonjour.js
 node bonjour.js
-# Bonjour, TypeScript !
-# Salut Alice, tu as 30 ans.
 
-# Methode 2 : Execution directe avec tsx
-tsx bonjour.ts
-# Bonjour, TypeScript !
-# Salut Alice, tu as 30 ans.
+# Workflow 2 — tsx : compile en mémoire ET exécute en une étape
+npx tsx bonjour.ts
 ```
 
-### Observer le JavaScript généré
+Différence essentielle entre les deux binaires :
 
-Après la compilation avec `tsc`, regarde le fichier `bonjour.js` généré :
+| | `tsc` | `tsx` |
+|---|---|---|
+| Rôle | compilateur officiel | exécuteur rapide |
+| Vérifie les types | **oui** | **non** (transpile seulement) |
+| Produit des `.js` | oui (sur disque) | non (mémoire) |
+| Usage typique | build, CI/CD, `--noEmit` | développement, scripts, watch |
+| Vitesse | plus lent (analyse complète) | très rapide |
 
-```javascript
-// bonjour.js — Le resultat de la compilation
-// Remarque : TOUS les types ont disparu !
+Conséquence pratique : `tsx` va vite mais **ne t'arrête pas** sur une erreur de type. On garde donc toujours une vérification `tsc --noEmit` à côté (script `typecheck`, hook CI). `tsx` pour itérer, `tsc` pour garantir.
 
-"use strict";
-const message = "Bonjour, TypeScript !";
+### 2.5 `tsconfig.json` de base
 
-function saluer(nom, age) {
-  return `Salut ${nom}, tu as ${age} ans.`;
-}
-
-const resultat = saluer("Alice", 30);
-console.log(message);
-console.log(resultat);
-```
-
-C'est le concept fondamental de **type erasure** que nous allons explorer en detail.
-
----
-
-## Type Erasure — Le concept fondamental
-
-### Analogie — Les echafaudages
-
-Imagine la construction d'un batiment :
-
-- Les **echafaudages** sont nécessaires pendant la construction. Ils permettent aux ouvriers de travailler en hauteur, de vérifier l'alignement des murs, etc.
-- Une fois le batiment termine, **on retire les echafaudages**. Le batiment tient debout tout seul.
-
-TypeScript fonctionne exactement de la même manière :
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    TYPE ERASURE                           │
-│                                                          │
-│  Phase DEVELOPPEMENT         Phase EXECUTION              │
-│  (avec echafaudages)         (echafaudages retires)      │
-│                                                          │
-│  const age: number = 30;  →  const age = 30;             │
-│                                                          │
-│  function greet(            function greet(               │
-│    name: string             →   name                      │
-│  ): string {                ): {                          │
-│    return "Hi " + name;       return "Hi " + name;       │
-│  }                           }                            │
-│                                                          │
-│  Les types existent UNIQUEMENT a la compilation.          │
-│  Au runtime, c'est du JavaScript pur.                    │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Consequences importantes
-
-```typescript
-// ⚠️ Les types n'existent PAS au runtime !
-
-interface Chat {
-  nom: string;
-  ronronne: boolean;
-}
-
-interface Chien {
-  nom: string;
-  aboie: boolean;
-}
-
-// On NE PEUT PAS faire ceci au runtime :
-// if (animal instanceof Chat) { ... }
-// Erreur : 'Chat' only refers to a type, but is being used as a value here
-
-// Solution : utiliser des proprietes discriminantes
-function estChat(animal: Chat | Chien): animal is Chat {
-  return "ronronne" in animal;
-}
-```
-
-### Le flow de compilation
-
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│              │     │              │     │              │
-│  Code .ts    │────▶│ Compilateur  │────▶│  Code .js    │
-│              │     │    (tsc)     │     │              │
-│ Avec types   │     │              │     │ Sans types   │
-│              │     │ Verification │     │              │
-└──────────────┘     │ des types    │     └──────┬───────┘
-                     │              │            │
-                     │ Generation   │            ▼
-                     │ du JS        │     ┌──────────────┐
-                     │              │     │              │
-                     └──────────────┘     │   Node.js    │
-                                          │  ou Browser  │
-                                          │              │
-                                          │  Execute le  │
-                                          │  JavaScript  │
-                                          └──────────────┘
-```
-
----
-
-## Initialiser un projet — tsc --init
-
-### Créer un tsconfig.json
-
-Plutot que de compiler fichier par fichier, on configure un **projet** TypeScript :
-
-```bash
-# Creer un nouveau dossier de projet
-mkdir mon-projet-ts
-cd mon-projet-ts
-
-# Initialiser le projet npm
-npm init -y
-
-# Initialiser la configuration TypeScript
-tsc --init
-```
-
-La commande `tsc --init` créé un fichier `tsconfig.json` avec beaucoup d'options commentees.
-
-### tsconfig.json — Les options essentielles
-
-Voici un `tsconfig.json` minimal et bien configure :
-
-```json
-{
-  "compilerOptions": {
-    // === Cible de compilation ===
-    "target": "ES2022",          // Version JS cible (ES2022 est un bon defaut)
-    "module": "NodeNext",        // Systeme de modules
-    "moduleResolution": "NodeNext", // Resolution des imports
-
-    // === Mode strict (OBLIGATOIRE) ===
-    "strict": true,              // Active TOUTES les verifications strictes
-
-    // === Sortie ===
-    "outDir": "./dist",          // Dossier de sortie pour les .js compiles
-    "rootDir": "./src",          // Dossier source
-
-    // === Qualite du code ===
-    "noUnusedLocals": true,      // Erreur si variable locale non utilisee
-    "noUnusedParameters": true,  // Erreur si parametre non utilise
-    "noImplicitReturns": true,   // Erreur si une branche ne retourne rien
-    "noFallthroughCasesInSwitch": true, // Erreur si case sans break
-
-    // === Interop ===
-    "esModuleInterop": true,     // Meilleure compatibilite avec les modules CommonJS
-    "forceConsistentCasingInFileNames": true, // Respect de la casse des fichiers
-
-    // === Source maps (pour le debug) ===
-    "sourceMap": true,           // Genere des .js.map pour le debugging
-    "declaration": true          // Genere des .d.ts pour les types
-  },
-  "include": ["src/**/*"],       // Fichiers a compiler
-  "exclude": ["node_modules", "dist"] // Fichiers a ignorer
-}
-```
-
-### Comprendre "target"
-
-L'option `target` déterminé la version de JavaScript générée :
-
-```typescript
-// Code TypeScript source
-const nombres = [1, 2, 3, 4, 5];
-const pairs = nombres.filter((n) => n % 2 === 0);
-
-// Avec target: "ES5" — Compatibilite maximale
-var nombres = [1, 2, 3, 4, 5];
-var pairs = nombres.filter(function (n) { return n % 2 === 0; });
-
-// Avec target: "ES2022" — JavaScript moderne (recommande)
-const nombres = [1, 2, 3, 4, 5];
-const pairs = nombres.filter((n) => n % 2 === 0);
-```
-
-### Comprendre "module"
-
-```
-┌───────────────────────────────────────────────────────────┐
-│                SYSTEMES DE MODULES                         │
-├──────────────────┬────────────────────────────────────────┤
-│ "CommonJS"       │ require() / module.exports             │
-│                  │ Utilise par Node.js historiquement      │
-├──────────────────┼────────────────────────────────────────┤
-│ "ESNext"         │ import / export                         │
-│                  │ Standard moderne (navigateurs + Node)  │
-├──────────────────┼────────────────────────────────────────┤
-│ "NodeNext"       │ Adapte automatiquement selon package   │
-│                  │ .json "type" field — RECOMMANDE        │
-└──────────────────┴────────────────────────────────────────┘
-```
-
----
-
-## Le mode strict — Pourquoi c'est OBLIGATOIRE
-
-### Qu'est-ce que le mode strict ?
-
-L'option `"strict": true` active en realite **plusieurs verifications** d'un coup :
-
-```json
-{
-  "compilerOptions": {
-    "strict": true
-    // Equivalent a activer TOUTES ces options :
-    // "strictNullChecks": true        — null et undefined geres proprement
-    // "strictFunctionTypes": true     — Types de fonctions verifies
-    // "strictBindCallApply": true     — bind/call/apply verifies
-    // "strictPropertyInitialization": true — Proprietes de classe initialisees
-    // "noImplicitAny": true           — Pas de 'any' implicite
-    // "noImplicitThis": true          — 'this' doit avoir un type
-    // "alwaysStrict": true            — "use strict" dans chaque fichier
-    // "useUnknownInCatchVariables": true — catch(e) est unknown, pas any
-  }
-}
-```
-
-### Exemple : avec et sans strict
-
-```typescript
-// === SANS strict (DANGEREUX) ===
-
-// noImplicitAny: false — Les parametres sans type deviennent 'any'
-function doubler(valeur) {
-  // 'valeur' est implicitement 'any' — aucune verification !
-  return valeur * 2;
-}
-doubler("hello"); // NaN au runtime, aucune erreur a la compilation
-
-// strictNullChecks: false — null/undefined ignores
-function longueur(texte: string) {
-  return texte.length; // Peut crasher si texte est null !
-}
-longueur(null); // TypeError: Cannot read property 'length' of null
-
-
-// === AVEC strict (SUR) ===
-
-// noImplicitAny: true — Obligation de typer
-function doubler(valeur: number): number {
-  return valeur * 2;
-}
-doubler("hello"); // Erreur de compilation ! Impossible de passer une string.
-
-// strictNullChecks: true — null doit etre gere
-function longueur(texte: string | null): number {
-  if (texte === null) {
-    return 0; // On gere le cas null explicitement
-  }
-  return texte.length; // TypeScript sait que texte est string ici
-}
-```
-
-### Analogie — La ceinture de sécurité
-
-Le mode strict, c'est comme la **ceinture de sécurité** en voiture :
-
-- Ça te contraint un peu (tu dois l'attacher)
-- Ça peut sembler inutile quand tout va bien
-- Mais le jour ou il y à un problème, **ça te sauve la vie**
-
-> **Regle d'or** : TOUJOURS activer `"strict": true` dans un nouveau projet.
-> Desactiver le mode strict, c'est comme désactiver l'alarme incendie parce qu'elle fait du bruit.
-
----
-
-## Le Playground en ligne
-
-### TypeScript Playground
-
-Le **TypeScript Playground** est un editeur en ligne officiel qui permet d'experimenter avec TypeScript sans rien installer :
-
-- URL : [https://www.typescriptlang.org/play](https://www.typescriptlang.org/play)
-- Tu ecris du TypeScript a gauche
-- Tu vois le JavaScript généré a droite
-- Les erreurs s'affichent en temps réel
-
-```
-┌───────────────────────────┬──────────────────────────────┐
-│      TypeScript (input)    │     JavaScript (output)       │
-│                            │                              │
-│  interface User {          │                              │
-│    name: string;           │  "use strict";               │
-│    age: number;            │  const user = {              │
-│  }                         │    name: "Alice",            │
-│                            │    age: 30                   │
-│  const user: User = {     │  };                           │
-│    name: "Alice",          │  console.log(user.name);     │
-│    age: 30                 │                              │
-│  };                        │                              │
-│                            │  // Les types ont disparu !  │
-│  console.log(user.name);  │                              │
-└───────────────────────────┴──────────────────────────────┘
-```
-
-### Utiliser le Playground efficacement
-
-1. **Partager du code** : Clique sur "Share" pour obtenir un lien unique
-2. **Changer les options** : Clique sur "TS Config" pour modifier les options du compilateur
-3. **Voir les erreurs** : Clique sur "Errors" pour voir les erreurs de compilation
-4. **Exécuter le code** : Clique sur "Run" pour exécuter dans la console du navigateur
-
----
-
-## Le REPL avec tsx
-
-### Mode interactif
-
-`tsx` peut aussi servir de **REPL** (Read-Eval-Print Loop) — un mode interactif pour tester du code TypeScript :
-
-```bash
-# Lancer le REPL TypeScript
-tsx
-
-# Tu peux maintenant taper du TypeScript directement :
-> const x: number = 42
-> x * 2
-84
-> interface Point { x: number; y: number }
-> const p: Point = { x: 1, y: 2 }
-> p
-{ x: 1, y: 2 }
-```
-
-### Mode watch (rechargement automatique)
-
-Pour le développement, `tsx` offre un mode **watch** qui recompile automatiquement quand tu modifies un fichier :
-
-```bash
-# Lancer en mode watch
-tsx watch mon-fichier.ts
-
-# Chaque fois que tu sauvegardes mon-fichier.ts,
-# il est automatiquement re-execute
-```
-
----
-
-## Structure d'un projet TypeScript
-
-### Structure recommandee
-
-```
-mon-projet-ts/
-├── src/                    # Code source TypeScript
-│   ├── index.ts           # Point d'entree
-│   ├── utils/             # Utilitaires
-│   │   └── calcul.ts
-│   └── models/            # Types et interfaces
-│       └── utilisateur.ts
-├── dist/                   # Code JS compile (genere par tsc)
-│   ├── index.js
-│   ├── index.js.map
-│   └── ...
-├── tests/                  # Tests
-│   └── calcul.test.ts
-├── tsconfig.json           # Configuration TypeScript
-├── package.json            # Configuration npm
-└── .gitignore              # Ignorer dist/ et node_modules/
-```
-
-### Exemple complet de projet
-
-```typescript
-// src/models/utilisateur.ts
-export interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-  actif: boolean;
-}
-```
-
-```typescript
-// src/utils/calcul.ts
-export function additionner(a: number, b: number): number {
-  return a + b;
-}
-
-export function multiplier(a: number, b: number): number {
-  return a * b;
-}
-```
-
-```typescript
-// src/index.ts
-import { Utilisateur } from "./models/utilisateur";
-import { additionner } from "./utils/calcul";
-
-const utilisateur: Utilisateur = {
-  id: 1,
-  nom: "Alice",
-  email: "alice@example.com",
-  actif: true,
-};
-
-console.log(`Bienvenue ${utilisateur.nom} !`);
-console.log(`2 + 3 = ${additionner(2, 3)}`);
-```
-
-### Scripts npm recommandes
-
-```json
-{
-  "scripts": {
-    "build": "tsc",
-    "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
-    "typecheck": "tsc --noEmit"
-  }
-}
-```
-
-- `npm run build` — Compile le projet
-- `npm start` — Execute directement avec tsx
-- `npm run dev` — Mode développement avec rechargement automatique
-- `npm run typecheck` — Verifie les types sans générer de fichiers
-
----
-
-## Pratique
-
-### Exercice 1 — Installation et premier fichier
-
-Cree un projet TypeScript from scratch :
-
-1. Cree un dossier `tp-introduction`
-2. Initialise npm et TypeScript
-3. Cree un fichier `src/premier.ts` qui :
-   - Declare une variable `prenom` de type `string`
-   - Declare une variable `age` de type `number`
-   - Declare une fonction `sePresenter` qui prend un `prenom` et un `age` et retourne une phrase de présentation
-   - Appelle la fonction et affiche le résultat
-
-<details>
-<summary>Solution</summary>
-
-```bash
-mkdir tp-introduction
-cd tp-introduction
-npm init -y
-tsc --init
-mkdir src
-```
-
-```typescript
-// src/premier.ts
-
-const prenom: string = "Alice";
-const age: number = 30;
-
-function sePresenter(prenom: string, age: number): string {
-  return `Je m'appelle ${prenom} et j'ai ${age} ans.`;
-}
-
-const presentation: string = sePresenter(prenom, age);
-console.log(presentation);
-// Je m'appelle Alice et j'ai 30 ans.
-```
-
-```bash
-# Compiler et executer
-tsc src/premier.ts
-node src/premier.js
-
-# Ou directement
-tsx src/premier.ts
-```
-
-</details>
-
-### Exercice 2 — Comprendre le type erasure
-
-Ecris le fichier TypeScript suivant, compile-le avec `tsc`, puis compare le fichier `.ts` et le fichier `.js` généré. Note toutes les différences.
-
-```typescript
-// src/erasure.ts
-interface Animal {
-  nom: string;
-  type: "chat" | "chien";
-  age: number;
-}
-
-function decrireAnimal(animal: Animal): string {
-  const emoji: string = animal.type === "chat" ? "🐱" : "🐶";
-  return `${emoji} ${animal.nom} a ${animal.age} ans`;
-}
-
-const monChat: Animal = {
-  nom: "Moustache",
-  type: "chat",
-  age: 5,
-};
-
-console.log(decrireAnimal(monChat));
-```
-
-<details>
-<summary>Solution</summary>
-
-Après compilation avec `tsc`, le fichier JavaScript généré est :
-
-```javascript
-// src/erasure.js
-"use strict";
-function decrireAnimal(animal) {
-  const emoji = animal.type === "chat" ? "🐱" : "🐶";
-  return `${emoji} ${animal.nom} a ${animal.age} ans`;
-}
-const monChat = {
-  nom: "Moustache",
-  type: "chat",
-  age: 5,
-};
-console.log(decrireAnimal(monChat));
-```
-
-**Differences observees** :
-1. L'`interface Animal` a **complètement disparu** (type erasure)
-2. Les annotations de type (`: string`, `: number`, `: Animal`) ont disparu
-3. Le type union `"chat" | "chien"` a disparu
-4. Le type de retour `: string` a disparu
-5. La logique du code est **identique** — seuls les types ont ete effaces
-
-</details>
-
-### Exercice 3 — Configurer tsconfig.json
-
-Cree un `tsconfig.json` pour un projet avec les exigences suivantes :
-- Cible : ES2022
-- Mode strict active
-- Sources dans `src/`
-- Sortie dans `build/`
-- Source maps actives
-- Pas de variables locales inutilisees
-
-<details>
-<summary>Solution</summary>
+Plutôt que de compiler fichier par fichier, on configure un **projet**. `npx tsc --init` génère un `tsconfig.json` très commenté ; voici une version minimale et saine :
 
 ```json
 {
@@ -835,235 +163,348 @@ Cree un `tsconfig.json` pour un projet avec les exigences suivantes :
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
-    "outDir": "./build",
+    "outDir": "./dist",
     "rootDir": "./src",
-    "sourceMap": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "sourceMap": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "build"]
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
-</details>
+- **target** — version de JS générée. `ES2022` est un bon défaut moderne (Node 18+ le supporte nativement).
+- **module / moduleResolution** — système de modules. `NodeNext` s'adapte au champ `"type"` du `package.json` (CommonJS ou ESM) ; c'est le choix recommandé côté Node.
+- **strict** — active toutes les vérifications strictes (voir 2.7). Non négociable.
+- **outDir / rootDir** — sépare sources (`src/`) et sortie compilée (`dist/`).
+- **skipLibCheck** — ne re-vérifie pas les `.d.ts` des dépendances (build plus rapide).
 
-### Exercice 4 — Detecter les erreurs
+Une fois configuré, `npx tsc` (sans argument) compile tout le projet selon `include`.
 
-Le code suivant contient **5 erreurs** que TypeScript detecterait en mode strict. Trouve-les toutes :
+### 2.6 Type erasure — les types disparaissent au runtime
+
+Concept fondamental : **les types n'existent qu'à la compilation**. Le JS généré ne contient plus aucune annotation. Analogie : les **échafaudages** servent à construire le bâtiment, puis on les retire — le bâtiment tient seul.
 
 ```typescript
-// src/erreurs.ts
-
-function calculer(a, b) {
-  return a + b;
+// entree.ts
+interface Utilisateur {
+  nom: string;
+  age: number;
 }
+const u: Utilisateur = { nom: "Alice", age: 30 };
+console.log(u.nom);
+```
 
-const resultat = calculer(10, 20, 30);
+Après `tsc`, le `.js` généré :
 
-let nom: string = null;
+```javascript
+// entree.js — les types ont TOTALEMENT disparu
+"use strict";
+const u = { nom: "Alice", age: 30 };
+console.log(u.nom);
+```
 
-const utilisateur = {
-  prenom: "Bob",
-  age: 25,
-};
-console.log(utilisateur.email);
+L'`interface`, les `: string`, le `: Utilisateur` : tout est effacé. Conséquence pratique importante — on **ne peut pas** tester un type au runtime :
 
-function traiter(donnees: string) {
-  if (donnees.length > 10) {
-    return donnees.substring(0, 10);
+```typescript
+// ✖ Impossible : 'Utilisateur' n'existe plus à l'exécution
+// if (valeur instanceof Utilisateur) { ... }
+
+// ✔ On teste une propriété discriminante réelle qui, elle, survit au runtime
+function estUtilisateur(v: unknown): v is Utilisateur {
+  return typeof v === "object" && v !== null && "nom" in v;
+}
+```
+
+### 2.7 Le mode strict
+
+`"strict": true` est un raccourci qui active en bloc une famille de vérifications :
+
+```jsonc
+{
+  "compilerOptions": {
+    "strict": true
+    // équivaut, entre autres, à :
+    // "noImplicitAny": true          — interdit les paramètres au type 'any' implicite
+    // "strictNullChecks": true       — null et undefined ne sont plus assignables partout
+    // "strictFunctionTypes": true    — vérifie la compatibilité des types de fonctions
+    // "useUnknownInCatchVariables": true — catch(e) est unknown, pas any
+    // ...
   }
 }
 ```
 
-<details>
-<summary>Solution</summary>
-
-Les 5 erreurs :
-
-1. **`function calculer(a, b)`** — Parametres `a` et `b` n'ont pas de type (`noImplicitAny` en mode strict)
-2. **`calculer(10, 20, 30)`** — La fonction attend 2 arguments mais en recoit 3
-3. **`let nom: string = null`** — En mode strict (`strictNullChecks`), `null` n'est pas assignable a `string`. Il faudrait `string | null`
-4. **`utilisateur.email`** — La propriété `email` n'existe pas sur l'objet `utilisateur`
-5. **La fonction `traiter`** — Ne retourne pas toujours une valeur (pas de `return` dans le `else`). Avec `noImplicitReturns`, c'est une erreur
-
-Version corrigee :
+Ce que ça change, concrètement :
 
 ```typescript
-function calculer(a: number, b: number): number {
-  return a + b;
+// SANS strict — dangereux
+function doubler(v) {        // v est 'any' implicite : aucune vérification
+  return v * 2;
 }
+doubler("hello");            // NaN au runtime, zéro erreur à la compilation
 
-const resultat = calculer(10, 20);
+// AVEC strict — sûr
+function doublerStrict(v: number): number {
+  return v * 2;
+}
+doublerStrict("hello");      // ✖ erreur de compilation
 
-let nom: string | null = null;
-
-const utilisateur = {
-  prenom: "Bob",
-  age: 25,
-  email: "bob@example.com",
-};
-console.log(utilisateur.email);
-
-function traiter(donnees: string): string {
-  if (donnees.length > 10) {
-    return donnees.substring(0, 10);
-  }
-  return donnees; // On retourne la chaine complete si < 10 caracteres
+function longueur(texte: string | null): number {
+  if (texte === null) return 0;   // strictNullChecks force à gérer le cas null
+  return texte.length;
 }
 ```
 
-</details>
+Règle d'or : **toujours** `"strict": true` sur un nouveau projet. C'est la ceinture de sécurité — contraignante quand tout va bien, salvatrice le jour du crash. Désactiver strict, c'est débrancher l'alarme incendie parce qu'elle fait du bruit.
 
-### Exercice 5 — Mini-projet : Gestionnaire de taches
+### 2.8 Où TypeScript s'intègre
 
-Cree un mini-projet TypeScript complet avec :
-- Une interface `Tache` avec `id`, `titre`, `terminee`
-- Une fonction `creerTache` pour créer une tache
-- Une fonction `terminerTache` qui change l'état d'une tache
-- Une fonction `afficherTaches` qui affiche la liste des taches
+TypeScript ne s'exécute jamais tel quel : il est **toujours** transformé en JS avant de tourner. Selon le contexte, l'outil qui fait cette transformation change :
 
-<details>
-<summary>Solution</summary>
+- **Node.js (backend, scripts)** — `tsc` pour builder vers `dist/`, ou `tsx` pour exécuter directement en dev. Node 22.6+ sait aussi *strip* les types nativement (`--experimental-strip-types`), mais sans vérification.
+- **Vite / front (React, Vue)** — Vite transpile le TS via esbuild à la volée (rapide, **sans** vérification de types) ; la vérification passe par `tsc --noEmit` (ou `vue-tsc`) en parallèle et en CI.
+- **Build / CI** — `tsc --noEmit` sert de **gate** : la pipeline échoue si un type est cassé, avant même les tests.
 
-```typescript
-// src/taches.ts
+Le pattern universel : un outil rapide transpile (esbuild, swc, tsx), et `tsc` vérifie. Les deux rôles sont séparés.
 
-// Definition du type Tache
-interface Tache {
-  id: number;
-  titre: string;
-  terminee: boolean;
-}
+Scripts npm typiques d'un projet Node TS :
 
-// Compteur auto-incremente pour les IDs
-let prochainId: number = 1;
-
-// Creer une nouvelle tache
-function creerTache(titre: string): Tache {
-  const tache: Tache = {
-    id: prochainId,
-    titre: titre,
-    terminee: false,
-  };
-  prochainId++;
-  return tache;
-}
-
-// Marquer une tache comme terminee
-function terminerTache(tache: Tache): Tache {
-  return {
-    ...tache,
-    terminee: true,
-  };
-}
-
-// Afficher la liste des taches
-function afficherTaches(taches: Tache[]): void {
-  console.log("\n=== Liste des taches ===");
-  for (const tache of taches) {
-    const statut: string = tache.terminee ? "[x]" : "[ ]";
-    console.log(`${statut} #${tache.id} — ${tache.titre}`);
+```json
+{
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
   }
-  console.log("========================\n");
 }
-
-// Utilisation
-const taches: Tache[] = [];
-
-taches.push(creerTache("Apprendre TypeScript"));
-taches.push(creerTache("Configurer tsconfig.json"));
-taches.push(creerTache("Ecrire du code type-safe"));
-
-afficherTaches(taches);
-// [ ] #1 — Apprendre TypeScript
-// [ ] #2 — Configurer tsconfig.json
-// [ ] #3 — Ecrire du code type-safe
-
-// Terminer la premiere tache
-taches[0] = terminerTache(taches[0]);
-
-afficherTaches(taches);
-// [x] #1 — Apprendre TypeScript
-// [ ] #2 — Configurer tsconfig.json
-// [ ] #3 — Ecrire du code type-safe
 ```
-
-</details>
 
 ---
 
-## Récapitulatif
+## 3. Worked examples
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   CE QUE TU AS APPRIS                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. TypeScript = JavaScript + Verification de types          │
-│                                                              │
-│  2. Les 3 avantages : detection de bugs, autocompletion,     │
-│     documentation vivante                                    │
-│                                                              │
-│  3. Installation : npm i -g typescript tsx                    │
-│                                                              │
-│  4. Compilation : tsc (compile) vs tsx (execute direct)      │
-│                                                              │
-│  5. tsconfig.json : le fichier de configuration central      │
-│                                                              │
-│  6. Mode strict : TOUJOURS actif (strict: true)              │
-│                                                              │
-│  7. Type erasure : les types disparaissent a la compilation  │
-│     — ils n'existent qu'a la phase de developpement          │
-│                                                              │
-│  8. Le Playground : experimenter en ligne sans installation  │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
+### Exemple 1 — Bootstrapper un projet TypeScript de zéro
 
-### Commandes essentielles
+Objectif : d'un dossier vide à un `.ts` compilé et exécuté, en mode strict.
 
 ```bash
-# Installation
-npm install -g typescript tsx
+# 1. Dossier + projet npm
+mkdir demo-ts && cd demo-ts
+npm init -y
 
-# Initialiser un projet
-tsc --init
+# 2. Outillage en devDependency
+npm install --save-dev typescript tsx
 
-# Compiler
-tsc                      # Compile tout le projet
-tsc fichier.ts           # Compile un fichier
+# 3. Configuration
+npx tsc --init      # génère tsconfig.json (on le remplace par la base du 2.5)
+mkdir src
+```
 
-# Executer directement
-tsx fichier.ts           # Execute sans compilation separee
-tsx watch fichier.ts     # Mode developpement avec reload
+On remplace `tsconfig.json` par la base du 2.5, puis on écrit le point d'entrée :
 
-# Verifier les types sans compiler
-tsc --noEmit
+```typescript
+// src/index.ts
+interface Membre {
+  id: number;
+  nom: string;
+  actif: boolean;
+}
+
+function decrire(membre: Membre): string {
+  const etat = membre.actif ? "actif" : "inactif";
+  return `#${membre.id} ${membre.nom} (${etat})`;
+}
+
+const alice: Membre = { id: 1, nom: "Alice", actif: true };
+console.log(decrire(alice));
+```
+
+On l'exécute des deux façons :
+
+```bash
+# Dev rapide — exécution directe
+npx tsx src/index.ts
+# #1 Alice (actif)
+
+# Build — compile vers dist/ puis exécute le JS
+npx tsc
+node dist/index.js
+# #1 Alice (actif)
+```
+
+Le mode strict est déjà actif : si on oublie `actif` dans l'objet `alice`, `tsc` refuse de compiler. Étape par étape, on a : installé (1-2), configuré (3 + tsconfig), écrit un type + une fonction typée, puis exécuté en dev **et** en build.
+
+### Exemple 2 — Observer le type erasure et le rôle de chaque outil
+
+On part de ce fichier qui contient une erreur de type volontaire :
+
+```typescript
+// src/erasure.ts
+interface Prix {
+  ht: number;
+  tva: number;
+}
+
+function ttc(p: Prix): number {
+  return p.ht * (1 + p.tva);
+}
+
+const facture: Prix = { ht: 100, tva: 0.2 };
+console.log(ttc(facture)); // 120
+
+// @ts-expect-error — on documente qu'on force ici une erreur de type
+ttc({ ht: "100", tva: 0.2 });
+```
+
+Ce qui se passe selon l'outil :
+
+```bash
+# tsx : transpile et exécute, IGNORE la vérification de type
+npx tsx src/erasure.ts
+# 120   (la ligne fautive ne serait un problème qu'au runtime, pas au typage)
+
+# tsc --noEmit : vérifie SANS produire de fichier — c'est le gardien
+npx tsc --noEmit
+# (avec la directive @ts-expect-error, tsc s'attend justement à l'erreur ;
+#  retire cette directive et tsc signale l'incompatibilité string / number)
+```
+
+Après un `npx tsc`, on inspecte `dist/erasure.js` : l'`interface Prix`, les `: number`, le `: Prix` ont **tous** disparu. Il ne reste que la fonction `ttc(p)` et le calcul. Morale : `tsx` fait tourner le code vite mais ne protège pas ; `tsc` protège ; au runtime, il n'y a plus que du JavaScript.
+
+---
+
+## 4. Pièges & misconceptions
+
+### PIÈGE #1 — Croire que `tsx` (ou Vite) vérifie les types
+
+`tsx`, esbuild et swc **transpilent** : ils enlèvent les types sans les vérifier. Un fichier truffé d'erreurs de type peut très bien s'exécuter via `tsx`.
+
+```bash
+npx tsx app.ts      # ✔ tourne, même avec des erreurs de type dedans
+npx tsc --noEmit    # ← la SEULE commande qui garantit l'absence d'erreur de type
+```
+
+**Correct :** toujours doubler l'exécution rapide d'un `typecheck` (`tsc --noEmit`) en local et en CI.
+
+### PIÈGE #2 — Croire que les types existent au runtime
+
+Les types sont effacés à la compilation (type erasure). On ne peut ni faire `instanceof` sur une `interface`, ni tester `typeof MonType`.
+
+```typescript
+interface Chat { ronronne: boolean; }
+
+// ✖ 'Chat' only refers to a type, but is being used as a value here
+// if (x instanceof Chat) { ... }
+
+// ✔ tester une propriété qui existe réellement à l'exécution
+function estChat(x: object): x is Chat {
+  return "ronronne" in x;
+}
+```
+
+**Correct :** pour discriminer au runtime, s'appuyer sur des **valeurs** réelles (propriété présente, champ discriminant `type: "chat"`), pas sur les types.
+
+### PIÈGE #3 — Confondre `tsc` et `tsx`
+
+Ce ne sont pas deux orthographes du même outil. `tsc` = *compiler* (vérifie + émet du `.js`). `tsx` = *execute* (transpile + lance). Les confondre mène à croire qu'on a un build sûr alors qu'on n'a qu'une exécution rapide.
+
+**Correct :** `tsx` pour itérer en dev, `tsc` pour builder et vérifier.
+
+### PIÈGE #4 — Démarrer sans `"strict": true`
+
+Un `tsconfig` sans strict laisse passer les `any` implicites et ignore `null` / `undefined` — on perd l'essentiel de la valeur de TypeScript tout en se croyant « protégé ».
+
+```jsonc
+// ❌ faux sentiment de sécurité
+{ "compilerOptions": { "strict": false } }
+
+// ✅ vraie protection
+{ "compilerOptions": { "strict": true } }
+```
+
+**Correct :** activer `strict` dès la création du projet. L'activer plus tard sur un gros projet fait exploser le nombre d'erreurs d'un coup.
+
+### PIÈGE #5 — Oublier que `.ts` ne s'exécute nulle part directement
+
+Ni le navigateur ni (par défaut) Node ne lancent un `.ts` brut. Il faut toujours une étape de transformation (`tsc`, `tsx`, Vite, esbuild).
+
+**Correct :** en dev on passe par `tsx` / Vite ; en prod on **build** en `.js` (`tsc`) et on lance le `.js` avec Node, ou on sert le bundle.
+
+---
+
+## 5. Ancrage TribuZen
+
+Ce cours construit progressivement le **typage du projet TribuZen** (réseau familial privé). Dès ce module d'intro, on pose la pierre angulaire : un fichier `tribuzen/types/index.ts` qui sera la **source unique de vérité** des types métier. Tous les autres cours (React, NestJS, PostgreSQL) réutiliseront ces mêmes types.
+
+Les quatre entités centrales, qu'on enrichira au fil du cours :
+
+```typescript
+// tribuzen/types/index.ts — squelette posé maintenant, complété module après module
+export interface Family {
+  id: string;
+  name: string;
+}
+
+export interface Member {
+  id: string;
+  familyId: string;
+  name: string;
+  role: "admin" | "parent" | "child";
+}
+
+export interface Post {
+  id: string;
+  authorId: string;
+  content: string;
+  createdAt: string; // ISO 8601
+}
+
+export interface Invitation {
+  id: string;
+  familyId: string;
+  email: string;
+  status: "pending" | "accepted" | "expired";
+}
+```
+
+Pourquoi une source unique : un `Member` doit avoir **exactement** la même forme dans le formulaire React, dans l'API NestJS et dans la ligne PostgreSQL. Un seul fichier de types évite les divergences (le front croit `role: string`, le back attend `role: "admin" | ...`). Chaque module suivant viendra typer une couche réelle de TribuZen en important depuis ce fichier.
+
+Fichier cible dans le repo `smaurier/tribuzen` :
+
+```
+tribuzen/
+  types/
+    index.ts      # Family, Member, Post, Invitation — source unique de vérité
+  tsconfig.json   # strict: true, target ES2022, NodeNext
 ```
 
 ---
 
-## Pour aller plus loin
+## 6. Points clés
 
-Dans le prochain module, **01 — Types primitifs, Inference & Strict Mode**, nous allons découvrir en detail :
-
-- Les types de base de TypeScript (`string`, `number`, `boolean`, etc.)
-- Comment TypeScript **infere** les types automatiquement
-- La différence entre `let` et `const` pour l'inference
-- Pourquoi `any` est dangereux et comment utiliser `unknown` à la place
-- L'operateur `satisfies` (nouveaute TypeScript 4.9+)
-
-> **Conseil** : Avant de passer au module suivant, assure-toi d'avoir installe TypeScript et d'avoir reussi a compiler et exécuter ton premier fichier `.ts`. La pratique est essentielle !
+1. TypeScript est un **surensemble** de JavaScript : il ajoute un typage **statique** (vérifié à la compilation) sans changer le fondamental du langage.
+2. Trois bénéfices : détection de bugs au compile-time, autocomplétion, documentation vivante toujours à jour.
+3. On installe `typescript` (fournit `tsc`) et `tsx` en **devDependency**, on les lance via `npx` ou des scripts npm.
+4. `tsc` **compile et vérifie** les types ; `tsx` **transpile et exécute** sans vérifier — les deux rôles sont complémentaires.
+5. Un `tsconfig.json` de base : `target ES2022`, `module NodeNext`, `outDir` / `rootDir`, et surtout `"strict": true`.
+6. **Type erasure** : les types disparaissent totalement du JS généré — impossible de les tester au runtime.
+7. `"strict": true` active en bloc `noImplicitAny`, `strictNullChecks`, etc. : à activer dès le départ, toujours.
+8. TypeScript ne s'exécute jamais seul : Node (`tsc` / `tsx`), Vite/esbuild côté front transpilent, et `tsc --noEmit` sert de garde-fou en CI.
 
 ---
 
-<!-- parcours-recommande -->
+## 7. Seeds Anki
 
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 00 prérequis](../screencasts/screencast-00-prerequis.md)
-2. **Quiz** : [quiz 00 prérequis](../quizzes/quiz-00-prerequis.html)
-:::
+```
+Qu'est-ce que TypeScript par rapport à JavaScript ?|Un surensemble de JS qui ajoute un typage statique vérifié à la compilation. Tout JS valide est du TS valide ; TS ajoute une couche de types + un compilateur (tsc) qui la vérifie.
+Quelle est la différence entre tsc et tsx ?|tsc = compilateur officiel : vérifie les types ET produit du .js. tsx = exécuteur : transpile en mémoire et lance directement, SANS vérifier les types. tsc pour builder/CI, tsx pour itérer en dev.
+Qu'est-ce que le type erasure en TypeScript ?|Les types n'existent qu'à la compilation ; le .js généré ne contient plus aucune annotation ni interface. Conséquence : on ne peut pas tester un type au runtime (pas d'instanceof sur une interface).
+Que fait la commande tsc --noEmit ?|Elle vérifie les types de tout le projet sans générer de fichiers .js. C'est le garde-fou utilisé en local (script typecheck) et en CI pour bloquer un build si un type est cassé.
+Que fait "strict": true dans tsconfig.json et pourquoi l'activer ?|Il active en bloc noImplicitAny, strictNullChecks, strictFunctionTypes, etc. À activer dès la création du projet : sans lui, les any implicites et les null passent, on perd l'essentiel de la valeur de TS.
+Pourquoi un fichier .ts ne s'exécute-t-il pas directement dans Node ou le navigateur ?|Parce que ni l'un ni l'autre ne comprennent nativement les annotations de type. Il faut d'abord transformer le TS en JS via tsc (build), tsx (dev), Vite ou esbuild.
+Quelles options mettre dans un tsconfig.json de base pour Node ?|target ES2022, module NodeNext, moduleResolution NodeNext, strict true, outDir/rootDir séparés, esModuleInterop et skipLibCheck. include src, exclude node_modules/dist.
+Comment TypeScript s'intègre-t-il côté front avec Vite ?|Vite transpile le TS via esbuild à la volée, rapidement mais SANS vérifier les types. La vérification passe par tsc --noEmit (ou vue-tsc) lancé en parallèle et en CI.
+```

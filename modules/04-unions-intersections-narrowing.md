@@ -1,1638 +1,491 @@
-# 04 — Union, Intersection & Narrowing
+---
+titre: Unions, intersections et narrowing
+cours: 00-typescript
+notions: [union types (A | B), intersection types (A & B), narrowing par typeof, narrowing par instanceof, narrowing par in, narrowing par égalité, narrowing par truthiness, discriminated unions (tag commun), exhaustiveness checking avec never, type guards utilisateur (predicate is)]
+outcomes: [modéliser un état avec une union discriminée, narrower une union avec la technique adaptée, garantir l'exhaustivité d'un switch avec never]
+prerequis: [03-objets-interfaces-types]
+next: 05-classes-et-heritage
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: état d'une Invitation modélisé en union discriminée, type Notification en variantes, narrowing exhaustif du back-office TribuZen
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 4h30
-> **Difficulte** : 2/5
-> **Prérequis** : Module 03 (interfaces, type aliases, structural typing)
-> **Objectifs** :
-> - Maîtriser les **union types** (`|`) et les **discriminated unions**
-> - Comprendre et appliquer le **type narrowing** avec toutes les techniques
-> - Créer des **type guards custom** avec les predicates `is`
-> - Utiliser les **assertion functions** (`asserts`) pour le narrowing
-> - Implementer la vérification **exhaustive** avec `never`
-> - Comprendre l'analyse du **control flow** par TypeScript
+# Unions, intersections et narrowing
+
+> **Outcomes — tu sauras FAIRE :** modéliser un état métier avec une union discriminée, narrower une union avec la technique adaptée (`typeof`, `instanceof`, `in`, égalité, truthiness), garantir l'exhaustivité d'un traitement avec `never`.
+> **Difficulté :** :star::star:
+
+## 1. Cas concret d'abord
+
+Tu reprends le back-office TribuZen. Un collègue a modélisé l'invitation d'un membre à une tribu comme ceci :
+
+```typescript
+// invitation.ts — AVANT (modélisation à plat, dangereuse)
+interface Invitation {
+  status: string;          // "pending" | "accepted" | "expired" ... on ne sait pas
+  memberId?: string;       // rempli SEULEMENT si acceptée
+  expiredAt?: Date;        // rempli SEULEMENT si expirée
+}
+
+function afficherInvitation(inv: Invitation): string {
+  // On veut le memberId quand c'est accepté... mais TS ne garantit rien
+  return `Membre : ${inv.memberId.toUpperCase()}`;
+  //                    ^^^^^^^^^ inv.memberId est string | undefined → crash possible
+}
+```
+
+**Trois problèmes immédiats :**
+
+1. `status: string` autorise n'importe quelle chaîne — `"acceptd"` (typo) compile sans broncher.
+2. `memberId` et `expiredAt` sont optionnels *en permanence* — TS ne sait pas qu'ils dépendent du `status`. Impossible de lire `inv.memberId` en sécurité.
+3. Rien ne force à traiter *tous* les statuts. Un nouveau statut ajouté plus tard passera inaperçu.
+
+Ce module modélise cet état correctement avec une **union discriminée**, puis narrow chaque cas de façon sûre et exhaustive. C'est le pattern central de TypeScript pour représenter « une valeur qui est dans exactement un état parmi plusieurs ».
 
 ---
 
-## Union Types (|)
+## 2. Théorie complète, concise
 
-### Concept
+### 2.1 Union types (`A | B`)
 
-Un **union type** represente une valeur qui peut etre de **plusieurs types différents** :
+Une **union** décrit une valeur qui peut être de **plusieurs types**, un seul à la fois.
 
 ```typescript
-// Une variable qui peut etre string OU number
 let identifiant: string | number;
-
-identifiant = "abc-123";  // OK — c'est un string
-identifiant = 42;          // OK — c'est un number
-// identifiant = true;     // Erreur — boolean n'est pas dans l'union
-
-// Un parametre de fonction qui accepte plusieurs types
-function afficherId(id: string | number): void {
-  console.log(`ID : ${id}`);
-}
-
-afficherId("abc-123"); // OK
-afficherId(42);         // OK
-// afficherId(true);    // Erreur
+identifiant = "abc-123"; // OK
+identifiant = 42;         // OK
+// identifiant = true;    // Erreur : boolean n'est pas dans l'union
 ```
 
-### Le piege : que peut-on faire avec une union ?
+Contrainte clé : sur une union non narrowée, tu ne peux accéder qu'aux **membres communs** à tous les types.
 
 ```typescript
-// Avec une union, on ne peut utiliser que les PROPRIETES COMMUNES aux deux types
-
-function traiter(valeur: string | number): void {
-  // Proprietes communes a string ET number :
-  console.log(valeur.toString());  // OK — toString() existe sur les deux
-  console.log(valeur.valueOf());   // OK — valueOf() existe sur les deux
-
-  // Proprietes specifiques a string :
-  // valeur.toUpperCase(); // Erreur ! toUpperCase n'existe pas sur number
-
-  // Proprietes specifiques a number :
-  // valeur.toFixed(2);    // Erreur ! toFixed n'existe pas sur string
-
-  // Pour acceder aux proprietes specifiques, il faut NARROWER le type
+function longueurOuValeur(x: string | number): number {
+  // x.toUpperCase() → Erreur : toUpperCase n'existe pas sur number
+  return typeof x === "string" ? x.length : x; // il FAUT narrower d'abord
 }
 ```
 
-### Analogie — La boite mystere
+### 2.2 Intersection types (`A & B`)
 
-Une union type, c'est comme une **boite mystere** dans un jeu televise :
-
-- Tu sais que la boite contient **soit** un livre, **soit** un DVD, **soit** un CD
-- Tant que tu n'as pas ouvert la boite (narrowing), tu ne peux faire que des choses communes a ces trois objets (les regarder, les peser)
-- Une fois que tu ouvres la boite et que tu vois que c'est un livre, tu peux le **lire** (propriété spécifique au livre)
+Une **intersection** combine plusieurs types : la valeur doit satisfaire **tous** en même temps. C'est l'outil de composition (revu au module 03).
 
 ```typescript
-type Contenu = Livre | DVD | CD;
+type Horodatable = { creeLe: Date };
+type Identifiable = { id: string };
 
-interface Livre {
-  type: "livre";
-  titre: string;
-  pages: number;
-  lire(): void;
-}
+// Doit avoir creeLe ET id
+type Entite = Horodatable & Identifiable;
 
-interface DVD {
-  type: "dvd";
-  titre: string;
-  dureeMinutes: number;
-  regarder(): void;
-}
-
-interface CD {
-  type: "cd";
-  titre: string;
-  pistes: number;
-  ecouter(): void;
-}
-
-function utiliser(contenu: Contenu): void {
-  // Propriete commune : titre
-  console.log(`Titre : ${contenu.titre}`); // OK
-
-  // On ne peut pas appeler lire(), regarder() ou ecouter() ici
-  // Il faut d'abord DETERMINER quel type c'est (narrowing)
-}
+const e: Entite = { id: "abc", creeLe: new Date() }; // les deux requis
 ```
 
-### Unions avec des types complexes
+> **Union vs intersection — ne pas confondre :**
+> - `A | B` = « **soit** A, **soit** B » → moins de propriétés garanties (les communes).
+> - `A & B` = « A **et** B à la fois » → plus de propriétés garanties (toutes).
+> - Intersection de primitifs incompatibles = `never` : `string & number` n'a aucune valeur possible.
+
+### 2.3 Narrowing : le principe
+
+Le **narrowing** est le processus par lequel TypeScript **réduit** une union à un type plus précis grâce à une vérification à l'exécution. TS suit le flux du code (*control flow analysis*).
 
 ```typescript
-// Union de types d'objets
-type ReponseAPI =
-  | { status: "success"; data: unknown; code: 200 }
-  | { status: "error"; message: string; code: 400 | 404 | 500 }
-  | { status: "loading" };
-
-// Union de fonctions
-type Handler = ((event: MouseEvent) => void) | ((event: KeyboardEvent) => void);
-
-// Union avec null (nullable)
-type MaybeString = string | null;
-type MaybeNumber = number | undefined;
-type Maybe<T> = T | null | undefined;
-
-// Utilisation courante
-function trouverUtilisateur(id: number): Utilisateur | null {
-  // Retourne l'utilisateur ou null s'il n'existe pas
-  const users = [{ id: 1, nom: "Alice" }];
-  return users.find((u) => u.id === id) ?? null;
-}
-
-interface Utilisateur {
-  id: number;
-  nom: string;
-}
-```
-
----
-
-## Discriminated Unions (unions discriminees)
-
-### Concept
-
-Une **discriminated union** (où union discriminee, ou tagged union) est une union ou chaque membre possede un **champ commun** qui permet de les distinguer :
-
-```typescript
-// Le champ 'type' sert de DISCRIMINANT (ou "tag")
-interface Cercle {
-  type: "cercle";       // Discriminant — valeur litterale
-  rayon: number;
-}
-
-interface Rectangle {
-  type: "rectangle";    // Discriminant — valeur litterale
-  largeur: number;
-  hauteur: number;
-}
-
-interface Triangle {
-  type: "triangle";     // Discriminant — valeur litterale
-  base: number;
-  hauteur: number;
-}
-
-// Union discriminee
-type Forme = Cercle | Rectangle | Triangle;
-
-// Grace au discriminant, TypeScript peut NARROW automatiquement
-function calculerAire(forme: Forme): number {
-  switch (forme.type) {
-    case "cercle":
-      // TypeScript sait que forme est Cercle ici
-      return Math.PI * forme.rayon ** 2;
-
-    case "rectangle":
-      // TypeScript sait que forme est Rectangle ici
-      return forme.largeur * forme.hauteur;
-
-    case "triangle":
-      // TypeScript sait que forme est Triangle ici
-      return (forme.base * forme.hauteur) / 2;
-  }
-}
-
-// Utilisation
-const c: Cercle = { type: "cercle", rayon: 5 };
-const r: Rectangle = { type: "rectangle", largeur: 10, hauteur: 3 };
-const t: Triangle = { type: "triangle", base: 6, hauteur: 4 };
-
-console.log(calculerAire(c)); // 78.54...
-console.log(calculerAire(r)); // 30
-console.log(calculerAire(t)); // 12
-```
-
-### Pourquoi les discriminated unions sont puissantes
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  AVANTAGES DES DISCRIMINATED UNIONS                           │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. NARROWING AUTOMATIQUE — TypeScript comprend le switch    │
-│                                                              │
-│  2. EXHAUSTIVITE — On peut verifier qu'on gere tous les cas  │
-│                                                              │
-│  3. DOCUMENTATION — Le discriminant rend le code lisible     │
-│                                                              │
-│  4. EXTENSIBLE — Ajouter un nouveau membre = ajouter un     │
-│     type et gerer le nouveau cas dans les switch             │
-│                                                              │
-│  5. PAS DE CAST — Pas besoin de 'as' ou de verifications    │
-│     manuelles                                                │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Exemple réel : gestion d'actions (pattern Redux)
-
-```typescript
-// Actions d'un panier e-commerce
-type ActionPanier =
-  | { type: "AJOUTER_PRODUIT"; produit: Produit; quantite: number }
-  | { type: "RETIRER_PRODUIT"; produitId: string }
-  | { type: "MODIFIER_QUANTITE"; produitId: string; nouvelleQuantite: number }
-  | { type: "VIDER_PANIER" }
-  | { type: "APPLIQUER_CODE_PROMO"; code: string };
-
-interface Produit {
-  id: string;
-  nom: string;
-  prix: number;
-}
-
-interface EtatPanier {
-  produits: Map<string, { produit: Produit; quantite: number }>;
-  codePromo?: string;
-}
-
-function reducerPanier(etat: EtatPanier, action: ActionPanier): EtatPanier {
-  switch (action.type) {
-    case "AJOUTER_PRODUIT":
-      // action est { type: "AJOUTER_PRODUIT"; produit: Produit; quantite: number }
-      const nouveauxProduits = new Map(etat.produits);
-      nouveauxProduits.set(action.produit.id, {
-        produit: action.produit,
-        quantite: action.quantite,
-      });
-      return { ...etat, produits: nouveauxProduits };
-
-    case "RETIRER_PRODUIT":
-      // action est { type: "RETIRER_PRODUIT"; produitId: string }
-      const sansProduit = new Map(etat.produits);
-      sansProduit.delete(action.produitId);
-      return { ...etat, produits: sansProduit };
-
-    case "MODIFIER_QUANTITE":
-      // action est { type: "MODIFIER_QUANTITE"; produitId: string; nouvelleQuantite: number }
-      const modifie = new Map(etat.produits);
-      const item = modifie.get(action.produitId);
-      if (item) {
-        modifie.set(action.produitId, { ...item, quantite: action.nouvelleQuantite });
-      }
-      return { ...etat, produits: modifie };
-
-    case "VIDER_PANIER":
-      return { ...etat, produits: new Map(), codePromo: undefined };
-
-    case "APPLIQUER_CODE_PROMO":
-      return { ...etat, codePromo: action.code };
-  }
-}
-```
-
-### Exemple réel : Resultats d'operations
-
-```typescript
-// Pattern Result — tres courant en TypeScript
-type Result<T, E = Error> =
-  | { ok: true; value: T }
-  | { ok: false; error: E };
-
-// Fonction qui retourne un Result
-function diviser(a: number, b: number): Result<number, string> {
-  if (b === 0) {
-    return { ok: false, error: "Division par zero" };
-  }
-  return { ok: true, value: a / b };
-}
-
-// Utilisation avec narrowing automatique
-const resultat = diviser(10, 3);
-
-if (resultat.ok) {
-  // resultat est { ok: true; value: number }
-  console.log(`Resultat : ${resultat.value.toFixed(2)}`);
-} else {
-  // resultat est { ok: false; error: string }
-  console.error(`Erreur : ${resultat.error}`);
-}
-```
-
----
-
-## Type Narrowing
-
-### Qu'est-ce que le narrowing ?
-
-Le **narrowing** (où "retrecissement de type") est le processus par lequel TypeScript **reduit** un type large à un type plus précis grâce à des verifications :
-
-```typescript
-// Type large : string | number
-function traiter(valeur: string | number): string {
-  // Ici, valeur est string | number (large)
-
-  if (typeof valeur === "string") {
-    // Ici, valeur est string (narrow)
-    return valeur.toUpperCase();
-  }
-
-  // Ici, valeur est number (par elimination)
+function traiter(valeur: string | number | null): string {
+  if (valeur === null) return "vide";
+  // ici : string | number (null éliminé)
+  if (typeof valeur === "string") return valeur.toUpperCase();
+  // ici : number (string éliminé)
   return valeur.toFixed(2);
 }
 ```
 
-### Les différentes techniques de narrowing
+Cinq techniques à connaître.
 
-TypeScript reconnait plusieurs patterns pour narrower les types.
-
----
-
-### Narrowing avec typeof
-
-L'operateur `typeof` permet de vérifier les types primitifs :
+**a) `typeof` — types primitifs**
 
 ```typescript
-function formater(valeur: string | number | boolean | undefined): string {
-  if (typeof valeur === "string") {
-    // valeur est string
-    return `"${valeur}"`;
-  }
-
-  if (typeof valeur === "number") {
-    // valeur est number
-    return valeur.toFixed(2);
-  }
-
-  if (typeof valeur === "boolean") {
-    // valeur est boolean
-    return valeur ? "vrai" : "faux";
-  }
-
-  // valeur est undefined (par elimination)
-  return "indefini";
+function formater(v: string | number | boolean): string {
+  if (typeof v === "string") return `"${v}"`;    // v : string
+  if (typeof v === "number") return v.toFixed(2); // v : number
+  return v ? "vrai" : "faux";                      // v : boolean
 }
-
-// typeof retourne : "string", "number", "boolean", "undefined",
-// "object", "function", "symbol", "bigint"
-// Attention : typeof null === "object" (bug historique de JavaScript !)
+// typeof renvoie : "string" | "number" | "boolean" | "undefined"
+//                | "object" | "function" | "symbol" | "bigint"
+// Piège JS : typeof null === "object"
 ```
 
-### Narrowing avec instanceof
-
-`instanceof` vérifié si un objet est une instance d'une classe :
+**b) `instanceof` — instances de classes**
 
 ```typescript
-class Chien {
-  nom: string;
-  constructor(nom: string) {
-    this.nom = nom;
-  }
-  aboyer(): string {
-    return `${this.nom} : Ouaf !`;
-  }
-}
-
-class Chat {
-  nom: string;
-  constructor(nom: string) {
-    this.nom = nom;
-  }
-  miauler(): string {
-    return `${this.nom} : Miaou !`;
-  }
-}
-
-function faireDuBruit(animal: Chien | Chat): string {
-  if (animal instanceof Chien) {
-    // animal est Chien
-    return animal.aboyer();
-  }
-
-  // animal est Chat (par elimination)
-  return animal.miauler();
-}
-
-const rex = new Chien("Rex");
-const felix = new Chat("Felix");
-
-console.log(faireDuBruit(rex));   // "Rex : Ouaf !"
-console.log(faireDuBruit(felix)); // "Felix : Miaou !"
-
-// instanceof fonctionne aussi avec les classes natives
-function traiterErreur(erreur: Error | string): string {
-  if (erreur instanceof TypeError) {
-    return `Erreur de type : ${erreur.message}`;
-  }
-  if (erreur instanceof RangeError) {
-    return `Erreur de range : ${erreur.message}`;
-  }
-  if (erreur instanceof Error) {
-    return `Erreur generique : ${erreur.message}`;
-  }
-  // erreur est string
-  return `Message : ${erreur}`;
+function messageErreur(e: Error | string): string {
+  if (e instanceof TypeError) return `Type : ${e.message}`; // e : TypeError
+  if (e instanceof Error) return `Erreur : ${e.message}`;    // e : Error
+  return e;                                                  // e : string
 }
 ```
 
-### Narrowing avec in
-
-L'operateur `in` vérifié si une propriété **existe** dans un objet :
+**c) `in` — présence d'une propriété**
 
 ```typescript
-interface Voiture {
-  marque: string;
-  nombrePortes: number;
+type Voiture = { marque: string; portes: number };
+type Moto = { marque: string; cylindree: number };
+
+function decrire(v: Voiture | Moto): string {
+  if ("portes" in v) return `${v.marque}, ${v.portes} portes`; // v : Voiture
+  return `${v.marque}, ${v.cylindree}cc`;                       // v : Moto
 }
-
-interface Moto {
-  marque: string;
-  cylindree: number;
-}
-
-function decrireVehicule(vehicule: Voiture | Moto): string {
-  // 'nombrePortes' n'existe que dans Voiture
-  if ("nombrePortes" in vehicule) {
-    // vehicule est Voiture
-    return `${vehicule.marque} — ${vehicule.nombrePortes} portes`;
-  }
-
-  // vehicule est Moto (par elimination)
-  return `${vehicule.marque} — ${vehicule.cylindree}cc`;
-}
-
-console.log(decrireVehicule({ marque: "Renault", nombrePortes: 5 }));
-// "Renault — 5 portes"
-
-console.log(decrireVehicule({ marque: "Yamaha", cylindree: 600 }));
-// "Yamaha — 600cc"
 ```
 
-### Narrowing par truthiness (verite/faussete)
+**d) Égalité (`===`, `==`)**
 
 ```typescript
-// Les valeurs "falsy" en JavaScript :
-// false, 0, -0, 0n, "", null, undefined, NaN
-
-function afficher(valeur: string | null | undefined): void {
-  if (valeur) {
-    // valeur est string (non vide, non null, non undefined)
-    console.log(valeur.toUpperCase());
-  } else {
-    // valeur est string | null | undefined
-    // (pourrait etre "" — chaine vide est falsy !)
-    console.log("Pas de valeur");
-  }
+function longueur(t: string | null | undefined): number {
+  if (t == null) return 0; // == null capture null ET undefined → t : null | undefined
+  return t.length;         // t : string
 }
+```
 
-// Attention avec les nombres !
-function traiterNombre(n: number | null): void {
-  if (n) {
-    // n est number — MAIS 0 est falsy !
-    console.log(n * 2);
-  }
-  // Si n === 0, on entre dans le else, ce qui est probablement un bug
+**e) Truthiness (piège fréquent)**
 
-  // Mieux : comparer explicitement avec null
-  if (n !== null) {
-    console.log(n * 2); // Fonctionne correctement meme avec 0
+```typescript
+function afficher(n: number | null): void {
+  if (n) console.log(n * 2);
+  // ATTENTION : 0 est falsy → n === 0 tombe dans le else (bug)
+  // Correct pour les nombres : if (n !== null)
+}
+// Valeurs falsy : false, 0, -0, 0n, "", null, undefined, NaN
+```
+
+### 2.4 Discriminated unions — LE pattern central
+
+Une **union discriminée** (*tagged union*) est une union d'objets partageant une propriété commune littérale — le **discriminant** (ou *tag*). TypeScript s'en sert pour narrower automatiquement.
+
+```typescript
+// Chaque variante porte un tag littéral : le champ `status`
+type Invitation =
+  | { status: "pending" }
+  | { status: "accepted"; memberId: string }
+  | { status: "expired"; expiredAt: Date };
+
+function resumer(inv: Invitation): string {
+  switch (inv.status) {
+    case "pending":
+      return "Invitation en attente"; // inv : { status: "pending" }
+    case "accepted":
+      return `Acceptée par ${inv.memberId}`; // inv a memberId, garanti
+    case "expired":
+      return `Expirée le ${inv.expiredAt.toLocaleDateString("fr")}`;
   }
 }
 ```
 
-### Narrowing par egalite
+Ce que le discriminant apporte, que la version « à plat » du §1 n'avait pas :
+
+1. **Narrowing automatique** — dans `case "accepted"`, `memberId` existe (plus de `?`).
+2. **Impossible de mal construire** — `{ status: "accepted" }` sans `memberId` ne compile pas.
+3. **Zéro cast** — pas de `as`, pas de `!`.
+
+> Règle : le discriminant doit être un **type littéral** (`"pending"`, `1`, `true`), identique de nom sur toutes les variantes. `status: string` ne discrimine pas.
+
+### 2.5 Exhaustiveness checking avec `never`
+
+Le type `never` représente « ce qui ne peut jamais arriver ». On l'exploite pour **forcer** le traitement de toutes les variantes : si tous les cas sont gérés, le `default` reçoit `never`. Ajouter une variante sans la traiter casse la compilation.
 
 ```typescript
-// Comparaison stricte (===)
-function traiter(a: string | number, b: string | boolean): void {
-  if (a === b) {
-    // Les deux sont forcement string (seul type commun)
-    // a est string, b est string
-    console.log(a.toUpperCase()); // OK
-    console.log(b.toUpperCase()); // OK
+function resumer(inv: Invitation): string {
+  switch (inv.status) {
+    case "pending":  return "En attente";
+    case "accepted": return `Acceptée (${inv.memberId})`;
+    case "expired":  return "Expirée";
+    default:
+      // Si tous les cas sont couverts, inv est `never` ici.
+      const _exhaustif: never = inv;
+      return _exhaustif;
   }
 }
 
-// Comparaison avec null/undefined
-function exempleNull(valeur: string | null | undefined): void {
-  // == null capture a la fois null et undefined
-  if (valeur == null) {
-    // valeur est null | undefined
-    return;
-  }
-  // valeur est string
-  console.log(valeur.length);
-}
-
-// Comparaison avec une valeur specifique
-type Direction = "nord" | "sud" | "est" | "ouest";
-
-function deplacer(direction: Direction): void {
-  if (direction === "nord") {
-    // direction est "nord"
-    console.log("On monte !");
-  } else if (direction === "sud") {
-    // direction est "sud"
-    console.log("On descend !");
-  }
-  // direction est "est" | "ouest"
-}
+// Si on ajoute plus tard :
+//   | { status: "revoked"; revokedBy: string }
+// Alors `const _exhaustif: never = inv` échoue :
+//   Type '{ status: "revoked"; ... }' is not assignable to type 'never'
+// → le compilateur te FORCE à gérer "revoked" partout où tu traites Invitation.
 ```
 
----
+Version réutilisable, à placer dans un util :
 
-## Narrowing dans switch
+```typescript
+export function assertNever(x: never): never {
+  throw new Error(`Cas non géré : ${JSON.stringify(x)}`);
+}
+// usage : default: return assertNever(inv);
+```
 
-### Pattern courant avec discriminated unions
+C'est le filet de sécurité qui transforme « bug silencieux en prod » en « erreur de compilation ».
 
-Le `switch` est la manière la plus lisible de narrower des discriminated unions :
+### 2.6 Type guards utilisateur (rappel module 02)
+
+Quand la vérification est trop complexe pour `typeof`/`in`, on écrit une fonction dont le type de retour est un **predicate** `param is Type`. TS narrow quand elle renvoie `true`.
 
 ```typescript
 type Notification =
-  | { type: "email"; destinataire: string; sujet: string; corps: string }
-  | { type: "sms"; numero: string; message: string }
-  | { type: "push"; deviceId: string; titre: string; corps: string }
-  | { type: "webhook"; url: string; payload: object };
+  | { kind: "email"; to: string; subject: string }
+  | { kind: "push"; deviceId: string; title: string };
 
-function envoyerNotification(notif: Notification): void {
-  switch (notif.type) {
+// Type guard sur une variante précise de l'union
+function estEmail(n: Notification): n is Extract<Notification, { kind: "email" }> {
+  return n.kind === "email";
+}
+
+const notifs: Notification[] = [/* ... */];
+const emails = notifs.filter(estEmail); // type : { kind: "email"; ... }[]
+```
+
+Sans le predicate `is`, `filter` renverrait `Notification[]` (pas de narrowing). Le guard combine le pouvoir du narrowing avec la réutilisabilité d'une fonction. À réserver aux cas que le narrowing intégré ne couvre pas : validation de données `unknown` venant d'une API, filtres, etc.
+
+---
+
+## 3. Worked examples
+
+### Exemple 1 — Modéliser l'état d'une Invitation (TribuZen)
+
+Reprise du cas concret du §1, corrigé de bout en bout.
+
+```typescript
+// ─── src/types/invitation.ts ────────────────────────────────────
+// Union discriminée : chaque état porte EXACTEMENT les champs qui le concernent
+export type Invitation =
+  | { status: "pending"; sentAt: Date }
+  | { status: "accepted"; memberId: string; acceptedAt: Date }
+  | { status: "expired"; expiredAt: Date };
+
+// ─── src/utils/assert.ts ────────────────────────────────────────
+export function assertNever(x: never): never {
+  throw new Error(`Cas non géré : ${JSON.stringify(x)}`);
+}
+
+// ─── src/features/invitation/resumerInvitation.ts ───────────────
+import type { Invitation } from "@/types/invitation";
+import { assertNever } from "@/utils/assert";
+
+export function resumerInvitation(inv: Invitation): string {
+  switch (inv.status) {
+    case "pending":
+      // inv : { status: "pending"; sentAt: Date }
+      return `En attente depuis le ${inv.sentAt.toLocaleDateString("fr")}`;
+
+    case "accepted":
+      // inv : { status: "accepted"; memberId: string; acceptedAt: Date }
+      // memberId est GARANTI ici — plus de `?`, plus de crash possible
+      return `Acceptée par ${inv.memberId}`;
+
+    case "expired":
+      // inv : { status: "expired"; expiredAt: Date }
+      return `Expirée le ${inv.expiredAt.toLocaleDateString("fr")}`;
+
+    default:
+      // Exhaustivité : si on ajoute un statut sans le gérer, ceci ne compile plus
+      return assertNever(inv);
+  }
+}
+
+// ─── Utilisation ────────────────────────────────────────────────
+const inv: Invitation = {
+  status: "accepted",
+  memberId: "usr-42",
+  acceptedAt: new Date(),
+};
+console.log(resumerInvitation(inv)); // "Acceptée par usr-42"
+
+// Impossible de mal construire :
+// const faux: Invitation = { status: "accepted" };
+// → Erreur : property 'memberId' is missing
+```
+
+**Ce que ce découpage apporte :** chaque variante n'a que ses champs légitimes ; le compilateur garantit qu'on lit `memberId` seulement quand l'invitation est acceptée ; l'ajout d'un statut futur est signalé par `assertNever`.
+
+### Exemple 2 — Un type Notification et son envoi exhaustif
+
+Union de variantes hétérogènes, avec narrowing par le tag `kind`.
+
+```typescript
+// ─── src/types/notification.ts ──────────────────────────────────
+export type Notification =
+  | { kind: "email"; to: string; subject: string; body: string }
+  | { kind: "sms"; phone: string; message: string }
+  | { kind: "push"; deviceId: string; title: string; body: string };
+
+// ─── src/features/notification/envoyer.ts ───────────────────────
+import type { Notification } from "@/types/notification";
+import { assertNever } from "@/utils/assert";
+
+export function envoyer(n: Notification): string {
+  switch (n.kind) {
     case "email":
-      // notif est { type: "email"; destinataire: string; sujet: string; corps: string }
-      console.log(`Email a ${notif.destinataire}`);
-      console.log(`Sujet : ${notif.sujet}`);
-      console.log(`Corps : ${notif.corps}`);
-      break;
-
+      // n : variante email → to, subject, body disponibles
+      return `Email à ${n.to} — « ${n.subject} »`;
     case "sms":
-      // notif est { type: "sms"; numero: string; message: string }
-      console.log(`SMS au ${notif.numero}`);
-      console.log(`Message : ${notif.message}`);
-      break;
-
+      // n : variante sms → phone, message disponibles
+      return `SMS au ${n.phone} — ${n.message}`;
     case "push":
-      // notif est { type: "push"; deviceId: string; titre: string; corps: string }
-      console.log(`Push vers ${notif.deviceId}`);
-      console.log(`${notif.titre} : ${notif.corps}`);
-      break;
-
-    case "webhook":
-      // notif est { type: "webhook"; url: string; payload: object }
-      console.log(`Webhook vers ${notif.url}`);
-      break;
-  }
-}
-```
-
----
-
-## Type Guards custom (is)
-
-### Rappel et approfondissement
-
-Un **type guard** est une fonction qui retourne `boolean` et qui informe TypeScript du type d'une valeur :
-
-```typescript
-// Type guard basique
-function estString(valeur: unknown): valeur is string {
-  return typeof valeur === "string";
-}
-
-// Type guard pour une interface
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-}
-
-function estUtilisateur(valeur: unknown): valeur is Utilisateur {
-  return (
-    typeof valeur === "object" &&
-    valeur !== null &&
-    "id" in valeur &&
-    "nom" in valeur &&
-    "email" in valeur &&
-    typeof (valeur as Utilisateur).id === "number" &&
-    typeof (valeur as Utilisateur).nom === "string" &&
-    typeof (valeur as Utilisateur).email === "string"
-  );
-}
-
-// Utilisation
-function traiterDonnee(donnee: unknown): void {
-  if (estUtilisateur(donnee)) {
-    // donnee est Utilisateur
-    console.log(`Utilisateur : ${donnee.nom} (${donnee.email})`);
-  } else {
-    console.log("Donnee inconnue");
-  }
-}
-
-// Test
-traiterDonnee({ id: 1, nom: "Alice", email: "alice@example.com" });
-// "Utilisateur : Alice (alice@example.com)"
-
-traiterDonnee({ name: "Bob" });
-// "Donnee inconnue"
-```
-
-### Type guards pour les tableaux
-
-```typescript
-// Verifier qu'un tableau ne contient que des nombres
-function estTableauDeNombres(valeur: unknown): valeur is number[] {
-  return (
-    Array.isArray(valeur) &&
-    valeur.every((element) => typeof element === "number")
-  );
-}
-
-// Verifier qu'un tableau ne contient pas de null/undefined
-function estTableauNonNul<T>(
-  valeur: (T | null | undefined)[]
-): valeur is T[] {
-  return valeur.every((element) => element != null);
-}
-
-// Utilisation avec .filter()
-const mixte: (string | null)[] = ["Alice", null, "Bob", null, "Charlie"];
-
-// Sans type guard — le type reste (string | null)[]
-const nonNuls = mixte.filter((v) => v !== null);
-// Type: (string | null)[] — TypeScript ne narrow pas avec .filter() seul
-
-// Avec type guard — le type est correctement narrow
-function nonNull<T>(valeur: T | null | undefined): valeur is T {
-  return valeur != null;
-}
-
-const noms = mixte.filter(nonNull);
-// Type: string[] — Exactement ce qu'on veut !
-```
-
-### Type guard avec discriminated union
-
-```typescript
-// Type guards specifiques pour chaque membre de l'union
-type Evenement =
-  | { type: "click"; x: number; y: number }
-  | { type: "keypress"; touche: string; code: number }
-  | { type: "scroll"; deltaX: number; deltaY: number };
-
-function estClick(evt: Evenement): evt is Extract<Evenement, { type: "click" }> {
-  return evt.type === "click";
-}
-
-function estKeypress(evt: Evenement): evt is Extract<Evenement, { type: "keypress" }> {
-  return evt.type === "keypress";
-}
-
-// Utilisation
-function gererEvenement(evt: Evenement): void {
-  if (estClick(evt)) {
-    console.log(`Click a (${evt.x}, ${evt.y})`);
-  } else if (estKeypress(evt)) {
-    console.log(`Touche : ${evt.touche} (code: ${evt.code})`);
-  }
-}
-```
-
----
-
-## Assertion functions (asserts)
-
-### Rappel et cas avances
-
-Les assertion functions **lancent une erreur** si la condition est fausse, et **narrow le type** pour le reste du code :
-
-```typescript
-// Assertion generique
-function assertEstNonNul<T>(
-  valeur: T | null | undefined,
-  message?: string
-): asserts valeur is T {
-  if (valeur === null || valeur === undefined) {
-    throw new Error(message ?? "La valeur ne doit pas etre null ou undefined");
-  }
-}
-
-// Utilisation
-function traiterCommande(commandeId: string | null): void {
-  assertEstNonNul(commandeId, "L'ID de commande est requis");
-  // Apres l'assertion, commandeId est string (pas string | null)
-
-  console.log(`Traitement de la commande : ${commandeId.toUpperCase()}`);
-}
-```
-
-### Assertion avec condition
-
-```typescript
-// assert simple avec condition booleenne
-function assert(condition: boolean, message: string): asserts condition {
-  if (!condition) {
-    throw new Error(`Assertion echouee : ${message}`);
-  }
-}
-
-// Utilisation dans du code metier
-interface Commande {
-  id: string;
-  montant: number;
-  status: "brouillon" | "validee" | "payee" | "expediee";
-}
-
-function expédier(commande: Commande): void {
-  assert(commande.status === "payee", "La commande doit etre payee avant expedition");
-  // Apres l'assertion, TypeScript narrowe le status ? Non, pas avec assert(condition)
-  // Pour narrower le type, il faut utiliser asserts ... is ...
-
-  console.log(`Expedition de la commande ${commande.id}`);
-}
-```
-
-### Comparaison assert vs if/throw
-
-```typescript
-// Methode 1 : if + throw (verbose mais clair)
-function traiter1(valeur: string | null): void {
-  if (valeur === null) {
-    throw new Error("Valeur ne peut pas etre null");
-  }
-  // TypeScript narrow automatiquement — valeur est string
-  console.log(valeur.toUpperCase());
-}
-
-// Methode 2 : assertion function (reutilisable)
-function assertNonNull<T>(v: T | null): asserts v is T {
-  if (v === null) throw new Error("Null non autorise");
-}
-
-function traiter2(valeur: string | null): void {
-  assertNonNull(valeur);
-  // Meme narrowing, mais la logique est externalisee
-  console.log(valeur.toUpperCase());
-}
-
-// Les deux methodes donnent le meme resultat
-// assert est mieux quand tu veux reutiliser la verification
-```
-
----
-
-## Exhaustive Checking avec never
-
-### Le concept
-
-La vérification exhaustive (exhaustive checking) s'assure que **tous les cas** d'une union sont geres. Si un cas est oublie, TypeScript généré une erreur :
-
-```typescript
-type CouleurFeu = "rouge" | "orange" | "vert";
-
-function actionFeu(couleur: CouleurFeu): string {
-  switch (couleur) {
-    case "rouge":
-      return "Arretez-vous";
-    case "orange":
-      return "Ralentissez";
-    case "vert":
-      return "Passez";
+      // n : variante push → deviceId, title, body disponibles
+      return `Push vers ${n.deviceId} — ${n.title}`;
     default:
-      // Si tous les cas sont geres, couleur est de type 'never'
-      const _exhaustif: never = couleur;
-      return _exhaustif;
+      return assertNever(n);
   }
 }
 
-// Maintenant, si on ajoute un nouveau cas a CouleurFeu :
-// type CouleurFeu = "rouge" | "orange" | "vert" | "clignotant";
-// L'assignation a 'never' dans le default echoue :
-// Type '"clignotant"' is not assignable to type 'never'
-// → On est FORCE de gerer le nouveau cas !
-```
-
-### Pourquoi c'est important
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  VERIFICATION EXHAUSTIVE                                      │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Sans verification exhaustive :                              │
-│  - On ajoute un nouveau type a l'union                       │
-│  - On oublie de le gerer dans un switch                      │
-│  - Bug silencieux en production !                            │
-│                                                              │
-│  Avec verification exhaustive :                              │
-│  - On ajoute un nouveau type a l'union                       │
-│  - ERREUR DE COMPILATION dans tous les switch qui            │
-│    ne gerent pas le nouveau cas                              │
-│  - Impossible d'oublier !                                    │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Helper function pour l'exhaustive check
-
-```typescript
-// Fonction utilitaire reutilisable
-function exhaustiveCheck(value: never): never {
-  throw new Error(`Cas non gere : ${JSON.stringify(value)}`);
+// Type guard réutilisable pour filtrer une variante précise
+export function estPush(
+  n: Notification,
+): n is Extract<Notification, { kind: "push" }> {
+  return n.kind === "push";
 }
 
-// Utilisation dans toutes les unions
-type Animal = { type: "chat"; ronronne: boolean }
-            | { type: "chien"; aboie: boolean }
-            | { type: "poisson"; nage: boolean };
+const file: Notification[] = [
+  { kind: "email", to: "a@tribu.zen", subject: "Bienvenue", body: "..." },
+  { kind: "push", deviceId: "dev-1", title: "Nouveau membre", body: "..." },
+];
 
-function decrireAnimal(animal: Animal): string {
-  switch (animal.type) {
-    case "chat":
-      return `Chat qui ${animal.ronronne ? "ronronne" : "ne ronronne pas"}`;
-    case "chien":
-      return `Chien qui ${animal.aboie ? "aboie" : "n'aboie pas"}`;
-    case "poisson":
-      return `Poisson qui ${animal.nage ? "nage" : "ne nage pas"}`;
-    default:
-      return exhaustiveCheck(animal);
-  }
-}
-
-// Si on ajoute { type: "oiseau"; vole: boolean } a Animal
-// sans gerer le cas dans le switch :
-// Erreur : Argument of type '{ type: "oiseau"; vole: boolean }' is not
-//          assignable to parameter of type 'never'
+// Grâce au predicate `is`, pushOnly est typé { kind: "push"; ... }[]
+const pushOnly = file.filter(estPush);
+console.log(pushOnly.length); // 1
 ```
 
 ---
 
-## Control Flow Analysis
+## 4. Pièges & misconceptions
 
-### Comment TypeScript analyse le flux
-
-TypeScript suit le flux d'exécution de ton code et **narrow les types automatiquement** :
+### PIÈGE #1 — Discriminant non littéral
 
 ```typescript
-function analyserDonnee(donnee: string | number | null): void {
-  // Ici : string | number | null
-
-  if (donnee === null) {
-    console.log("Pas de donnee");
-    return; // Early return — sort de la fonction
+// ❌ status: string ne discrimine PAS — pas de narrowing par variante
+type Inv = { status: string; memberId?: string };
+function f(i: Inv) {
+  if (i.status === "accepted") {
+    // i.memberId reste string | undefined — TS ne relie pas status et memberId
   }
-  // Ici : string | number (null a ete elimine par le return)
+}
 
-  if (typeof donnee === "string") {
-    console.log(`Texte de ${donnee.length} caracteres`);
-    return;
-  }
-  // Ici : number (string a ete elimine par le return)
+// ✅ Union de types littéraux — le tag relie chaque variante à ses champs
+type InvOk =
+  | { status: "pending" }
+  | { status: "accepted"; memberId: string };
+```
 
-  console.log(`Nombre : ${donnee.toFixed(2)}`);
+**Règle :** un discriminant doit être une union de **littéraux** (`"a" | "b"`), pas `string`.
+
+### PIÈGE #2 — Truthiness sur `0` ou `""`
+
+```typescript
+// ❌ 0 et "" sont falsy → traités comme "absents" à tort
+function badge(n: number | null): string {
+  if (!n) return "aucun"; // n === 0 renvoie "aucun" — BUG
+  return `${n} notifs`;
+}
+
+// ✅ Comparer explicitement à null/undefined
+function badgeOk(n: number | null): string {
+  if (n === null) return "aucun";
+  return `${n} notifs`; // 0 → "0 notifs", correct
 }
 ```
 
-### Narrowing avec les affectations
+**Règle :** pour narrower un `number` ou un `string` nullable, teste `=== null`/`=== undefined`, jamais la truthiness.
+
+### PIÈGE #3 — Oublier le `default` avec `never`
 
 ```typescript
-// TypeScript suit les reassignations
-let valeur: string | number;
-
-valeur = "hello";
-// Ici, valeur est string
-console.log(valeur.toUpperCase()); // OK
-
-valeur = 42;
-// Ici, valeur est number
-console.log(valeur.toFixed(2)); // OK
-
-// Mais le type declare reste string | number
-// pour la suite du flux
-```
-
-### Narrowing avec les fonctions de controle de flux
-
-```typescript
-// TypeScript comprend les early returns
-function traiter(valeur: string | null): string {
-  if (!valeur) {
-    return "par defaut";
+// ❌ Sans exhaustiveness, un statut ajouté plus tard passe silencieusement
+function label(inv: Invitation): string {
+  switch (inv.status) {
+    case "pending":  return "En attente";
+    case "accepted": return "Acceptée";
+    // "expired" oublié → renvoie undefined à l'exécution, AUCUNE erreur TS
   }
-  // valeur est string ici (null a ete gere au-dessus)
-  return valeur.trim();
+  return "?";
 }
 
-// TypeScript comprend les throw
-function assertDefini<T>(valeur: T | undefined, nom: string): T {
-  if (valeur === undefined) {
-    throw new Error(`${nom} est undefined`);
+// ✅ default avec assertNever → erreur de compilation si un cas manque
+function labelOk(inv: Invitation): string {
+  switch (inv.status) {
+    case "pending":  return "En attente";
+    case "accepted": return "Acceptée";
+    case "expired":  return "Expirée";
+    default:         return assertNever(inv);
   }
-  // valeur est T ici
-  return valeur;
 }
 ```
 
-### Narrowing avec l'affectation conditionnelle
+**Règle :** toute exhaustion d'union discriminée finit par `default: return assertNever(x)`.
+
+### PIÈGE #4 — Confondre `|` et `&`
 
 ```typescript
-// TypeScript comprend les ternaires et les &&
-function obtenirLongueur(texte: string | null): number {
-  // Methode 1 : if classique
-  if (texte !== null) {
-    return texte.length;
-  }
-  return 0;
+// ❌ On veut « admin OU membre », on écrit une intersection
+type Role = { admin: true } & { membre: true };
+// Role exige les DEUX à la fois — rarement l'intention
 
-  // Methode 2 : ternaire
-  // return texte !== null ? texte.length : 0;
+// ✅ Union pour « l'un ou l'autre »
+type RoleOk = { type: "admin" } | { type: "membre" };
+```
 
-  // Methode 3 : optional chaining + nullish coalescing
-  // return texte?.length ?? 0;
-}
+**Règle :** `|` = alternative (états mutuellement exclusifs), `&` = fusion (cumul de contraintes).
+
+---
+
+## 5. Ancrage TribuZen
+
+Le back-office TribuZen manipule plusieurs entités qui sont « dans un état parmi N » — cas d'école pour les unions discriminées.
+
+**`Invitation`** (`src/types/invitation.ts`) — une invitation à rejoindre une tribu passe par `pending` → `accepted` (avec `memberId`) ou `expired` (avec `expiredAt`). Modélisée en union discriminée sur `status`, chaque écran (liste des invitations, badge de relance, page membre) narrow le statut avant d'afficher — impossible de lire `memberId` sur une invitation encore en attente.
+
+**`Notification`** (`src/types/notification.ts`) — les notifications (email de bienvenue, SMS de rappel, push « nouveau membre ») sont une union sur `kind`. Le service d'envoi (`envoyer`) fait un `switch (n.kind)` terminé par `assertNever` : ajouter un canal (ex. `"webhook"`) provoque une erreur de compilation dans le service tant qu'il n'est pas géré.
+
+**Exhaustivité systématique** — chaque `switch` sur une union discriminée du produit se termine par `assertNever`, via l'util partagé `src/utils/assert.ts`. C'est la convention TribuZen : aucun état métier ne peut être ajouté sans que le compilateur ne réclame son traitement partout.
+
+Fichiers cibles dans `smaurier/tribuzen` :
+
+```
+tribuzen/src/
+  types/
+    invitation.ts       # union discriminée sur status
+    notification.ts     # union discriminée sur kind
+  utils/
+    assert.ts           # assertNever(x: never): never
+  features/
+    invitation/resumerInvitation.ts
+    notification/envoyer.ts
 ```
 
 ---
 
-## Optional Chaining + Narrowing
+## 6. Points clés
 
-### Combiner ?. avec les verifications de type
+1. Une **union** `A | B` = une valeur dans un seul type à la fois ; on n'accède qu'aux membres communs tant qu'on n'a pas narrowé.
+2. Une **intersection** `A & B` = une valeur qui satisfait les deux ; `|` = alternative, `&` = cumul.
+3. Le **narrowing** réduit une union via `typeof` (primitifs), `instanceof` (classes), `in` (propriété), égalité (`=== null`), truthiness (attention à `0`/`""`).
+4. Une **union discriminée** partage un tag littéral commun (`status`, `kind`) — c'est LE pattern pour modéliser un état ; TS narrow automatiquement chaque variante.
+5. Le discriminant doit être un **type littéral**, pas `string`, sinon pas de narrowing par variante.
+6. L'**exhaustiveness checking** avec `never` (`default: return assertNever(x)`) transforme un cas oublié en erreur de compilation.
+7. Un **type guard** `x is T` sert quand `typeof`/`in` ne suffisent pas (validation `unknown`, filtres) et rend le narrowing réutilisable.
 
-```typescript
-interface Utilisateur {
-  nom: string;
-  adresse?: {
-    rue?: string;
-    ville: string;
-    codePostal?: string;
-    pays: {
-      nom: string;
-      code: string;
-    };
-  };
-}
+---
 
-function afficherAdresse(utilisateur: Utilisateur): string {
-  // Optional chaining pour acceder aux proprietes imbriquees
-  const ville = utilisateur.adresse?.ville;
-  const rue = utilisateur.adresse?.rue;
-  const pays = utilisateur.adresse?.pays.nom;
+## 7. Seeds Anki
 
-  // Chaque valeur est potentiellement undefined
-  // ville : string | undefined
-  // rue : string | undefined
-  // pays : string | undefined
-
-  // Narrowing avec des verifications
-  if (!utilisateur.adresse) {
-    return "Adresse non renseignee";
-  }
-
-  // Apres cette verification, utilisateur.adresse est defini
-  let result = utilisateur.adresse.ville;
-
-  if (utilisateur.adresse.rue) {
-    result = `${utilisateur.adresse.rue}, ${result}`;
-  }
-
-  result += ` — ${utilisateur.adresse.pays.nom}`;
-
-  return result;
-}
-
-// Tests
-const alice: Utilisateur = { nom: "Alice" };
-console.log(afficherAdresse(alice));
-// "Adresse non renseignee"
-
-const bob: Utilisateur = {
-  nom: "Bob",
-  adresse: {
-    rue: "42 rue de la Paix",
-    ville: "Paris",
-    pays: { nom: "France", code: "FR" },
-  },
-};
-console.log(afficherAdresse(bob));
-// "42 rue de la Paix, Paris — France"
 ```
-
-### Le pattern "guard clause"
-
-```typescript
-// Guard clauses = verifications au debut qui eliminent les cas invalides
-// Le code principal est ensuite non-indente et clair
-
-function calculerLivraison(
-  commande: {
-    poids?: number;
-    destination?: string;
-    express?: boolean;
-  } | null
-): number {
-  // Guard clause 1 : commande nulle
-  if (!commande) {
-    throw new Error("Commande requise");
-  }
-
-  // Guard clause 2 : poids manquant
-  if (!commande.poids) {
-    throw new Error("Poids requis");
-  }
-
-  // Guard clause 3 : destination manquante
-  if (!commande.destination) {
-    throw new Error("Destination requise");
-  }
-
-  // Code principal — tous les types sont narrow
-  const base = commande.poids * 2.5;
-  const multiplicateur = commande.destination === "international" ? 3 : 1;
-  const express = commande.express ? 10 : 0;
-
-  return base * multiplicateur + express;
-}
+Quelle est la différence entre une union (A | B) et une intersection (A & B) ?|Union = une valeur d'un seul des types à la fois, on n'accède qu'aux membres communs. Intersection = une valeur qui satisfait tous les types en même temps, cumul de toutes les propriétés.
+Qu'est-ce qu'une union discriminée et à quoi sert le discriminant ?|Une union d'objets partageant une propriété commune de type littéral (le tag/discriminant, ex. status: "pending"). TypeScript s'en sert pour narrower automatiquement chaque variante dans un switch/if, et garantit que chaque variante n'a que ses champs légitimes.
+Pourquoi status: string ne fonctionne-t-il pas comme discriminant ?|Un discriminant doit être une union de types littéraux (ex. "pending" | "accepted"). Avec status: string, TypeScript ne peut pas relier une valeur de status à un jeu de champs précis, donc aucun narrowing par variante n'a lieu.
+Comment garantir qu'un switch traite tous les cas d'une union (exhaustiveness) ?|Ajouter un default qui assigne la valeur à never : const _x: never = valeur, ou return assertNever(valeur). Si un cas est oublié (ou une variante ajoutée plus tard), la valeur n'est plus never et la compilation échoue.
+Quelles sont les cinq techniques de narrowing d'une union ?|typeof (primitifs), instanceof (instances de classes), in (présence d'une propriété), égalité (=== / == null), et truthiness (if (x)). Attention : la truthiness traite 0 et "" comme falsy.
+Pourquoi if (n) est-il dangereux pour narrower un number | null ?|0 est une valeur falsy : if (n) est faux quand n === 0, donc le cas 0 tombe dans le else comme s'il était absent. Il faut comparer explicitement : if (n === null).
+Quand écrire un type guard utilisateur (x is T) plutôt que d'utiliser typeof/in directement ?|Quand la vérification est trop complexe pour typeof/in (validation d'une donnée unknown venant d'une API), ou quand on veut réutiliser le narrowing, notamment dans un filter où seul un predicate is permet de narrower le type du tableau résultat.
+Que représente le type never et pourquoi est-il utile en fin de switch ?|never est le type des valeurs qui ne peuvent jamais exister. En fin de switch exhaustif, la variable narrowée devient never ; l'assigner à never (ou la passer à assertNever) échoue à la compilation si un cas n'est pas géré, forçant le traitement de toutes les variantes.
 ```
 
 ---
 
-## Pratique
+## Pont vers le lab
 
-### Exercice 1 — Discriminated Union
-
-Cree un type `Evenement` pour un calendrier avec ces variantes :
-- `Reunion` : titre, participants (string[]), salle, dureeMinutes
-- `Rappel` : titre, importance ("haute" | "moyenne" | "basse")
-- `Tache` : titre, description, dateEcheance, terminee
-
-Ecris une fonction `resumer(evenement)` qui retourne un résumé différent selon le type.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-interface Reunion {
-  type: "reunion";
-  titre: string;
-  participants: string[];
-  salle: string;
-  dureeMinutes: number;
-}
-
-interface Rappel {
-  type: "rappel";
-  titre: string;
-  importance: "haute" | "moyenne" | "basse";
-}
-
-interface Tache {
-  type: "tache";
-  titre: string;
-  description: string;
-  dateEcheance: Date;
-  terminee: boolean;
-}
-
-type Evenement = Reunion | Rappel | Tache;
-
-function resumer(evenement: Evenement): string {
-  switch (evenement.type) {
-    case "reunion":
-      return `Reunion "${evenement.titre}" — ${evenement.participants.length} participants, salle ${evenement.salle}, ${evenement.dureeMinutes} min`;
-
-    case "rappel": {
-      const emoji =
-        evenement.importance === "haute"
-          ? "!!!"
-          : evenement.importance === "moyenne"
-          ? "!!"
-          : "!";
-      return `Rappel ${emoji} "${evenement.titre}"`;
-    }
-
-    case "tache": {
-      const statut = evenement.terminee ? "Terminee" : "En cours";
-      const echeance = evenement.dateEcheance.toLocaleDateString("fr-FR");
-      return `Tache "${evenement.titre}" — ${statut} (echeance : ${echeance})`;
-    }
-
-    default:
-      const _exhaustif: never = evenement;
-      return _exhaustif;
-  }
-}
-
-// Tests
-const reunion: Reunion = {
-  type: "reunion",
-  titre: "Sprint Planning",
-  participants: ["Alice", "Bob", "Charlie"],
-  salle: "Salle A",
-  dureeMinutes: 60,
-};
-
-const rappel: Rappel = {
-  type: "rappel",
-  titre: "Deployer en production",
-  importance: "haute",
-};
-
-const tache: Tache = {
-  type: "tache",
-  titre: "Ecrire les tests",
-  description: "Tests unitaires pour le module auth",
-  dateEcheance: new Date("2024-12-31"),
-  terminee: false,
-};
-
-console.log(resumer(reunion));
-// Reunion "Sprint Planning" — 3 participants, salle Salle A, 60 min
-
-console.log(resumer(rappel));
-// Rappel !!! "Deployer en production"
-
-console.log(resumer(tache));
-// Tache "Ecrire les tests" — En cours (echeance : 31/12/2024)
-```
-
-</details>
-
-### Exercice 2 — Type guards complets
-
-Ecris des type guards pour valider des donnees venant d'une API (format unknown) :
-
-1. `estChaine(valeur: unknown): valeur is string`
-2. `estNombrePositif(valeur: unknown): valeur is number` — doit etre > 0
-3. `estTableauNonVide<T>(valeur: unknown): valeur is [T, ...T[]]` — au moins un élément
-4. `estEmail(valeur: unknown): valeur is string` — doit contenir @
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// 1. Verifier que c'est une chaine
-function estChaine(valeur: unknown): valeur is string {
-  return typeof valeur === "string";
-}
-
-// 2. Verifier que c'est un nombre positif
-function estNombrePositif(valeur: unknown): valeur is number {
-  return typeof valeur === "number" && !isNaN(valeur) && valeur > 0;
-}
-
-// 3. Verifier que c'est un tableau non vide
-function estTableauNonVide<T>(valeur: unknown): valeur is [T, ...T[]] {
-  return Array.isArray(valeur) && valeur.length > 0;
-}
-
-// 4. Verifier que c'est un email (validation basique)
-function estEmail(valeur: unknown): valeur is string {
-  return (
-    typeof valeur === "string" &&
-    valeur.includes("@") &&
-    valeur.includes(".") &&
-    valeur.indexOf("@") > 0 &&
-    valeur.indexOf("@") < valeur.lastIndexOf(".")
-  );
-}
-
-// Tests
-console.log(estChaine("hello"));        // true
-console.log(estChaine(42));             // false
-
-console.log(estNombrePositif(42));       // true
-console.log(estNombrePositif(-5));       // false
-console.log(estNombrePositif(NaN));      // false
-
-console.log(estTableauNonVide([1, 2])); // true
-console.log(estTableauNonVide([]));     // false
-
-console.log(estEmail("alice@example.com")); // true
-console.log(estEmail("pas-un-email"));      // false
-console.log(estEmail("@invalid"));          // false
-
-// Utilisation avec narrowing
-function validerInscription(donnees: unknown): void {
-  if (
-    typeof donnees === "object" &&
-    donnees !== null &&
-    "email" in donnees &&
-    "age" in donnees
-  ) {
-    const { email, age } = donnees as { email: unknown; age: unknown };
-
-    if (!estEmail(email)) {
-      console.error("Email invalide");
-      return;
-    }
-    // email est string ici
-
-    if (!estNombrePositif(age)) {
-      console.error("Age invalide");
-      return;
-    }
-    // age est number ici
-
-    console.log(`Inscription de ${email}, age ${age}`);
-  }
-}
-
-validerInscription({ email: "alice@example.com", age: 30 });
-// "Inscription de alice@example.com, age 30"
-```
-
-</details>
-
-### Exercice 3 — Narrowing exhaustif
-
-Cree un type `Paiement` avec les variantes : `CarteBancaire`, `Virement`, `PayPal`, `Especes`.
-Ecris une fonction `traiterPaiement` avec vérification exhaustive.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-interface PaiementCarteBancaire {
-  methode: "carte";
-  numero: string;          // Les 4 derniers chiffres
-  montant: number;
-  devise: string;
-}
-
-interface PaiementVirement {
-  methode: "virement";
-  iban: string;
-  montant: number;
-  devise: string;
-  reference: string;
-}
-
-interface PaiementPayPal {
-  methode: "paypal";
-  email: string;
-  montant: number;
-  devise: string;
-}
-
-interface PaiementEspeces {
-  methode: "especes";
-  montant: number;
-  devise: string;
-}
-
-type Paiement =
-  | PaiementCarteBancaire
-  | PaiementVirement
-  | PaiementPayPal
-  | PaiementEspeces;
-
-// Helper pour la verification exhaustive
-function exhaustiveCheck(value: never): never {
-  throw new Error(`Methode de paiement non geree : ${JSON.stringify(value)}`);
-}
-
-function traiterPaiement(paiement: Paiement): string {
-  const montantFormate = `${paiement.montant.toFixed(2)} ${paiement.devise}`;
-
-  switch (paiement.methode) {
-    case "carte":
-      return `Paiement par carte ****${paiement.numero} — ${montantFormate}`;
-
-    case "virement":
-      return `Virement IBAN ${paiement.iban} — ${montantFormate} (ref: ${paiement.reference})`;
-
-    case "paypal":
-      return `Paiement PayPal via ${paiement.email} — ${montantFormate}`;
-
-    case "especes":
-      return `Paiement en especes — ${montantFormate}`;
-
-    default:
-      return exhaustiveCheck(paiement);
-  }
-}
-
-// Tests
-console.log(
-  traiterPaiement({
-    methode: "carte",
-    numero: "4242",
-    montant: 59.99,
-    devise: "EUR",
-  })
-);
-// "Paiement par carte ****4242 — 59.99 EUR"
-
-console.log(
-  traiterPaiement({
-    methode: "paypal",
-    email: "alice@example.com",
-    montant: 29.99,
-    devise: "EUR",
-  })
-);
-// "Paiement PayPal via alice@example.com — 29.99 EUR"
-
-console.log(
-  traiterPaiement({
-    methode: "especes",
-    montant: 15.0,
-    devise: "EUR",
-  })
-);
-// "Paiement en especes — 15.00 EUR"
-```
-
-</details>
-
-### Exercice 4 — Control flow avance
-
-Ecris une fonction `parseConfig` qui prend un objet `unknown` et retourne un objet `Config` type, en utilisant des guard clauses et du narrowing :
-
-```typescript
-interface Config {
-  host: string;
-  port: number;
-  ssl: boolean;
-  database: {
-    url: string;
-    maxConnections: number;
-  };
-}
-```
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-interface Config {
-  host: string;
-  port: number;
-  ssl: boolean;
-  database: {
-    url: string;
-    maxConnections: number;
-  };
-}
-
-class ConfigError extends Error {
-  constructor(champ: string, attendu: string, recu: unknown) {
-    super(`Champ '${champ}' invalide : attendu ${attendu}, recu ${typeof recu} (${JSON.stringify(recu)})`);
-    this.name = "ConfigError";
-  }
-}
-
-function parseConfig(donnees: unknown): Config {
-  // Guard : doit etre un objet
-  if (typeof donnees !== "object" || donnees === null) {
-    throw new ConfigError("racine", "object", donnees);
-  }
-
-  const obj = donnees as Record<string, unknown>;
-
-  // Guard : host
-  if (typeof obj.host !== "string") {
-    throw new ConfigError("host", "string", obj.host);
-  }
-
-  // Guard : port
-  if (typeof obj.port !== "number" || obj.port < 0 || obj.port > 65535) {
-    throw new ConfigError("port", "number (0-65535)", obj.port);
-  }
-
-  // Guard : ssl
-  if (typeof obj.ssl !== "boolean") {
-    throw new ConfigError("ssl", "boolean", obj.ssl);
-  }
-
-  // Guard : database
-  if (typeof obj.database !== "object" || obj.database === null) {
-    throw new ConfigError("database", "object", obj.database);
-  }
-
-  const db = obj.database as Record<string, unknown>;
-
-  if (typeof db.url !== "string") {
-    throw new ConfigError("database.url", "string", db.url);
-  }
-
-  if (typeof db.maxConnections !== "number" || db.maxConnections < 1) {
-    throw new ConfigError("database.maxConnections", "number (>= 1)", db.maxConnections);
-  }
-
-  // Toutes les verifications passees — on peut construire l'objet type
-  return {
-    host: obj.host,
-    port: obj.port,
-    ssl: obj.ssl,
-    database: {
-      url: db.url,
-      maxConnections: db.maxConnections,
-    },
-  };
-}
-
-// Tests
-try {
-  const config = parseConfig({
-    host: "localhost",
-    port: 3000,
-    ssl: true,
-    database: {
-      url: "postgres://localhost/mydb",
-      maxConnections: 10,
-    },
-  });
-
-  console.log("Config valide :", config);
-  // Config est maintenant de type Config — entierement type
-} catch (erreur) {
-  if (erreur instanceof ConfigError) {
-    console.error(erreur.message);
-  }
-}
-
-// Test avec donnees invalides
-try {
-  parseConfig({
-    host: "localhost",
-    port: "3000", // Erreur : string au lieu de number
-    ssl: true,
-    database: {
-      url: "postgres://localhost/mydb",
-      maxConnections: 10,
-    },
-  });
-} catch (erreur) {
-  if (erreur instanceof ConfigError) {
-    console.error(erreur.message);
-    // "Champ 'port' invalide : attendu number (0-65535), recu string ("3000")"
-  }
-}
-```
-
-</details>
-
-### Exercice 5 — Machine a états
-
-Implemente une machine a états pour une commande e-commerce avec les états :
-`brouillon` → `validee` → `payee` → `expediee` → `livree`
-
-Chaque transition doit etre typee — impossible de passer directement de `brouillon` a `livree`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Chaque etat a des proprietes specifiques
-interface CommandeBrouillon {
-  etat: "brouillon";
-  produits: string[];
-}
-
-interface CommandeValidee {
-  etat: "validee";
-  produits: string[];
-  montantTotal: number;
-}
-
-interface CommandePayee {
-  etat: "payee";
-  produits: string[];
-  montantTotal: number;
-  paiementId: string;
-}
-
-interface CommandeExpediee {
-  etat: "expediee";
-  produits: string[];
-  montantTotal: number;
-  paiementId: string;
-  trackingNumber: string;
-}
-
-interface CommandeLivree {
-  etat: "livree";
-  produits: string[];
-  montantTotal: number;
-  paiementId: string;
-  trackingNumber: string;
-  dateLivraison: Date;
-}
-
-type Commande =
-  | CommandeBrouillon
-  | CommandeValidee
-  | CommandePayee
-  | CommandeExpediee
-  | CommandeLivree;
-
-// Chaque transition est une fonction avec des types d'entree/sortie precis
-function valider(commande: CommandeBrouillon): CommandeValidee {
-  const montantTotal = commande.produits.length * 19.99; // Simplifie
-  return {
-    etat: "validee",
-    produits: commande.produits,
-    montantTotal,
-  };
-}
-
-function payer(commande: CommandeValidee, paiementId: string): CommandePayee {
-  return {
-    ...commande,
-    etat: "payee",
-    paiementId,
-  };
-}
-
-function expedier(commande: CommandePayee, trackingNumber: string): CommandeExpediee {
-  return {
-    ...commande,
-    etat: "expediee",
-    trackingNumber,
-  };
-}
-
-function livrer(commande: CommandeExpediee): CommandeLivree {
-  return {
-    ...commande,
-    etat: "livree",
-    dateLivraison: new Date(),
-  };
-}
-
-// Utilisation — seules les transitions valides compilent
-let commande: Commande = {
-  etat: "brouillon",
-  produits: ["TypeScript Book", "Clavier"],
-};
-
-// commande est CommandeBrouillon — on peut la valider
-if (commande.etat === "brouillon") {
-  commande = valider(commande);
-}
-
-// commande est CommandeValidee — on peut la payer
-if (commande.etat === "validee") {
-  commande = payer(commande, "PAY-001");
-}
-
-// commande est CommandePayee — on peut l'expedier
-if (commande.etat === "payee") {
-  commande = expedier(commande, "TRACK-123");
-}
-
-// commande est CommandeExpediee — on peut la livrer
-if (commande.etat === "expediee") {
-  commande = livrer(commande);
-}
-
-console.log(commande);
-// { etat: "livree", produits: [...], montantTotal: 39.98,
-//   paiementId: "PAY-001", trackingNumber: "TRACK-123",
-//   dateLivraison: Date }
-
-// Impossible de faire des transitions invalides :
-// payer({ etat: "brouillon", produits: [] }, "PAY-001");
-// Erreur ! CommandeBrouillon n'est pas CommandeValidee
-```
-
-</details>
-
----
-
-## Récapitulatif
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   CE QUE TU AS APPRIS                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. Union types (|) :                                        │
-│     - Une valeur peut etre de plusieurs types                │
-│     - Seules les proprietes communes sont accessibles        │
-│                                                              │
-│  2. Discriminated unions :                                   │
-│     - Un champ "tag" commun permet le narrowing automatique  │
-│     - Pattern essentiel pour les actions, etats, evenements  │
-│                                                              │
-│  3. Techniques de narrowing :                                │
-│     - typeof : types primitifs                               │
-│     - instanceof : classes et heritage                       │
-│     - in : presence d'une propriete                          │
-│     - Truthiness : valeurs truthy/falsy                      │
-│     - Egalite (===) : comparaison directe                    │
-│     - switch : narrowing multi-cas                           │
-│                                                              │
-│  4. Type guards (is) : narrowing reutilisable                │
-│                                                              │
-│  5. Assertion functions (asserts) : throw si invalide        │
-│                                                              │
-│  6. Exhaustive checking (never) :                            │
-│     - Garantit que tous les cas sont geres                   │
-│     - Erreur de compilation si un cas est oublie             │
-│                                                              │
-│  7. Control flow analysis :                                  │
-│     - TypeScript suit les if, return, throw                  │
-│     - Le type est narrow automatiquement                     │
-│                                                              │
-│  8. Optional chaining + narrowing :                          │
-│     - ?. combine avec les guard clauses                      │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Pour aller plus loin
-
-Dans les prochains modules, nous allons approfondir :
-
-- Les **génériques** — parametrer les types pour créer du code réutilisable
-- Les **utility types** — `Partial`, `Required`, `Pick`, `Omit`, `Record`, etc.
-- Les **mapped types** et **conditional types** — transformer les types
-- Les **classes** avec TypeScript — héritage, modificateurs d'acces, abstractions
-
-> **Conseil** : Les discriminated unions et le narrowing sont au coeur de TypeScript. Entraine-toi a modeliser des problèmes réels (états d'une commande, types de notifications, réponses d'API) avec des unions discriminees. C'est un pattern que tu utiliseras tous les jours.
-
----
-
-<!-- parcours-recommande -->
-
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 04 narrowing](../screencasts/screencast-04-narrowing.md)
-2. **Lab** : [lab-04-narrowing](../labs/lab-04-narrowing/README)
-3. **Visualisation** : [Type Narrowing](../visualizations/type-narrowing.html)
-4. **Quiz** : [quiz 04 narrowing](../quizzes/quiz-04-narrowing.html)
-:::
+> Lab associé : `00-typescript/labs/lab-04-narrowing/README.md`. Modéliser l'état d'une `Invitation` TribuZen en union discriminée, narrower chaque cas et garantir l'exhaustivité avec `never` — corrigé complet inclus.

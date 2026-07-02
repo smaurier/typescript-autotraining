@@ -1,1285 +1,537 @@
-# 08 — Enums, Tuples & Types speciaux (never, unknown, void)
+---
+titre: Enums, tuples et types spéciaux
+cours: 00-typescript
+notions: [enums numériques, enums string, const enum, pièges runtime et tree-shaking des enums, erasableSyntaxOnly TS 5.8, as const plus union de littéraux, tuples, labeled tuples, éléments optionnels et rest, variadic tuples, readonly tuples, type object, type accolades vides, rappel unknown et never]
+outcomes: [choisir en connaissance de cause entre enum et as const plus union, typer un tuple avec labels rest et readonly, distinguer object des accolades vides et de unknown]
+prerequis: [07-generics-avances]
+next: 09-modules-et-resolution
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: MemberRole en as const union, position [lat, lng] typée et helper variadic pour l'admin TribuZen
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 4 heures
-> **Difficulte** : 2/5
-> **Prérequis** : Modules 01 a 07 (types de base, fonctions, interfaces, unions, classes, generics)
-> **Objectifs** :
->
-> - Maîtriser les enums numériques, string et const
-> - Savoir quand utiliser les enums vs les unions de litteraux
-> - Comprendre les tuples, tuples readonly et tuples nommes
-> - Maîtriser le type `never` et son role dans l'exhaustivite
-> - Utiliser `unknown` comme alternative securisee a `any`
-> - Distinguer `void`, `undefined` et `null`
-> - Decouvrir `symbol` et `unique symbol`
-> - Pratiquer les assertions de types avancees
+# Enums, tuples et types spéciaux
+
+> **Outcomes — tu sauras FAIRE :** choisir en connaissance de cause entre un `enum` et un `as const` + union de littéraux, typer un tuple avec labels / rest / `readonly`, distinguer `object`, `{}`, `unknown` et `never`.
+> **Difficulté :** :star::star::star:
+
+## 1. Cas concret d'abord
+
+Tu ouvres `tribuzen/types/index.ts` et tu tombes sur le rôle d'un membre :
+
+```ts
+export type MemberRole = "admin" | "parent" | "enfant";
+```
+
+Un collègue venu de C# ou de Java propose de « faire propre » et de remplacer ça par un enum :
+
+```ts
+// La proposition — familière, mais lourde de conséquences
+export enum MemberRole {
+  Admin = "admin",
+  Parent = "parent",
+  Enfant = "enfant",
+}
+```
+
+À première vue c'est équivalent. En réalité, ce petit changement :
+
+1. **ajoute du JavaScript dans le bundle** — l'enum génère un objet à l'exécution, l'union non ;
+2. **casse le build sous `--erasableSyntaxOnly`** (TS 5.8) et sous le type-stripping natif de Node — l'enum n'est pas « effaçable » ;
+3. **change la façon d'écrire les valeurs partout** : `MemberRole.Admin` au lieu de la chaîne `"admin"` reçue telle quelle d'une API.
+
+Ce module te donne les critères pour trancher ce débat honnêtement — enum vs `as const` + union — et couvre au passage les tuples et les types spéciaux (`object`, `{}`, rappel `unknown`/`never`) que tu croiseras dans le même fichier de types.
 
 ---
 
-## Introduction — Pourquoi ces types existent-ils ?
+## 2. Théorie complète, concise
 
-### Le problème qu'on cherche à résoudre
+### 2.1 Enums numériques
 
-Les types vus jusque-la couvrent la majorité des cas, mais pas tous. Certaines situations demandent des outils plus précis :
+Par défaut, un `enum` est numérique : les membres reçoivent `0, 1, 2…` automatiquement.
 
-- représenter une liste fermée de valeurs possibles
-- décrire un tableau dont l'ordre et la taille comptent vraiment
-- exprimer qu'une valeur est inconnue pour l'instant
-- exprimer qu'un cas est impossible
-- distinguer une fonction qui ne retourne rien d'une fonction qui retourne réellement une valeur
-
-Sans ces types spéciaux, on finit par utiliser des types trop larges, donc moins sûrs.
-
-### La solution : des types spécialisés
-
-Ce module présente justement ces outils particuliers :
-
-- les `enum` pour nommer un ensemble de constantes
-- les tuples pour dire "a l'index 0 j'ai ceci, a l'index 1 j'ai cela"
-- `unknown` pour rester prudent face a une donnée non vérifiée
-- `never` pour représenter l'impossible
-- `void` pour modéliser l'absence de valeur utile
-
-### Analogie : les roles dans un theatre
-
-Chaque type spécial joue un role précis dans la pièce qu'est ton programme :
-- `never` : l'acteur qui ne monte jamais sur scène
-- `unknown` : l'acteur masqué dont il faut vérifier l'identité
-- `void` : l'acteur silencieux qui agit sans rien rendre d'utile
-- `any` : l'acteur qui improvise tout, donc qu'on contrôle mal
-
-> 🎯 **Ce qu'il faut retenir** : ces types ne sont pas "exotiques". Ils servent a exprimer des cas réels que les types classiques décrivent mal.
-
----
-
-## Les Enums
-
-Les **enums** (enumerations) permettent de définir un ensemble de constantes nommees. Ils existent à la fois au niveau des types ET au niveau des valeurs (ils generent du code JavaScript).
-
-### Enums numériques
-
-Par defaut, les enums sont numériques. Les valeurs commencent a 0 et s'incrementent automatiquement.
-
-```typescript
-// Enum numerique basique
+```ts
 enum Direction {
-  Nord,    // 0
-  Est,     // 1
-  Sud,     // 2
-  Ouest,   // 3
+  Nord, // 0
+  Est,  // 1
+  Sud,  // 2
+  Ouest, // 3
 }
 
-const maDirection: Direction = Direction.Nord;
-console.log(maDirection);            // 0
-console.log(Direction.Sud);          // 2
-console.log(Direction[2]);           // "Sud" (reverse mapping)
-
-// Enum avec valeurs personnalisees
-enum CodeHTTP {
-  OK = 200,
-  Created = 201,
-  BadRequest = 400,
-  Unauthorized = 401,
-  Forbidden = 403,
-  NotFound = 404,
-  InternalServerError = 500,
-}
-
-function traiterReponse(code: CodeHTTP): string {
-  switch (code) {
-    case CodeHTTP.OK:
-      return "Succes !";
-    case CodeHTTP.NotFound:
-      return "Ressource introuvable.";
-    case CodeHTTP.InternalServerError:
-      return "Erreur serveur.";
-    default:
-      return `Code : ${code}`;
-  }
-}
-
-console.log(traiterReponse(CodeHTTP.OK));       // "Succes !"
-console.log(traiterReponse(CodeHTTP.NotFound)); // "Ressource introuvable."
+const d: Direction = Direction.Nord;
+console.log(d);            // 0
+console.log(Direction[2]); // "Sud"  — reverse mapping (numérique uniquement)
 ```
 
-### Enums string
+Deux propriétés à retenir :
 
-Les enums string necessitent une valeur explicite pour chaque membre. Ils n'ont pas de reverse mapping.
+- **Existe au runtime** : `enum` compile en un vrai objet JavaScript.
+- **Reverse mapping** : l'objet contient `{0:"Nord", Nord:0, ...}`, d'où `Direction[2] === "Sud"`. C'est aussi ce qui double la taille de l'objet généré.
 
-```typescript
-enum Couleur {
-  Rouge = "ROUGE",
-  Vert = "VERT",
-  Bleu = "BLEU",
-  Jaune = "JAUNE",
-  Blanc = "BLANC",
-  Noir = "NOIR",
+Piège classique : les valeurs numériques sont **implicites**. Insérer un membre au milieu décale tout ce qui suit — un `2` sérialisé en base ne veut soudain plus dire la même chose.
+
+### 2.2 Enums string
+
+Les enums string exigent une valeur explicite par membre. **Pas** de reverse mapping.
+
+```ts
+enum InvitationStatus {
+  Pending = "pending",
+  Accepted = "accepted",
+  Expired = "expired",
+  Revoked = "revoked",
 }
-
-enum Taille {
-  XS = "extra-small",
-  S = "small",
-  M = "medium",
-  L = "large",
-  XL = "extra-large",
-}
-
-interface Vetement {
-  nom: string;
-  couleur: Couleur;
-  taille: Taille;
-  prix: number;
-}
-
-const tshirt: Vetement = {
-  nom: "T-shirt basique",
-  couleur: Couleur.Bleu,
-  taille: Taille.M,
-  prix: 19.99,
-};
-
-// Les enums string sont lisibles dans les logs
-console.log(tshirt.couleur); // "BLEU"
-console.log(tshirt.taille);  // "medium"
 ```
 
-### Enums heterogenes (deconseilles)
+Ils règlent le problème des valeurs implicites (chaque membre est nommé) et sont lisibles dans les logs. Mais ils **existent toujours au runtime** et restent soumis aux pièges de la section 2.4.
 
-```typescript
-// Possible mais deconseille : melange de types
-enum Melange {
-  Non = 0,
-  Oui = "OUI",
-}
-// Evitez ce pattern : il rend le code confus
-```
+### 2.3 `const enum`
 
-### `const enum`
+Un `const enum` est **inliné** à la compilation : chaque usage est remplacé par sa valeur littérale, aucun objet n'est généré.
 
-Les `const enum` sont **complètement effaces** à la compilation. Ils sont remplaces par leurs valeurs litterales, ce qui elimine le surpoids a l'exécution.
-
-```typescript
+```ts
 const enum Priorite {
   Basse = 0,
-  Moyenne = 1,
   Haute = 2,
-  Critique = 3,
 }
 
 const p = Priorite.Haute;
-// A la compilation, TypeScript genere simplement :
-// const p = 2;
-// Pas d'objet `Priorite` genere en JavaScript
-
-function estUrgent(priorite: Priorite): boolean {
-  return priorite >= Priorite.Haute;
-}
-
-console.log(estUrgent(Priorite.Critique)); // true
-console.log(estUrgent(Priorite.Basse));    // false
+// émis en JS : const p = 2;  — l'objet `Priorite` n'existe pas
 ```
 
-> **Attention** : les `const enum` ne supportent pas le reverse mapping et ne fonctionnent pas bien avec `--isolatedModules` (utilise par Babel, Vite, etc.). Preferez les objets `as const` dans ce cas.
+C'est le plus léger… mais le plus fragile :
 
-### Enums ambiants (declare enum)
+- **Incompatible avec `isolatedModules`** (Babel, esbuild, Vite, SWC) : ces outils compilent fichier par fichier et ne peuvent pas inliner une valeur définie ailleurs.
+- **Incompatible avec `--erasableSyntaxOnly`** (voir 2.4) : c'est une construction qui n'est pas purement effaçable.
+- Pas de reverse mapping, pas d'itération.
 
-Les enums ambiants sont utilises pour decrire des enums qui existent déjà dans le runtime (par exemple, venant d'une bibliotheque externe).
+En pratique, dès qu'un projet utilise Vite/esbuild (le cas quasi général en 2026), `const enum` est à éviter.
 
-```typescript
-// Fichier .d.ts ou ambient declaration
-declare enum DirectionExterne {
-  Haut = "UP",
-  Bas = "DOWN",
-  Gauche = "LEFT",
-  Droite = "RIGHT",
-}
+### 2.4 Les pièges des enums (le cœur du débat)
 
-// Utilisation dans le code
-function deplacer(direction: DirectionExterne): void {
-  // TypeScript verifie le type, mais l'enum doit exister au runtime
-  console.log(`Deplacement : ${direction}`);
-}
+**Piège runtime / bundle.** Un `enum` (numérique ou string) génère du code. Multiplié par des dizaines d'enums, ça pèse.
+
+```ts
+enum InvitationStatus { Pending = "pending", Accepted = "accepted" }
+
+// compile (grosso modo) en :
+var InvitationStatus;
+(function (InvitationStatus) {
+  InvitationStatus["Pending"] = "pending";
+  InvitationStatus["Accepted"] = "accepted";
+})(InvitationStatus || (InvitationStatus = {}));
 ```
 
-### Enums vs unions de litteraux
+**Piège tree-shaking.** Cet objet-IIFE n'est pas « pur » aux yeux des bundlers : même si tu n'utilises qu'un membre, l'objet entier est souvent conservé. Une union de littéraux, elle, disparaît totalement à l'émission (coût runtime = zéro).
 
-La question revient souvent : quand utiliser un enum et quand utiliser une union de litteraux ?
+**Piège `erasableSyntaxOnly` (TS 5.8, 2025).** Node peut désormais exécuter du TypeScript en *effaçant* les types (type-stripping) sans les transformer. Or un `enum` ne s'efface pas — il faut le *transformer* en objet. Le flag `--erasableSyntaxOnly` interdit donc toute syntaxe non effaçable :
 
-```typescript
-// Option 1 : Enum
-enum StatutCommande {
-  EnAttente = "EN_ATTENTE",
-  Validee = "VALIDEE",
-  Expediee = "EXPEDIEE",
-  Livree = "LIVREE",
-  Annulee = "ANNULEE",
-}
+```ts
+// Sous --erasableSyntaxOnly :
+enum Role { Admin, User }
+// ❌ error TS1294: This syntax is not allowed when 'erasableSyntaxOnly' is enabled.
+```
 
-// Option 2 : Union de litteraux
-type StatutCommandeUnion = "EN_ATTENTE" | "VALIDEE" | "EXPEDIEE" | "LIVREE" | "ANNULEE";
+Sont aussi interdits : `const enum`, les `namespace` avec code runtime, et les propriétés-paramètres de constructeur. Message clair de l'écosystème : **l'union de littéraux devient le défaut recommandé.**
 
-// Option 3 : Objet as const (recommande dans beaucoup de cas)
-const STATUT_COMMANDE = {
-  EnAttente: "EN_ATTENTE",
-  Validee: "VALIDEE",
-  Expediee: "EXPEDIEE",
-  Livree: "LIVREE",
-  Annulee: "ANNULEE",
+**Piège d'assignabilité (enum numérique).** Un enum numérique accepte n'importe quel nombre :
+
+```ts
+enum Niveau { Bas, Haut }
+const n: Niveau = 99; // ✅ accepté ! 99 n'est pourtant aucun membre
+```
+
+### 2.5 `as const` + union de littéraux — l'alternative
+
+Le pattern qui remplace l'enum sans son bagage runtime :
+
+```ts
+// 1. Un objet figé (readonly, valeurs littérales préservées)
+export const MEMBER_ROLE = {
+  Admin: "admin",
+  Parent: "parent",
+  Enfant: "enfant",
 } as const;
 
-type StatutCommandeConst = typeof STATUT_COMMANDE[keyof typeof STATUT_COMMANDE];
-// "EN_ATTENTE" | "VALIDEE" | "EXPEDIEE" | "LIVREE" | "ANNULEE"
+// 2. Le type union dérivé de l'objet
+export type MemberRole = typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE];
+// => "admin" | "parent" | "enfant"
 ```
 
-#### Tableau comparatif
+Décorticage de `typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE]` :
 
-| Critere                     | Enum                | Union litterale       | Objet `as const`      |
-|-----------------------------|---------------------|-----------------------|-----------------------|
-| Existe au runtime           | Oui                 | Non                   | Oui                   |
-| Taille du bundle            | Plus grand          | Zero                  | Petit                 |
-| Reverse mapping             | Oui (numérique)     | Non                   | Non                   |
-| Tree-shakable               | Non (sauf const)    | Oui                   | Oui                   |
-| Iteration sur les valeurs   | Oui                 | Non (au runtime)      | Oui                   |
-| Compatible isolatedModules  | Partiel             | Oui                   | Oui                   |
+- `typeof MEMBER_ROLE` → le type `{ readonly Admin: "admin"; readonly Parent: "parent"; readonly Enfant: "enfant" }`.
+- `keyof typeof MEMBER_ROLE` → `"Admin" | "Parent" | "Enfant"`.
+- l'accès indexé `[...]` → l'union des **valeurs** : `"admin" | "parent" | "enfant"`.
 
-> **Recommandation** : Pour les nouveaux projets, preferez les **unions de litteraux** ou les **objets `as const`**. N'utilisez les enums que si vous avez besoin du reverse mapping ou de la valeur au runtime de manière spécifique.
+Ce que tu gagnes :
 
----
+| Critère | `enum` | `as const` + union |
+|---|---|---|
+| Coût runtime / bundle | objet généré | **zéro** (le type s'efface) |
+| Tree-shakable | non (sauf const, fragile) | **oui** |
+| `erasableSyntaxOnly` / type-stripping Node | ❌ interdit | ✅ compatible |
+| Valeur d'API (`"admin"`) utilisable directement | non (`Role.Admin`) | **oui** |
+| Itérer sur les valeurs au runtime | oui | oui (`Object.values(MEMBER_ROLE)`) |
+| Reverse mapping numérique | oui | non |
+| Une seule déclaration (type ET valeur) | oui | non (objet + type) |
 
-## Les Tuples
+**Honnêteté d'audit — quand un enum reste défendable :**
 
-Les **tuples** sont des tableaux a **longueur fixe** dont chaque position à un **type spécifique**. Contrairement aux tableaux classiques (`string[]`), les tuples declarent le type exact de chaque élément.
+- Tu as besoin du **reverse mapping numérique** (rare, souvent une odeur de code).
+- Tu maintiens une **grosse base historique** déjà pleine d'enums : la cohérence prime sur la micro-optimisation.
+- Ton toolchain n'active ni `isolatedModules` ni `erasableSyntaxOnly` et l'équipe préfère la déclaration unique enum.
 
-### Tuples basiques
+Ce n'est donc pas « enum = mal ». C'est : **par défaut, préfère `as const` + union** ; l'enum est un choix à justifier, pas un réflexe. Si tu n'as même pas besoin de l'objet runtime, une simple union suffit :
 
-```typescript
-// Declaration d'un tuple
-let coordonnees: [number, number] = [48.8566, 2.3522]; // latitude, longitude
-
-// Chaque position a son propre type
-let utilisateur: [string, number, boolean] = ["Alice", 30, true];
-
-const nom: string = utilisateur[0];     // OK : string
-const age: number = utilisateur[1];     // OK : number
-const actif: boolean = utilisateur[2];  // OK : boolean
-
-// utilisateur[3]; // ERREUR : Tuple type '[string, number, boolean]' of length '3' has no element at index '3'
-
-// Destructuring
-const [nomU, ageU, actifU] = utilisateur;
-// nomU: string, ageU: number, actifU: boolean
+```ts
+export type MemberRole = "admin" | "parent" | "enfant";
 ```
 
-### Tuples avec éléments optionnels
+### 2.6 Tuples
 
-```typescript
-// Le troisieme element est optionnel
-type ReponseAPI = [number, string, object?];
+Un **tuple** est un tableau à longueur fixe où chaque position a son propre type.
 
-const succes: ReponseAPI = [200, "OK", { data: "..." }];
-const erreur: ReponseAPI = [404, "Not Found"]; // OK : le troisieme est optionnel
+```ts
+let position: [number, number] = [48.8566, 2.3522]; // [lat, lng]
+const lat = position[0]; // number
+// position[2];          // ❌ pas d'élément à l'index 2
 
-// Tuple avec rest element
-type StringEtNombres = [string, ...number[]];
-const valeurs: StringEtNombres = ["total", 1, 2, 3, 4, 5]; // OK
+const [x, y] = position; // destructuring typé
 ```
 
-### Tuples readonly
+**Labeled tuples (TS 4.0+).** Des noms de position, purement documentaires (ils n'ajoutent aucune contrainte), mais visibles dans l'IDE et les erreurs :
 
-Les tuples `readonly` empechent toute modification après création.
-
-```typescript
-// Tuple readonly
-const point: readonly [number, number] = [10, 20];
-// point[0] = 30; // ERREUR : Cannot assign to '0' because it is a read-only property
-// point.push(30); // ERREUR : Property 'push' does not exist on type 'readonly [number, number]'
-
-// Alternative avec as const
-const couleurRGB = [255, 128, 0] as const;
-// type: readonly [255, 128, 0] — les valeurs exactes sont preservees
-
-// Fonction qui retourne un tuple readonly
-function creerPoint(x: number, y: number): readonly [number, number] {
-  return [x, y] as const;
-}
-
-const p = creerPoint(5, 10);
-// p est readonly [number, number]
-```
-
-### Tuples nommes (labeled tuples)
-
-Depuis TypeScript 4.0, les tuples peuvent avoir des **noms** pour chaque élément, ameliorant la lisibilite.
-
-```typescript
-// Tuples nommes — les noms apparaissent dans l'IDE et les messages d'erreur
-type Coordonnees = [latitude: number, longitude: number];
+```ts
+type LatLng = [lat: number, lng: number];
 type Intervalle = [debut: Date, fin: Date];
-type PersonneInfo = [prenom: string, nom: string, age: number];
-
-// Les noms aident la documentation mais n'affectent pas le typage
-function distance(pointA: Coordonnees, pointB: Coordonnees): number {
-  const [latA, lonA] = pointA;
-  const [latB, lonB] = pointB;
-
-  // Formule de Haversine simplifiee
-  const R = 6371; // Rayon de la Terre en km
-  const dLat = (latB - latA) * Math.PI / 180;
-  const dLon = (lonB - lonA) * Math.PI / 180;
-
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(latA * Math.PI / 180) *
-    Math.cos(latB * Math.PI / 180) *
-    Math.sin(dLon / 2) ** 2;
-
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-const paris: Coordonnees = [48.8566, 2.3522];
-const lyon: Coordonnees = [45.7640, 4.8357];
-console.log(`Distance Paris-Lyon : ${distance(paris, lyon).toFixed(0)} km`);
 ```
 
-### Tuples avec rest au milieu
+**Éléments optionnels et rest :**
 
-```typescript
-// Rest au debut
-type AvecDernier = [...string[], number];
-const a: AvecDernier = ["a", "b", "c", 42]; // OK
-const b: AvecDernier = [42]; // OK aussi
+```ts
+type Reponse = [status: number, message: string, payload?: unknown];
+const ok: Reponse = [200, "OK", { id: 1 }];
+const ko: Reponse = [404, "Not Found"]; // payload omis
 
-// Rest au milieu (TypeScript 4.2+)
+type Ligne = [label: string, ...valeurs: number[]];
+const l: Ligne = ["total", 1, 2, 3]; // 1 label puis n nombres
+```
+
+### 2.7 Variadic tuples
+
+Depuis TS 4.0, un rest `...T` peut être **générique** et placé n'importe où. C'est ce qui permet de typer précisément `concat`, `curry`, `zip`, etc.
+
+```ts
+// Ajoute un élément en tête en PRÉSERVANT les positions suivantes
+type Prepend<H, T extends readonly unknown[]> = [H, ...T];
+
+type A = Prepend<string, [number, boolean]>; // [string, number, boolean]
+
+// Helper concret : concaténer deux tuples en gardant les types
+function concat<T extends readonly unknown[], U extends readonly unknown[]>(
+  a: [...T],
+  b: [...U],
+): [...T, ...U] {
+  return [...a, ...b];
+}
+
+const r = concat([1, "a"] as [number, string], [true]); // [number, string, boolean]
+```
+
+Le rest au **milieu** est également permis :
+
+```ts
 type Sandwich = [string, ...number[], string];
-const s: Sandwich = ["debut", 1, 2, 3, "fin"]; // OK
+const s: Sandwich = ["debut", 1, 2, "fin"];
 ```
 
----
+### 2.8 `readonly` tuples
 
-## Le type `never`
+`readonly` interdit toute mutation ; les méthodes muables (`push`, `splice`…) disparaissent du type.
 
-`never` est le **type du bas** (bottom type) dans la hiérarchie des types TypeScript. Il represente quelque chose qui **ne peut jamais se produire**. Aucune valeur n'est de type `never`.
+```ts
+const point: readonly [number, number] = [10, 20];
+// point[0] = 30;  // ❌ read-only
+// point.push(1);  // ❌ push n'existe pas sur un readonly tuple
 
-### Fonctions qui ne retournent jamais
-
-```typescript
-// Fonction qui lance toujours une erreur
-function erreurFatale(message: string): never {
-  throw new Error(message);
-}
-
-// Fonction avec une boucle infinie
-function boucleInfinie(): never {
-  while (true) {
-    // ne se termine jamais
-  }
-}
-
-// Utilisation : la fonction ne retourne jamais
-function validerAge(age: number): number {
-  if (age < 0 || age > 150) {
-    erreurFatale(`Age invalide : ${age}`); // Apres cette ligne, le code est inaccessible
-    // TypeScript sait que le code ci-dessous ne sera jamais execute
-  }
-  return age;
-}
+// as const produit un readonly tuple aux valeurs littérales
+const rgb = [255, 128, 0] as const; // readonly [255, 128, 0]
 ```
 
-### `never` et l'exhaustivite
+À privilégier pour les valeurs qui ne doivent jamais bouger (une position figée, une constante géographique).
 
-L'utilisation la plus puissante de `never` est la **vérification d'exhaustivite** dans les switch/if.
+### 2.9 Types spéciaux : `object`, `{}`, rappel `unknown` / `never`
 
-```typescript
-type Forme =
-  | { type: "cercle"; rayon: number }
-  | { type: "rectangle"; largeur: number; hauteur: number }
-  | { type: "triangle"; base: number; hauteur: number };
+Trois types que l'on confond souvent.
 
-function aire(forme: Forme): number {
-  switch (forme.type) {
-    case "cercle":
-      return Math.PI * forme.rayon ** 2;
-    case "rectangle":
-      return forme.largeur * forme.hauteur;
-    case "triangle":
-      return (forme.base * forme.hauteur) / 2;
-    default: {
-      // Si on a oublie un cas, `forme` n'est PAS de type `never`
-      // et cette ligne provoque une erreur de compilation
-      const _exhaustif: never = forme;
-      return _exhaustif;
-    }
-  }
+**`object`** = « tout sauf un primitif » (pas `string`, `number`, `boolean`, `symbol`, `null`, `undefined`, `bigint`). Il accepte objets, tableaux et fonctions, mais on ne peut lire **aucune** propriété dessus sans narrowing.
+
+```ts
+function taille(o: object): number {
+  return Object.keys(o).length; // OK
+  // return o.length;           // ❌ 'length' n'existe pas sur 'object'
 }
-
-// Si on ajoute un nouveau type de forme :
-// type Forme = ... | { type: "pentagone"; ... };
-// TypeScript signalera une erreur dans le default car
-// `{ type: "pentagone"; ... }` n'est pas assignable a `never`
+taille({ a: 1 }); // OK
+taille([1, 2]);   // OK (un tableau est un object)
+// taille("x");   // ❌ un string n'est pas un object
 ```
 
-### Fonction helper pour l'exhaustivite
+**`{}`** (type accolades vides) = « tout ce qui n'est ni `null` ni `undefined` ». **Contre-intuitif** : `{}` est *plus large* que `object`, il accepte aussi les primitifs.
 
-```typescript
-// Fonction utilitaire reutilisable
-function exhaustif(valeur: never, message?: string): never {
-  throw new Error(message ?? `Cas non gere : ${JSON.stringify(valeur)}`);
-}
-
-type Evenement =
-  | { type: "click"; x: number; y: number }
-  | { type: "keypress"; touche: string }
-  | { type: "scroll"; deltaY: number };
-
-function traiterEvenement(evt: Evenement): string {
-  switch (evt.type) {
-    case "click":
-      return `Click en (${evt.x}, ${evt.y})`;
-    case "keypress":
-      return `Touche pressee : ${evt.touche}`;
-    case "scroll":
-      return `Scroll de ${evt.deltaY}px`;
-    default:
-      return exhaustif(evt); // Garantit l'exhaustivite
-  }
-}
+```ts
+let a: {} = "coucou"; // ✅ un string est assignable à {}
+let b: {} = 42;       // ✅
+// let c: {} = null;  // ❌ null exclu
 ```
 
-### `never` dans les types conditionnels
+`{}` n'est donc **pas** « un objet vide » : ne l'utilise pas pour dire « un objet ». Pour ça, préfère `Record<string, unknown>` (objet aux clés string, valeurs à narrower) ou une interface précise.
 
-`never` est souvent utilise dans les types conditionnels pour **filtrer** des types.
+**Rappel `unknown` (top type)** — tout lui est assignable, mais on ne peut rien en faire sans narrowing. C'est le contrat sûr pour une donnée externe :
 
-```typescript
-// Filtrer les proprietes d'un certain type
-type ProprietesDeType<T, TType> = {
-  [K in keyof T]: T[K] extends TType ? K : never;
-}[keyof T];
-
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-  age: number;
-  actif: boolean;
-}
-
-type PropsString = ProprietesDeType<Utilisateur, string>;
-// "nom" | "email"
-
-type PropsNumber = ProprietesDeType<Utilisateur, number>;
-// "id" | "age"
-
-type PropsBoolean = ProprietesDeType<Utilisateur, boolean>;
-// "actif"
-
-// Extraire un sous-objet avec uniquement les proprietes string
-type SousObjetString = Pick<Utilisateur, ProprietesDeType<Utilisateur, string>>;
-// { nom: string; email: string }
-```
-
-### Analogie : `never` comme le zero en mathematiques
-
-`never` est comme le **zero** en mathematiques pour la multiplication :
-- `T | never` = `T` (union avec `never` ne change rien, comme `n + 0 = n`)
-- `T & never` = `never` (intersection avec `never` donne `never`, comme `n * 0 = 0`)
-
-C'est l'élément **absorbant** de l'intersection et l'élément **neutre** de l'union.
-
----
-
-## Le type `unknown`
-
-`unknown` est le **type du haut** (top type). Toute valeur peut etre assignee a `unknown`, mais on ne peut rien faire avec une valeur `unknown` sans la **restreindre** (narrowing) d'abord.
-
-### `unknown` vs `any`
-
-```typescript
-// `any` — le cow-boy : tout est permis (DANGEREUX)
-let valeurAny: any = "Bonjour";
-valeurAny.methodeInexistante(); // PAS d'erreur TypeScript ! Crash au runtime.
-valeurAny.trim();               // PAS d'erreur, meme si c'est un nombre
-const n: number = valeurAny;   // PAS d'erreur, assignation directe
-
-// `unknown` — le prudent : rien n'est permis sans verification
-let valeurUnknown: unknown = "Bonjour";
-// valeurUnknown.trim();          // ERREUR : 'valeurUnknown' is of type 'unknown'
-// const m: number = valeurUnknown; // ERREUR : Type 'unknown' is not assignable to type 'number'
-
-// Il FAUT d'abord verifier le type
-if (typeof valeurUnknown === "string") {
-  console.log(valeurUnknown.trim()); // OK : TypeScript sait que c'est un string
-}
-```
-
-### Narrowing avec `unknown`
-
-```typescript
-function traiterValeur(valeur: unknown): string {
-  // Narrowing par typeof
-  if (typeof valeur === "string") {
-    return `String de longueur ${valeur.length}`;
-  }
-
-  if (typeof valeur === "number") {
-    return `Nombre : ${valeur.toFixed(2)}`;
-  }
-
-  if (typeof valeur === "boolean") {
-    return valeur ? "Vrai" : "Faux";
-  }
-
-  // Narrowing par instanceof
-  if (valeur instanceof Date) {
-    return `Date : ${valeur.toLocaleDateString("fr-FR")}`;
-  }
-
-  if (valeur instanceof Error) {
-    return `Erreur : ${valeur.message}`;
-  }
-
-  // Narrowing par verification de structure
-  if (typeof valeur === "object" && valeur !== null && "nom" in valeur) {
-    return `Objet avec nom : ${(valeur as { nom: string }).nom}`;
-  }
-
-  // Tableau
-  if (Array.isArray(valeur)) {
-    return `Tableau de ${valeur.length} elements`;
-  }
-
-  if (valeur === null) {
-    return "null";
-  }
-
-  if (valeur === undefined) {
-    return "undefined";
-  }
-
-  return `Type inconnu : ${typeof valeur}`;
-}
-
-// Tests
-console.log(traiterValeur("hello"));           // "String de longueur 5"
-console.log(traiterValeur(3.14159));            // "Nombre : 3.14"
-console.log(traiterValeur(true));               // "Vrai"
-console.log(traiterValeur(new Date()));         // "Date : 08/03/2026"
-console.log(traiterValeur({ nom: "Alice" }));   // "Objet avec nom : Alice"
-```
-
-### `unknown` dans la gestion d'erreurs
-
-```typescript
-// Le type de l'erreur dans un catch est `unknown` (depuis TS 4.4)
-async function chargerDonnees(url: string): Promise<unknown> {
-  try {
-    const reponse = await fetch(url);
-    if (!reponse.ok) {
-      throw new Error(`HTTP ${reponse.status} : ${reponse.statusText}`);
-    }
-    return await reponse.json();
-  } catch (erreur: unknown) {
-    // On ne peut pas faire `erreur.message` directement !
-    if (erreur instanceof Error) {
-      console.error(`Erreur : ${erreur.message}`);
-    } else if (typeof erreur === "string") {
-      console.error(`Erreur : ${erreur}`);
-    } else {
-      console.error("Erreur inconnue", erreur);
-    }
-    throw erreur;
-  }
-}
-
-// Fonction utilitaire pour extraire le message d'une erreur
-function messageErreur(erreur: unknown): string {
-  if (erreur instanceof Error) return erreur.message;
-  if (typeof erreur === "string") return erreur;
-  if (typeof erreur === "object" && erreur !== null && "message" in erreur) {
-    return String((erreur as { message: unknown }).message);
-  }
+```ts
+function messageErreur(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "string") return e;
   return "Erreur inconnue";
 }
 ```
 
-### Type guard personnalise avec `unknown`
+**Rappel `never` (bottom type)** — aucune valeur possible ; sert à prouver l'exhaustivité :
 
-```typescript
-// Interface pour la validation
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-}
-
-// Type guard qui valide la structure d'un objet unknown
-function estUtilisateur(valeur: unknown): valeur is Utilisateur {
-  if (typeof valeur !== "object" || valeur === null) return false;
-
-  const obj = valeur as Record<string, unknown>;
-
-  return (
-    typeof obj.id === "number" &&
-    typeof obj.nom === "string" &&
-    typeof obj.email === "string"
-  );
-}
-
-// Utilisation avec des donnees externes (API, JSON, etc.)
-function traiterReponseAPI(donnees: unknown): Utilisateur[] {
-  if (!Array.isArray(donnees)) {
-    throw new Error("Les donnees doivent etre un tableau");
-  }
-
-  const utilisateurs: Utilisateur[] = [];
-
-  for (const element of donnees) {
-    if (estUtilisateur(element)) {
-      utilisateurs.push(element); // Type-safe grace au type guard
-    } else {
-      console.warn("Element invalide ignore :", element);
-    }
-  }
-
-  return utilisateurs;
+```ts
+function assertNever(x: never): never {
+  throw new Error(`Cas non géré : ${JSON.stringify(x)}`);
 }
 ```
 
-### Analogie : `unknown` comme un colis non identifie
-
-`unknown` est comme un **colis non identifie** a l'aeroport. Avant de l'ouvrir ou de l'utiliser, il faut le **scanner** (type guard) pour s'assurer qu'il ne contient rien de dangereux. Contrairement a `any`, qui serait un colis que tout le monde ouvre sans precaution.
+Résumé de la hiérarchie : `unknown` (le plus large) ⊃ `{}` ⊃ `object` ⊃ types précis ⊃ `never` (le plus étroit).
 
 ---
 
-## `void` vs `undefined` vs `null`
+## 3. Worked examples
 
-Ces trois types sont souvent confondus. Voici leurs différences.
+### Exemple 1 — `MemberRole` : enum vs `as const` (TribuZen)
 
-### `void`
+On part de la proposition « enum » et on la convertit au pattern recommandé, en montrant le trade-off à chaque étape.
 
-`void` represente l'absence de valeur de retour d'une fonction. Une fonction `void` peut retourner `undefined` implicitement.
-
-```typescript
-// Fonction qui ne retourne rien
-function afficherMessage(msg: string): void {
-  console.log(msg);
-  // Pas de `return` explicite — c'est OK
+```ts
+// ─── Version enum (ce qu'on veut éviter par défaut) ──────────────
+export enum MemberRoleEnum {
+  Admin = "admin",
+  Parent = "parent",
+  Enfant = "enfant",
 }
+// Émet un objet runtime + casse sous erasableSyntaxOnly.
+// À l'usage, il FAUT passer par le membre :
+const r1: MemberRoleEnum = MemberRoleEnum.Admin;
+// Une chaîne "admin" venue d'une API n'est PAS directement un MemberRoleEnum.
 
-// On peut aussi retourner `undefined` explicitement
-function rien(): void {
-  return undefined; // OK
-  // return null;   // ERREUR (sauf avec --strictNullChecks desactive)
-  // return "abc";  // ERREUR
-}
-
-// void dans les callbacks : signifie "le retour est ignore"
-type Callback = (valeur: string) => void;
-
-// Le callback PEUT retourner une valeur, mais elle sera ignoree
-const cb: Callback = (v) => {
-  console.log(v);
-  return 42; // OK ! Le retour est simplement ignore
-};
-
-// C'est pourquoi forEach fonctionne avec des callbacks qui retournent des valeurs
-[1, 2, 3].forEach((n) => n * 2); // Le retour de la callback est ignore
-```
-
-### `undefined`
-
-`undefined` est un type qui ne contient que la valeur `undefined`.
-
-```typescript
-let x: undefined = undefined;
-
-// Difference entre `void` et `undefined` dans les fonctions
-function retourneVoid(): void {
-  // OK : ne retourne rien
-}
-
-function retourneUndefined(): undefined {
-  return undefined; // OBLIGATOIRE : doit retourner explicitement undefined
-}
-
-// Dans les proprietes optionnelles
-interface Config {
-  theme?: string; // theme?: string | undefined
-}
-
-const c: Config = {};
-console.log(c.theme); // undefined
-```
-
-### `null`
-
-`null` represente une absence **intentionnelle** de valeur.
-
-```typescript
-// Recherche qui peut ne rien trouver
-function trouverUtilisateur(id: number): Utilisateur | null {
-  const utilisateurs: Utilisateur[] = [
-    { id: 1, nom: "Alice", email: "alice@mail.com" },
-  ];
-  return utilisateurs.find((u) => u.id === id) ?? null;
-}
-
-const resultat = trouverUtilisateur(99);
-if (resultat !== null) {
-  console.log(resultat.nom); // OK : TypeScript sait que ce n'est pas null
-}
-
-// Optional chaining avec null
-console.log(resultat?.nom);       // undefined si null
-console.log(resultat?.nom ?? "Inconnu"); // "Inconnu" si null
-```
-
-### Convention : `null` vs `undefined`
-
-| Situation                            | Recommandation       |
-|--------------------------------------|----------------------|
-| Propriété optionnelle                | `undefined` (`?`)    |
-| Absence de résultat intentionnelle   | `null`               |
-| Paramètre non fourni                 | `undefined`          |
-| Valeur pas encore initialisee        | `undefined`          |
-| Valeur volontairement vide           | `null`               |
-
----
-
-## `symbol` et `unique symbol`
-
-Le type `symbol` represente des valeurs uniques et immuables, souvent utilisees comme clés de propriétés.
-
-### `symbol` basique
-
-```typescript
-// Creer des symboles
-const s1 = Symbol("description");
-const s2 = Symbol("description");
-
-console.log(s1 === s2); // false — chaque Symbol est unique
-
-// Utiliser comme cle de propriete
-const CLE_PRIVEE = Symbol("cle_privee");
-const METHODE_INTERNE = Symbol("methode_interne");
-
-class Service {
-  [CLE_PRIVEE]: string = "donnee secrete";
-
-  [METHODE_INTERNE](): void {
-    console.log("Methode interne appelee");
-  }
-
-  public traiter(): void {
-    console.log(this[CLE_PRIVEE]);
-    this[METHODE_INTERNE]();
-  }
-}
-
-const svc = new Service();
-svc.traiter(); // OK
-// On ne peut pas acceder a [CLE_PRIVEE] sans reference au symbole
-```
-
-### `unique symbol`
-
-`unique symbol` est un sous-type de `symbol` qui represente un symbole spécifique. Il ne peut etre utilise qu'avec `const` ou `readonly static`.
-
-```typescript
-// `unique symbol` — chaque declaration est un type unique
-const ID: unique symbol = Symbol("id");
-const NOM: unique symbol = Symbol("nom");
-
-// Utile pour les branded types
-interface Identifiant {
-  readonly [ID]: string;
-}
-
-function creerIdentifiant(valeur: string): Identifiant {
-  return { [ID]: valeur } as Identifiant;
-}
-
-// Utilisation dans les enums simules
-const TypeAnimal = {
-  Chat: Symbol("Chat"),
-  Chien: Symbol("Chien"),
-  Oiseau: Symbol("Oiseau"),
+// ─── Version as const + union (recommandée) ──────────────────────
+export const MEMBER_ROLE = {
+  Admin: "admin",
+  Parent: "parent",
+  Enfant: "enfant",
 } as const;
 
-type TypeAnimalKey = keyof typeof TypeAnimal;
-```
+// Le type union dérivé — source unique, zéro duplication de littéraux
+export type MemberRole = typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE];
+// "admin" | "parent" | "enfant"
 
----
-
-## Assertions de types avancees
-
-Les assertions de types permettent de dire a TypeScript "fais-moi confiance, je sais ce que je fais". A utiliser avec precaution.
-
-### Assertion simple avec `as`
-
-```typescript
-// Assertion basique
-const valeur: unknown = "Bonjour";
-const longueur = (valeur as string).length; // 7
-
-// Assertion sur un element du DOM
-const bouton = document.getElementById("monBouton") as HTMLButtonElement;
-bouton.disabled = true;
-
-// Alternative : assertion non-null avec `!`
-const element = document.querySelector(".classe")!; // Assert que ce n'est pas null
-```
-
-### Double assertion (a éviter si possible)
-
-Quand TypeScript refuse une assertion directe parce que les types sont trop différents, on peut passer par `unknown`.
-
-```typescript
-// TypeScript refuse ceci :
-// const x = "hello" as number; // ERREUR : types trop differents
-
-// Double assertion : passe par unknown
-const x = "hello" as unknown as number; // Pas d'erreur mais DANGEREUX
-
-// Cas legitime : quand on connait mieux le type que TypeScript
-interface ReponseServeur {
-  data: unknown;
-  status: number;
+// 1) La valeur d'API est directement du bon type
+function fromApi(raw: string): MemberRole | null {
+  const values = Object.values(MEMBER_ROLE) as readonly string[];
+  return values.includes(raw) ? (raw as MemberRole) : null;
 }
 
-interface DonneesUtilisateur {
-  id: number;
-  nom: string;
-}
+// 2) On peut TOUJOURS itérer au runtime si besoin (menu déroulant admin)
+const optionsSelect = Object.values(MEMBER_ROLE); // ["admin","parent","enfant"]
 
-function traiter(reponse: ReponseServeur): DonneesUtilisateur {
-  // On sait que data est un DonneesUtilisateur grace au contrat API
-  return reponse.data as DonneesUtilisateur;
-}
-```
-
-### `satisfies` (TypeScript 4.9+)
-
-L'operateur `satisfies` vérifié qu'une valeur correspond à un type **sans elargir** le type de la variable.
-
-```typescript
-type Couleurs = "rouge" | "vert" | "bleu";
-type CouleurOuRGB = Couleurs | [number, number, number];
-
-// Sans satisfies : le type est elargi
-const palette1: Record<string, CouleurOuRGB> = {
-  primaire: "rouge",
-  secondaire: [0, 128, 0],
-  fond: "bleu",
-};
-// palette1.primaire est de type CouleurOuRGB (on perd l'info que c'est "rouge")
-
-// Avec satisfies : le type precis est conserve
-const palette2 = {
-  primaire: "rouge",
-  secondaire: [0, 128, 0] as [number, number, number],
-  fond: "bleu",
-} satisfies Record<string, CouleurOuRGB>;
-
-// palette2.primaire est de type "rouge" (pas CouleurOuRGB)
-// palette2.secondaire est de type [number, number, number]
-
-palette2.primaire.toUpperCase(); // OK : TypeScript sait que c'est un string
-// palette2.secondaire.toUpperCase(); // ERREUR : c'est un tuple, pas un string
-```
-
-### Assertion avec `as const`
-
-```typescript
-// Sans as const
-const directions = ["nord", "sud", "est", "ouest"];
-// type: string[]
-
-// Avec as const
-const directionsConst = ["nord", "sud", "est", "ouest"] as const;
-// type: readonly ["nord", "sud", "est", "ouest"]
-
-// Utile pour extraire un type union
-type Direction = typeof directionsConst[number];
-// "nord" | "sud" | "est" | "ouest"
-
-// Objet as const
-const CONFIG = {
-  API_URL: "https://api.example.com",
-  TIMEOUT: 5000,
-  MODES: ["dev", "staging", "prod"],
-} as const;
-
-type Mode = typeof CONFIG.MODES[number]; // "dev" | "staging" | "prod"
-```
-
----
-
-## Pratique
-
-### Exercice 1 : Exhaustivite avec `never`
-
-Creez un système de gestion de formes geometriques avec vérification d'exhaustivite. Commencez avec 3 formes, puis ajoutez une 4e et observez l'erreur.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Definir les formes
-type Forme =
-  | { type: "cercle"; rayon: number }
-  | { type: "rectangle"; largeur: number; hauteur: number }
-  | { type: "triangle"; base: number; hauteur: number };
-
-// Helper d'exhaustivite
-function casNonGere(valeur: never): never {
-  throw new Error(`Cas non gere : ${JSON.stringify(valeur)}`);
-}
-
-function calculerAire(forme: Forme): number {
-  switch (forme.type) {
-    case "cercle":
-      return Math.PI * forme.rayon ** 2;
-    case "rectangle":
-      return forme.largeur * forme.hauteur;
-    case "triangle":
-      return (forme.base * forme.hauteur) / 2;
+// 3) Exhaustivité gratuite avec l'union
+function labelRole(role: MemberRole): string {
+  switch (role) {
+    case "admin":
+      return "Administrateur";
+    case "parent":
+      return "Parent";
+    case "enfant":
+      return "Enfant";
     default:
-      return casNonGere(forme); // Garantit l'exhaustivite
+      // si on ajoute un rôle sans traiter le cas, TS refuse ici
+      const _exhaustif: never = role;
+      return _exhaustif;
   }
 }
 
-function decrire(forme: Forme): string {
-  switch (forme.type) {
-    case "cercle":
-      return `Cercle de rayon ${forme.rayon}`;
-    case "rectangle":
-      return `Rectangle ${forme.largeur}x${forme.hauteur}`;
-    case "triangle":
-      return `Triangle de base ${forme.base} et hauteur ${forme.hauteur}`;
-    default:
-      return casNonGere(forme);
-  }
-}
-
-// Test
-const formes: Forme[] = [
-  { type: "cercle", rayon: 5 },
-  { type: "rectangle", largeur: 4, hauteur: 6 },
-  { type: "triangle", base: 3, hauteur: 8 },
-];
-
-formes.forEach((f) => {
-  console.log(`${decrire(f)} — Aire: ${calculerAire(f).toFixed(2)}`);
-});
-
-// Maintenant, ajoutez { type: "losange"; diag1: number; diag2: number }
-// a l'union Forme et observez les erreurs dans casNonGere
+console.log(labelRole("admin")); // "Administrateur"
 ```
 
-</details>
+**Ce que la version `as const` apporte concrètement :**
+- coût bundle nul (le type `MemberRole` s'efface à l'émission) ;
+- compatible `erasableSyntaxOnly` / type-stripping Node ;
+- la chaîne `"admin"` reçue d'une API est utilisable telle quelle ;
+- on garde l'objet `MEMBER_ROLE` quand on a besoin d'itérer (select, seed).
 
-### Exercice 2 : Parseur JSON type-safe avec `unknown`
+### Exemple 2 — Position `[lat, lng]` et helper variadic (TribuZen)
 
-Creez une fonction qui parse du JSON en toute sécurité et valide la structure attendue.
+Une famille TribuZen peut épingler des lieux (photo géolocalisée, point de rendez-vous). On type la position en tuple labellisé `readonly`, puis on écrit un helper variadic.
 
-<details>
-<summary>Solution</summary>
+```ts
+// ─── Position géographique figée ────────────────────────────────
+// Labels lat/lng = lisibilité ; readonly = une coordonnée ne se mute pas.
+export type LatLng = readonly [lat: number, lng: number];
 
-```typescript
-// Type de resultat pour le parsing
-type ResultatParsing<T> =
-  | { succes: true; donnees: T }
-  | { succes: false; erreur: string };
+const maison: LatLng = [45.7640, 4.8357]; // Lyon
+// maison[0] = 0; // ❌ readonly — impossible de corrompre la latitude
 
-// Fonction de parsing generique
-function parserJSON<T>(
-  json: string,
-  validateur: (valeur: unknown) => valeur is T
-): ResultatParsing<T> {
-  try {
-    const parsed: unknown = JSON.parse(json);
-
-    if (validateur(parsed)) {
-      return { succes: true, donnees: parsed };
-    }
-
-    return { succes: false, erreur: "Les donnees ne correspondent pas au schema attendu." };
-  } catch (e: unknown) {
-    const message = e instanceof SyntaxError
-      ? `JSON invalide : ${e.message}`
-      : "Erreur inconnue lors du parsing";
-    return { succes: false, erreur: message };
-  }
+function distanceKm(a: LatLng, b: LatLng): number {
+  const [latA, lngA] = a;
+  const [latB, lngB] = b;
+  const R = 6371;
+  const dLat = ((latB - latA) * Math.PI) / 180;
+  const dLng = ((lngB - lngA) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((latA * Math.PI) / 180) *
+      Math.cos((latB * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-// Validateurs
-interface Produit {
-  id: number;
-  nom: string;
-  prix: number;
-  enStock: boolean;
+// ─── Helper variadic : construire une "piste" typée ─────────────
+// On veut un tuple [origine, ...étapes] où l'origine reste distincte
+// des étapes suivantes, quel que soit leur nombre.
+function itineraire<Etapes extends readonly LatLng[]>(
+  origine: LatLng,
+  ...etapes: Etapes
+): [origine: LatLng, ...etapes: Etapes] {
+  return [origine, ...etapes];
 }
 
-function estProduit(valeur: unknown): valeur is Produit {
-  if (typeof valeur !== "object" || valeur === null) return false;
-  const obj = valeur as Record<string, unknown>;
-  return (
-    typeof obj.id === "number" &&
-    typeof obj.nom === "string" &&
-    typeof obj.prix === "number" &&
-    typeof obj.enStock === "boolean"
-  );
-}
+const trajet = itineraire(maison, [45.75, 4.85], [45.76, 4.84]);
+// type inféré : [origine: LatLng, LatLng, LatLng] — l'arité est préservée
 
-function estTableauDeProduits(valeur: unknown): valeur is Produit[] {
-  return Array.isArray(valeur) && valeur.every(estProduit);
-}
-
-// Tests
-const jsonValide = '{"id": 1, "nom": "Clavier", "prix": 49.99, "enStock": true}';
-const jsonInvalide = '{"id": "abc", "nom": "Souris"}';
-const jsonMalForme = '{id: 1}';
-
-console.log(parserJSON(jsonValide, estProduit));
-// { succes: true, donnees: { id: 1, nom: "Clavier", prix: 49.99, enStock: true } }
-
-console.log(parserJSON(jsonInvalide, estProduit));
-// { succes: false, erreur: "Les donnees ne correspondent pas..." }
-
-console.log(parserJSON(jsonMalForme, estProduit));
-// { succes: false, erreur: "JSON invalide : ..." }
-
-const jsonTableau = '[{"id":1,"nom":"A","prix":10,"enStock":true},{"id":2,"nom":"B","prix":20,"enStock":false}]';
-console.log(parserJSON(jsonTableau, estTableauDeProduits));
-// { succes: true, donnees: [{...}, {...}] }
+console.log(distanceKm(maison, trajet[1]).toFixed(2), "km");
 ```
 
-</details>
-
-### Exercice 3 : Système de configuration avec tuples et enums
-
-Creez un système de configuration d'application utilisant des enums, tuples et `as const`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Enums pour les options de configuration
-const Environnement = {
-  Dev: "development",
-  Staging: "staging",
-  Prod: "production",
-} as const;
-type Environnement = typeof Environnement[keyof typeof Environnement];
-
-const NiveauLog = {
-  Debug: 0,
-  Info: 1,
-  Warn: 2,
-  Error: 3,
-  Silent: 4,
-} as const;
-type NiveauLog = typeof NiveauLog[keyof typeof NiveauLog];
-
-// Tuple pour les regles de validation
-type RegleValidation = [
-  champ: string,
-  type: "string" | "number" | "boolean",
-  obligatoire: boolean,
-  defaut?: unknown
-];
-
-// Configuration avec types stricts
-interface ConfigApp {
-  environnement: Environnement;
-  port: number;
-  niveauLog: NiveauLog;
-  baseUrl: string;
-  fonctionnalites: readonly string[];
-}
-
-// Regles de validation
-const REGLES: readonly RegleValidation[] = [
-  ["environnement", "string", true],
-  ["port", "number", true, 3000],
-  ["niveauLog", "number", false, NiveauLog.Info],
-  ["baseUrl", "string", true],
-] as const;
-
-// Configurations pre-definies
-const CONFIGS = {
-  dev: {
-    environnement: Environnement.Dev,
-    port: 3000,
-    niveauLog: NiveauLog.Debug,
-    baseUrl: "http://localhost:3000",
-    fonctionnalites: ["debug-panel", "hot-reload", "mock-api"],
-  },
-  staging: {
-    environnement: Environnement.Staging,
-    port: 8080,
-    niveauLog: NiveauLog.Info,
-    baseUrl: "https://staging.example.com",
-    fonctionnalites: ["analytics", "error-tracking"],
-  },
-  prod: {
-    environnement: Environnement.Prod,
-    port: 80,
-    niveauLog: NiveauLog.Error,
-    baseUrl: "https://www.example.com",
-    fonctionnalites: ["analytics", "error-tracking", "cdn"],
-  },
-} as const satisfies Record<string, ConfigApp>;
-
-type EnvDisponible = keyof typeof CONFIGS;
-
-// Fonction pour obtenir une config type-safe
-function obtenirConfig(env: EnvDisponible): ConfigApp {
-  return CONFIGS[env];
-}
-
-// Fonction de log respectant le niveau
-function log(config: ConfigApp, niveau: NiveauLog, message: string): void {
-  if (niveau >= config.niveauLog) {
-    const niveaux = ["DEBUG", "INFO", "WARN", "ERROR", "SILENT"];
-    console.log(`[${niveaux[niveau]}] ${message}`);
-  }
-}
-
-// Test
-const config = obtenirConfig("dev");
-log(config, NiveauLog.Debug, "Demarrage en mode dev"); // Affiche
-log(config, NiveauLog.Error, "Erreur critique");       // Affiche
-
-const configProd = obtenirConfig("prod");
-log(configProd, NiveauLog.Debug, "Ceci est du debug"); // N'affiche PAS (niveau trop bas)
-log(configProd, NiveauLog.Error, "Erreur en prod");    // Affiche
-```
-
-</details>
-
-### Exercice 4 : Convertisseur de types avec `unknown` et narrowing
-
-Creez un convertisseur universel qui transforme une valeur `unknown` en différents types cibles.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-type TypeCible = "string" | "number" | "boolean" | "date" | "array";
-
-type ResultatConversion<T extends TypeCible> =
-  T extends "string" ? string :
-  T extends "number" ? number :
-  T extends "boolean" ? boolean :
-  T extends "date" ? Date :
-  T extends "array" ? unknown[] :
-  never;
-
-function convertir<T extends TypeCible>(
-  valeur: unknown,
-  cible: T
-): ResultatConversion<T> | null {
-  try {
-    switch (cible) {
-      case "string": {
-        if (valeur === null || valeur === undefined) return null;
-        return String(valeur) as ResultatConversion<T>;
-      }
-      case "number": {
-        if (typeof valeur === "number") return valeur as ResultatConversion<T>;
-        if (typeof valeur === "string") {
-          const n = Number(valeur);
-          return (isNaN(n) ? null : n) as ResultatConversion<T>;
-        }
-        if (typeof valeur === "boolean") return (valeur ? 1 : 0) as ResultatConversion<T>;
-        return null;
-      }
-      case "boolean": {
-        if (typeof valeur === "boolean") return valeur as ResultatConversion<T>;
-        if (typeof valeur === "string") {
-          if (valeur.toLowerCase() === "true" || valeur === "1") return true as ResultatConversion<T>;
-          if (valeur.toLowerCase() === "false" || valeur === "0") return false as ResultatConversion<T>;
-        }
-        if (typeof valeur === "number") return (valeur !== 0) as ResultatConversion<T>;
-        return null;
-      }
-      case "date": {
-        if (valeur instanceof Date) return valeur as ResultatConversion<T>;
-        if (typeof valeur === "string" || typeof valeur === "number") {
-          const d = new Date(valeur);
-          return (isNaN(d.getTime()) ? null : d) as ResultatConversion<T>;
-        }
-        return null;
-      }
-      case "array": {
-        if (Array.isArray(valeur)) return valeur as ResultatConversion<T>;
-        if (typeof valeur === "string") {
-          try { return JSON.parse(valeur) as ResultatConversion<T>; }
-          catch { return [valeur] as ResultatConversion<T>; }
-        }
-        return [valeur] as ResultatConversion<T>;
-      }
-      default:
-        return null;
-    }
-  } catch {
-    return null;
-  }
-}
-
-// Tests type-safe
-const s = convertir(42, "string");     // string | null — "42"
-const n = convertir("3.14", "number"); // number | null — 3.14
-const b = convertir("true", "boolean"); // boolean | null — true
-const d = convertir("2024-01-15", "date"); // Date | null
-const a = convertir("[1,2,3]", "array"); // unknown[] | null
-
-console.log(s); // "42"
-console.log(n); // 3.14
-console.log(b); // true
-console.log(d); // Date object
-console.log(a); // [1, 2, 3]
-```
-
-</details>
+**Points clés de l'exemple :**
+- `readonly [lat: number, lng: number]` combine label (doc), position fixe (tuple) et immutabilité.
+- le rest générique `...etapes: Etapes` **préserve l'arité** : le type de retour connaît le nombre exact d'étapes, contrairement à `LatLng[]` qui l'aurait effacé.
 
 ---
 
-## Récapitulatif
+## 4. Pièges & misconceptions
 
-| Type / Concept      | Description                                                     |
-|----------------------|-----------------------------------------------------------------|
-| `enum` numérique     | Ensemble de constantes numériques auto-incrementees              |
-| `enum` string        | Ensemble de constantes string explicites                        |
-| `const enum`         | Enum efface à la compilation (inline)                            |
-| Union de litteraux   | Alternative legere aux enums (`"a" \| "b" \| "c"`)             |
-| `as const`           | Fige les valeurs comme litterales et readonly                    |
-| Tuple                | Tableau a longueur et types fixes par position                   |
-| Tuple readonly       | Tuple immutable                                                  |
-| Tuple nomme          | Tuple avec des labels pour chaque position                       |
-| `never`              | Type du bas — aucune valeur possible                             |
-| Exhaustivite         | Utiliser `never` pour vérifier que tous les cas sont geres      |
-| `unknown`            | Type du haut sécurisé — nécessité du narrowing                   |
-| `void`               | Absence de valeur de retour                                      |
-| `symbol`             | Valeur unique et immuable                                        |
-| `unique symbol`      | Symbole spécifique lie à une declaration `const`                |
-| `satisfies`          | Vérification de type sans elargissement                          |
+### PIÈGE #1 — Croire que « enum = plus propre » sans mesurer le coût
+
+```ts
+// ❌ Réflexe importé de C#/Java
+enum Status { Pending = "pending", Done = "done" }
+// Génère du runtime, casse erasableSyntaxOnly, force Status.Pending partout.
+
+// ✅ Par défaut en TS moderne
+type Status = "pending" | "done";
+```
+
+**Pourquoi c'est faux :** en TypeScript, l'union de littéraux est le mécanisme *natif* pour un ensemble fermé de valeurs. L'enum est une construction héritée qui ajoute du code. Le choix par défaut s'est inversé — l'enum se justifie, il ne va plus de soi.
+
+### PIÈGE #2 — `const enum` dans un projet Vite/esbuild
+
+```ts
+// ❌ Sous isolatedModules (Vite, esbuild, SWC, Babel)
+const enum Couleur { Rouge, Vert }
+const c = Couleur.Rouge; // build cassé ou comportement incorrect
+```
+
+**Pourquoi c'est faux :** ces compilateurs traitent chaque fichier isolément et ne peuvent pas inliner une valeur définie ailleurs. `const enum` suppose une vue globale que seul `tsc` a. Correct : `as const` + union.
+
+### PIÈGE #3 — Enum numérique qui accepte n'importe quel nombre
+
+```ts
+enum Niveau { Bas, Moyen, Haut }
+const n: Niveau = 42; // ✅ accepté à tort — 42 n'est aucun membre
+```
+
+**Pourquoi c'est faux :** un enum numérique est assignable depuis `number`. On perd la garantie « valeur dans l'ensemble ». Une union `0 | 1 | 2` (ou de littéraux string) refuse `42`.
+
+### PIÈGE #4 — Confondre `object`, `{}` et « objet »
+
+```ts
+let a: {} = "je suis un string"; // ✅ compile — {} accepte les primitifs !
+let b: object = "x";             // ❌ un string n'est PAS un object
+```
+
+**Pourquoi c'est faux :** `{}` signifie « non `null`/`undefined` », pas « un objet ». Pour « un objet aux clés string », utilise `Record<string, unknown>` ; pour une forme précise, une interface. Réserve `object` au cas « n'importe quel non-primitif ».
+
+### PIÈGE #5 — Perdre l'arité d'un tuple avec un rest non générique
+
+```ts
+// ❌ Le retour efface le nombre d'éléments
+function pushFront(x: number, rest: number[]): number[] {
+  return [x, ...rest]; // type: number[] — arité perdue
+}
+
+// ✅ Variadic tuple : l'arité et les positions sont conservées
+function pushFront2<T extends readonly number[]>(x: number, rest: [...T]): [number, ...T] {
+  return [x, ...rest];
+}
+```
+
+**Pourquoi c'est faux :** `number[]` est un tableau de longueur inconnue ; `[number, ...T]` garde la structure exacte. Le variadic tuple est ce qui distingue un « tableau » d'un « tuple typé précisément ».
 
 ---
 
-## Pour aller plus loin
+## 5. Ancrage TribuZen
 
-Dans le **Module 09**, nous aborderons les **Modules, Namespaces et Resolution** — comment organiser votre code TypeScript en modules, gérer les imports/exports, configurer la résolution de modules dans tsconfig, et travailler avec des declarations ambiantes.
+Le fichier `tribuzen/types/index.ts` est la source unique de vérité des formes métier. Ce module y intervient à trois endroits.
 
-[Continuer vers le Module 09 : Modules, Namespaces & Resolution →](./09-modules-et-resolution.md)
+**`MemberRole`** — aujourd'hui déclaré en union simple `"admin" | "parent" | "enfant"`. Dès qu'on a besoin d'itérer sur les rôles (peupler un `<select>` dans l'admin, générer des seeds), on passe au pattern `MEMBER_ROLE = {...} as const` + `type MemberRole = typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE]`. On documente en commentaire *pourquoi* pas un enum : coût bundle nul, compat `erasableSyntaxOnly`, chaîne d'API directement typée. C'est le trade-off assumé du cas concret.
+
+**`LatLng`** — nouveau type `readonly [lat: number, lng: number]` pour les lieux épinglés d'une famille (photo géolocalisée, point de rendez-vous). Labels pour la lisibilité, `readonly` parce qu'une coordonnée enregistrée ne se mute pas.
+
+**Helper `itineraire` variadic** — dans les utilitaires de l'app (`tribuzen/lib/geo.ts`), pour composer une piste `[origine, ...étapes]` en préservant l'arité, réutilisable pour l'affichage d'un trajet sur carte.
+
+Fichiers cibles dans `smaurier/tribuzen` :
+```
+tribuzen/
+  types/
+    index.ts        # MemberRole (as const + union), LatLng
+  lib/
+    geo.ts          # distanceKm, itineraire (variadic tuple)
+```
 
 ---
 
-<!-- parcours-recommande -->
+## 6. Points clés
 
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 08 enums tuples](../screencasts/screencast-08-enums-tuples.md)
-2. **Lab** : [lab-08-enums-tuples](../labs/lab-08-enums-tuples/README)
-3. **Visualisation** : [Hiérarchie des types](../visualizations/type-hierarchy.html)
-4. **Quiz** : [quiz 08 enums tuples](../quizzes/quiz-08-enums-tuples.html)
-:::
+1. Un `enum` (numérique ou string) existe au runtime : il génère du JavaScript et n'est pas gratuit dans le bundle.
+2. Les enums numériques ont un reverse mapping et acceptent n'importe quel `number` — deux sources de bugs silencieux.
+3. `const enum` est inliné mais incompatible avec `isolatedModules` (Vite/esbuild) et `erasableSyntaxOnly` — à éviter dans un projet moderne.
+4. `--erasableSyntaxOnly` (TS 5.8) interdit enums, `const enum`, `namespace` runtime et propriétés-paramètres : le signal officiel que l'union de littéraux est le défaut.
+5. `as const` + `typeof OBJ[keyof typeof OBJ]` reproduit un enum string sans coût runtime, tout en gardant l'objet pour itérer.
+6. L'enum reste défendable pour du reverse mapping numérique ou une base historique cohérente — c'est un choix à justifier, pas un réflexe.
+7. Un tuple fixe la longueur et le type par position ; les labels documentent, `?` rend optionnel, `...` ajoute un rest.
+8. Un variadic tuple (`[H, ...T]` générique) préserve l'arité — indispensable pour typer `concat`, `curry`, `itineraire`.
+9. `readonly [a, b]` interdit la mutation ; `as const` en produit un aux valeurs littérales.
+10. `{}` = « non null/undefined » (accepte les primitifs), `object` = « non-primitif » ; ni l'un ni l'autre ne veut dire « un objet précis » — préfère `Record`/une interface.
+
+---
+
+## 7. Seeds Anki
+
+```
+Pourquoi préférer par défaut `as const` + union de littéraux à un enum en TypeScript ?|L'union a un coût runtime nul (le type s'efface à l'émission), est tree-shakable, compatible erasableSyntaxOnly/type-stripping Node, et la chaîne reçue d'une API est directement du bon type. L'enum génère un objet JS et impose Role.Membre partout.
+Que fait le flag `--erasableSyntaxOnly` de TS 5.8 et qu'interdit-il ?|Il n'autorise que la syntaxe TypeScript purement effaçable (pour le type-stripping natif de Node). Il interdit donc les enums, const enum, les namespaces avec code runtime et les propriétés-paramètres de constructeur.
+Comment dériver un type union à partir d'un objet figé `as const` ?|type X = typeof OBJ[keyof typeof OBJ]. keyof donne les clés, l'accès indexé donne l'union des valeurs. Avec `as const`, les valeurs sont des littéraux, pas string.
+Quel piège spécifique ont les enums NUMÉRIQUES sur l'assignabilité ?|Ils sont assignables depuis n'importe quel number : `const n: Niveau = 42` compile même si 42 n'est aucun membre. Une union de littéraux refuse la valeur hors ensemble.
+Pourquoi `const enum` casse-t-il sous Vite/esbuild/Babel ?|Ces outils compilent fichier par fichier (isolatedModules) et ne peuvent pas inliner une valeur définie dans un autre fichier, ce que const enum exige. Seul tsc a la vue globale nécessaire.
+Qu'apporte un variadic tuple par rapport à un type tableau ?|Il préserve l'arité et les positions exactes : `[number, ...T]` garde la structure, alors que `number[]` efface la longueur. C'est ce qui permet de typer concat, curry, zip précisément.
+Quelle est la différence entre le type `{}` et le type `object` ?|`{}` = tout sauf null/undefined (accepte AUSSI les primitifs comme string/number). `object` = tout sauf un primitif (objets, tableaux, fonctions). Aucun des deux ne signifie « un objet précis » : utiliser Record<string, unknown> ou une interface.
+Comment un labeled readonly tuple type-t-il une position géographique figée ?|readonly [lat: number, lng: number] : les labels documentent (visibles IDE/erreurs), le tuple fixe l'ordre et l'arité, readonly interdit la mutation d'une coordonnée enregistrée.
+```
+
+---
+
+## Pont vers le lab
+
+> Lab associé : `00-typescript/labs/lab-08-enums-tuples/README.md`. Convertir `MemberRole` d'un enum vers le pattern `as const` + union dans la vraie source de vérité TribuZen, typer une position `LatLng` et écrire un helper variadic — corrigé complet inline.

@@ -1,1461 +1,461 @@
-# 14 — Decorateurs & Metadata (Stage 3)
-
-> **Duree estimee** : 4 heures
-> **Difficulte** : 3/5
-> **Prérequis** : Classes TypeScript, generics, bases du système de types
-> **Objectifs** :
-> - Comprendre la différence entre les decorateurs experimentaux et Stage 3
-> - Maîtriser la syntaxe des decorateurs Stage 3
-> - Créer des decorateurs pour classes, méthodes, propriétés et accesseurs
-> - Utiliser les decorateur factories et la composition
-> - Decouvrir reflect-metadata et ses applications
-> - Voir des cas d'usage réels : logging, validation, DI, serialisation
-
+---
+titre: Décorateurs et metadata — les deux systèmes
+cours: 00-typescript
+notions: [décorateurs standard TS 5.0 / ECMAScript Stage 3, signature (value context), context.kind, context.addInitializer, absence de décorateur de paramètre en standard, décorateurs legacy experimentalDecorators, emitDecoratorMetadata, reflect-metadata, design paramtypes, incompatibilité entre les deux systèmes, pourquoi NestJS reste sur le legacy]
+outcomes: [écrire un décorateur standard de classe/méthode/accessor/field avec la signature (value context), choisir entre le système standard et le système legacy selon le projet, lire et attacher des métadonnées avec reflect-metadata dans le mode legacy]
+prerequis: [13-types-recursifs-type-programming]
+next: 15-variance-et-soundness
+libs: [{ name: typescript, version: "^5" }, { name: "reflect-metadata", version: "latest" }]
+tribuzen: décorateurs transverses des services TribuZen — @logged standard sur les méthodes de service, et le pont vers l'injection de dépendances NestJS (@Injectable, reflect-metadata)
+last-reviewed: 2026-07
 ---
 
-## Introduction — Pourquoi les décorateurs existent ?
+# Décorateurs et metadata — les deux systèmes
 
-### Le problème qu'on cherche à résoudre
+> **Outcomes — tu sauras FAIRE :** écrire un décorateur standard (Stage 3) de classe, méthode, accessor et field avec la signature `(value, context)` ; choisir entre le système standard et le système legacy selon le projet ; attacher et lire des métadonnées avec `reflect-metadata` dans le mode legacy — le socle de NestJS.
+> **Difficulté :** :star::star::star:
 
-Il arrive souvent qu'on veuille ajouter le même comportement a plusieurs classes ou méthodes : journaliser, valider, enregistrer des métadonnées, brancher de l'injection de dépendances, sécuriser un accès.
+> **⚠️ Module ACCURACY-CRITIQUE — checkpoint avant NestJS.** Il existe **deux systèmes de décorateurs distincts et incompatibles** en TypeScript. Les confondre est l'erreur n°1 sur ce sujet. Tout ce module a été vérifié via Context7 sur `/microsoft/typescript` (voir §7 pour les points confirmés). Ne mélange jamais les deux signatures.
 
-Le faire a la main partout fonctionne, mais répète la même logique et disperse l'intention dans le code.
+## 1. Cas concret d'abord
 
-### La solution : déclarer l'intention au plus près du code concerné
-
-Les décorateurs permettent justement d'attacher un comportement ou une information a une classe, une méthode, une propriété ou un accesseur avec une syntaxe déclarative en `@...`.
-
-### Analogie
-
-Imagine un gâteau. Le décorateur n'en change pas la base, mais il ajoute une couche de présentation ou de comportement reconnaissable de l'extérieur. En code, on enrichit sans recopier la même logique partout.
-
-> 💡 **Ce qu'il faut garder en tête** : un décorateur ne remplace pas la logique métier. Il sert surtout a brancher proprement des comportements transverses.
-
-### Historique : expérimentaux vs Stage 3
+Tu arrives sur le backend TribuZen. Deux fichiers utilisent des décorateurs, et ils ne se ressemblent pas du tout.
 
 ```typescript
-// Les decorateurs ont une histoire compliquee en TypeScript :
-
-// 1. Decorateurs experimentaux (2015)
-//    - Actives avec "experimentalDecorators": true dans tsconfig
-//    - Utilises par Angular, NestJS, TypeORM depuis des annees
-//    - Syntaxe differente de la proposition TC39
-
-// 2. Decorateurs Stage 3 (2023+)
-//    - Proposition TC39 officielle, standardisee
-//    - Supportes dans TypeScript 5.0+
-//    - PAS besoin de "experimentalDecorators" dans tsconfig
-//    - Syntaxe et semantique differentes des experimentaux
-//    - C'est la version RECOMMANDEE pour les nouveaux projets
-```
-
----
-
-## Configuration
-
-### Pour les decorateurs Stage 3
-
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "target": "ES2022",  // ou plus recent
-    // PAS besoin de "experimentalDecorators": true
-    // PAS besoin de "emitDecoratorMetadata": true
-  }
-}
-```
-
-### Pour les decorateurs experimentaux (legacy)
-
-```json
-// tsconfig.json - pour les projets existants Angular/NestJS
-{
-  "compilerOptions": {
-    "target": "ES2016",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true  // pour reflect-metadata
-  }
-}
-```
-
-> 🎯 **Point clé** : avant d'écrire le moindre décorateur, il faut savoir quel système ton projet utilise. C'est la première source de confusion sur ce sujet.
-
----
-
-## Decorateurs Stage 3 : les bases
-
-### Syntaxe d'un decorateur
-
-Un decorateur Stage 3 est simplement une **fonction** qui recoit deux arguments :
-1. La **valeur** decoree (la classe, la méthode, etc.)
-2. Un objet **contexte** avec des metadonnees
-
-```typescript
-// Signature d'un decorateur de classe
-type DecorateurClasse = (
-  valeur: Function,                    // Le constructeur de la classe
-  contexte: ClassDecoratorContext     // Metadonnees
-) => Function | void;
-
-// Signature d'un decorateur de methode
-type DecorateurMethode = (
-  valeur: Function,                    // La methode decoree
-  contexte: ClassMethodDecoratorContext // Metadonnees
-) => Function | void;
-```
-
----
-
-## Class Decorators (Decorateurs de classe)
-
-### Decorateur simple
-
-```typescript
-// Un decorateur qui scelle une classe (empeche l'ajout de proprietes)
-function Sceller(
-  valeur: Function,
-  contexte: ClassDecoratorContext
-) {
-  Object.seal(valeur);
-  Object.seal(valeur.prototype);
-  console.log(`Classe ${contexte.name} scellee !`);
-}
-
-@Sceller
-class MonService {
-  nom = "service";
-
-  executer() {
-    console.log("Execution...");
+// Fichier A — un utilitaire maison dans le monorepo (TS 5, config par défaut)
+class RappelService {
+  @logged                        // ← décorateur SANS parenthèses, pas de reflect-metadata
+  envoyer(rappelId: string) {
+    return `rappel ${rappelId} envoyé`;
   }
 }
 
-// La classe est maintenant scellee :
-// on ne peut plus ajouter de proprietes a MonService ou son prototype
+// Fichier B — un service NestJS (config experimentalDecorators)
+@Injectable()                    // ← décorateur AVEC parenthèses
+class RappelNestService {
+  constructor(private readonly repo: RappelRepository) {} // ← type injecté par reflect-metadata
+}
 ```
 
-### Decorateur qui remplace la classe
+**Les deux compilent. Mais `@logged` du fichier A, copié tel quel dans un projet NestJS, ne marchera pas — et inversement.** Pourquoi ? Parce que ce sont deux moteurs différents :
+
+- Fichier A = **décorateurs standard** (ECMAScript Stage 3, TS 5.0). Signature `(value, context)`.
+- Fichier B = **décorateurs legacy** (`experimentalDecorators` + `emitDecoratorMetadata` + `reflect-metadata`). Signature `(target, key, descriptor)`.
+
+Ce module te fait écrire les deux, comprendre pourquoi ils sont incompatibles, et savoir lequel choisir. C'est le pont direct vers le module 09 du cours NestJS (injection de dépendances).
+
+---
+
+## 2. Théorie complète, concise
+
+### 2.1 Deux systèmes, une seule syntaxe `@`
+
+La syntaxe `@decorateur` est partagée, mais **deux implémentations totalement différentes** se cachent derrière, pilotées par le flag `experimentalDecorators` du `tsconfig.json`.
+
+| | **Standard (Stage 3)** | **Legacy (expérimental)** |
+|---|---|---|
+| Flag tsconfig | *aucun* (défaut TS 5.0+) | `"experimentalDecorators": true` |
+| Origine | Proposition TC39 standardisée | Ancienne proposition (2015) |
+| Depuis | TS 5.0 (mars 2023) | TS 1.5, toujours supporté |
+| Signature | `(value, context)` | `(target, key, descriptor)` |
+| Décorateur de **paramètre** | ❌ **interdit** (erreur TS1206) | ✅ supporté |
+| `reflect-metadata` intégré | ❌ non | ✅ via `emitDecoratorMetadata` |
+| Utilisé par | nouveaux projets, code applicatif | **NestJS, Angular, TypeORM, class-validator** |
+
+> **Règle de survie :** avant d'écrire un décorateur, regarde le `tsconfig.json`. `experimentalDecorators: true` → legacy. Absent → standard. Cette ligne détermine quelle signature tu dois écrire.
+
+### 2.2 Décorateurs standard — signature `(value, context)`
+
+Un décorateur standard est **une fonction** qui reçoit deux arguments :
+
+1. `value` — la chose décorée (constructeur, méthode, valeur de l'accessor…).
+2. `context` — un objet de métadonnées décrivant *quoi* est décoré.
 
 ```typescript
-// Un decorateur qui ajoute un timestamp de creation
-function AvecTimestamp<T extends new (...args: any[]) => any>(
-  Originale: T,
-  contexte: ClassDecoratorContext
-) {
-  return class extends Originale {
-    dateCreation = new Date();
+// tsconfig : PAS de experimentalDecorators. C'est le mode par défaut en TS 5.
+function logged(value: Function, context: ClassMethodDecoratorContext) {
+  const nom = String(context.name);
+  return function (this: any, ...args: any[]) {
+    console.log(`[LOG] ${nom}(`, args, `)`);
+    return value.apply(this, args);
+  };
+}
+```
 
-    constructor(...args: any[]) {
-      super(...args);
-      console.log(`Instance de ${contexte.name} creee le ${this.dateCreation}`);
+Le `context` a une propriété clé, **`context.kind`**, qui vaut `"class" | "method" | "getter" | "setter" | "field" | "accessor"`. Un même décorateur peut brancher selon la cible :
+
+```typescript
+function logged(target: any, context: DecoratorContext): any {
+  switch (context.kind) {
+    case "class":  { /* target = le constructeur */ return target; }
+    case "method":
+    case "getter":
+    case "setter": {
+      const nom = context.name.toString();
+      return function (this: any, ...args: any[]) {
+        return (target as Function).apply(this, args); // wrap
+      };
     }
+    case "accessor": { /* return { get, set, init } */ }
+    case "field":    { /* return (initial) => nouvelleValeur */ }
+  }
+}
+```
+
+**Ce que retourne un décorateur standard dépend de `kind` :**
+
+| `context.kind` | `value` reçu | Retour attendu |
+|---|---|---|
+| `class` | le constructeur | rien, ou une classe de remplacement |
+| `method` | la fonction méthode | rien, ou une fonction de remplacement |
+| `getter` / `setter` | la fonction accessor | rien, ou une fonction de remplacement |
+| `accessor` | `{ get, set }` | rien, ou `{ get?, set?, init? }` |
+| `field` | `undefined` | rien, ou `(valeurInitiale) => nouvelleValeur` |
+
+### 2.3 `context.addInitializer` et `context.name`
+
+Le `context` porte aussi :
+
+- **`context.name`** — le nom de l'élément décoré (`string` ou `symbol`).
+- **`context.addInitializer(fn)`** — enregistre une fonction exécutée à l'initialisation (après définition pour les membres statiques, avant les initialiseurs d'instance sinon). C'est le remplacement standard pour « faire quelque chose au moment où la classe/l'instance se construit ».
+
+```typescript
+function bound(value: Function, context: ClassMethodDecoratorContext) {
+  // Auto-bind d'une méthode sur l'instance, sans toucher au corps.
+  context.addInitializer(function (this: any) {
+    this[context.name] = value.bind(this);
+  });
+}
+```
+
+### 2.4 Le field decorator retourne un initialiseur
+
+Un décorateur de **field** ne reçoit pas la valeur (elle n'existe pas encore). Il peut retourner une fonction qui **transforme la valeur initiale** :
+
+```typescript
+function double(_value: undefined, context: ClassFieldDecoratorContext) {
+  return function (valeurInitiale: number) {
+    return valeurInitiale * 2; // la valeur affectée au field passe par ici
   };
 }
 
-@AvecTimestamp
-class Document {
-  constructor(public titre: string) {}
-}
-
-const doc = new Document("Mon document");
-// Console: "Instance de Document creee le Mon Mar 08 2026 ..."
-// doc.dateCreation est disponible
-```
-
-### Decorateur avec registre
-
-```typescript
-// Un registre de classes decorees (utile pour la DI)
-const registreClasses = new Map<string, Function>();
-
-function Enregistrer(
-  valeur: Function,
-  contexte: ClassDecoratorContext
-) {
-  const nom = contexte.name ?? "Anonyme";
-  registreClasses.set(nom, valeur);
-  console.log(`Classe ${nom} enregistree dans le registre`);
-}
-
-@Enregistrer
-class ServiceUtilisateur {
-  obtenirTous() {
-    return ["Alice", "Bob"];
-  }
-}
-
-@Enregistrer
-class ServiceProduit {
-  obtenirTous() {
-    return ["Stylo", "Cahier"];
-  }
-}
-
-// On peut maintenant recuperer les classes par nom
-const ClasseService = registreClasses.get("ServiceUtilisateur");
-if (ClasseService) {
-  const instance = new (ClasseService as any)();
-  console.log(instance.obtenirTous()); // ["Alice", "Bob"]
+class Compteur {
+  @double score = 10; // score vaut 20 à la construction
 }
 ```
 
----
-
-## Method Decorators (Decorateurs de méthode)
-
-### Decorateur de logging
+Pour **intercepter lecture ET écriture**, on n'utilise pas un field mais un **`accessor`** (nouveau mot-clé) :
 
 ```typescript
-// Logger automatiquement les appels de methode
-function Logger(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  const nomMethode = String(contexte.name);
-
-  function methodeRemplacante(this: any, ...args: any[]) {
-    console.log(`[LOG] Appel de ${nomMethode} avec`, args);
-    const resultat = methodeOriginale.call(this, ...args);
-    console.log(`[LOG] ${nomMethode} a retourne`, resultat);
-    return resultat;
-  }
-
-  return methodeRemplacante;
-}
-
-class Calculatrice {
-  @Logger
-  additionner(a: number, b: number): number {
-    return a + b;
-  }
-
-  @Logger
-  multiplier(a: number, b: number): number {
-    return a * b;
-  }
-}
-
-const calc = new Calculatrice();
-calc.additionner(3, 4);
-// [LOG] Appel de additionner avec [3, 4]
-// [LOG] additionner a retourne 7
-
-calc.multiplier(5, 6);
-// [LOG] Appel de multiplier avec [5, 6]
-// [LOG] multiplier a retourne 30
-```
-
-### Decorateur de mesure de performance
-
-```typescript
-// Mesurer le temps d'execution d'une methode
-function MesurerTemps(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  const nomMethode = String(contexte.name);
-
-  function methodeChronometree(this: any, ...args: any[]) {
-    const debut = performance.now();
-    const resultat = methodeOriginale.call(this, ...args);
-    const fin = performance.now();
-    console.log(`[PERF] ${nomMethode} : ${(fin - debut).toFixed(2)}ms`);
-    return resultat;
-  }
-
-  return methodeChronometree;
-}
-
-class TraitementDonnees {
-  @MesurerTemps
-  trier(donnees: number[]): number[] {
-    return [...donnees].sort((a, b) => a - b);
-  }
-
-  @MesurerTemps
-  filtrer(donnees: number[], seuil: number): number[] {
-    return donnees.filter((n) => n > seuil);
-  }
-}
-
-const traitement = new TraitementDonnees();
-traitement.trier([5, 3, 8, 1, 9, 2]);
-// [PERF] trier : 0.05ms
-```
-
-### Decorateur pour les méthodes async
-
-```typescript
-// Gerer les erreurs automatiquement dans les methodes async
-function GererErreurs(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  const nomMethode = String(contexte.name);
-
-  async function methodeSecurisee(this: any, ...args: any[]) {
-    try {
-      return await methodeOriginale.call(this, ...args);
-    } catch (erreur) {
-      console.error(`[ERREUR] ${nomMethode} a echoue :`, erreur);
-      throw erreur; // On relance l'erreur apres logging
-    }
-  }
-
-  return methodeSecurisee;
-}
-
-// Limiter le nombre d'appels (debounce simplifie)
-function UneFoisParSeconde(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  let dernierAppel = 0;
-
-  function methodeLimitee(this: any, ...args: any[]) {
-    const maintenant = Date.now();
-    if (maintenant - dernierAppel < 1000) {
-      console.log(`[LIMITE] ${String(contexte.name)} : appel ignore (trop frequent)`);
-      return;
-    }
-    dernierAppel = maintenant;
-    return methodeOriginale.call(this, ...args);
-  }
-
-  return methodeLimitee;
-}
-
-class ApiClient {
-  @GererErreurs
-  @UneFoisParSeconde
-  async chercher(url: string): Promise<any> {
-    const reponse = await fetch(url);
-    return reponse.json();
-  }
-}
-```
-
----
-
-## Property Decorators (Decorateurs de propriété)
-
-### Decorateur avec auto-accessor
-
-En Stage 3, les decorateurs de propriété necessitent le mot-clé `accessor` pour pouvoir intercepter les lectures et ecritures.
-
-```typescript
-// Validation automatique d'une propriete
-function Positif(
-  valeur: ClassAccessorDecoratorTarget<any, number>,
-  contexte: ClassAccessorDecoratorContext<any, number>
-) {
+function positif<T>(
+  target: ClassAccessorDecoratorTarget<T, number>,
+  context: ClassAccessorDecoratorContext<T, number>,
+): ClassAccessorDecoratorResult<T, number> {
   return {
-    set(this: any, val: number) {
-      if (val < 0) {
-        throw new Error(
-          `La propriete ${String(contexte.name)} doit etre positive, recu : ${val}`
-        );
-      }
-      valeur.set.call(this, val);
+    get() { return target.get.call(this); },
+    set(v: number) {
+      if (v < 0) throw new RangeError(`${String(context.name)} doit être positif`);
+      target.set.call(this, v);
     },
-    get(this: any): number {
-      return valeur.get.call(this);
-    },
-  } satisfies ClassAccessorDecoratorResult<any, number>;
+  };
 }
 
 class Produit {
-  @Positif
-  accessor prix: number = 0;
-
-  @Positif
-  accessor stock: number = 0;
-
-  constructor(prix: number, stock: number) {
-    this.prix = prix;
-    this.stock = stock;
-  }
+  @positif accessor prix = 0; // le mot-clé `accessor` est obligatoire ici
 }
-
-const produit = new Produit(29.99, 100);
-console.log(produit.prix); // 29.99
-
-// produit.prix = -5; // Erreur : La propriete prix doit etre positive
 ```
 
-### Decorateur d'observation (Observable)
+### 2.5 PAS de décorateur de paramètre en standard
+
+**Le système standard n'a aucun décorateur de paramètre.** Écrire `method(@dec x: any)` en mode standard produit l'erreur **TS1206 « Decorators are not valid here »**.
 
 ```typescript
-// Notifier quand une propriete change
-function Observable(
-  valeur: ClassAccessorDecoratorTarget<any, any>,
-  contexte: ClassAccessorDecoratorContext
-) {
-  const nomPropriete = String(contexte.name);
-
-  return {
-    set(this: any, nouvelleValeur: any) {
-      const ancienneValeur = valeur.get.call(this);
-      if (ancienneValeur !== nouvelleValeur) {
-        console.log(
-          `[CHANGE] ${nomPropriete}: ${ancienneValeur} -> ${nouvelleValeur}`
-        );
-        valeur.set.call(this, nouvelleValeur);
-
-        // Emettre un evenement si la classe a un emetteur
-        if (typeof this.emettre === "function") {
-          this.emettre(`${nomPropriete}:change`, {
-            ancienne: ancienneValeur,
-            nouvelle: nouvelleValeur,
-          });
-        }
-      }
-    },
-    get(this: any) {
-      return valeur.get.call(this);
-    },
-  };
+// ❌ Standard : erreur de compilation TS1206
+class C {
+  method(@dec x: number) {}         // interdit
+  constructor(@dec x: number) {}    // interdit
 }
-
-class EtatApplication {
-  @Observable
-  accessor compteur: number = 0;
-
-  @Observable
-  accessor message: string = "";
-
-  incrementer() {
-    this.compteur++;
-  }
-}
-
-const etat = new EtatApplication();
-etat.compteur = 5;    // [CHANGE] compteur: 0 -> 5
-etat.message = "Bonjour"; // [CHANGE] message:  -> Bonjour
-etat.compteur = 5;    // Pas de log (meme valeur)
 ```
 
----
+C'est **la raison technique majeure pour laquelle NestJS reste sur le legacy** : NestJS injecte les dépendances via les paramètres du constructeur (`constructor(private repo: Repo)`) et via `@Param()`, `@Body()`, `@Query()` sur les paramètres de méthode. Sans décorateur de paramètre, tout le modèle NestJS s'effondre. Voir §2.7.
 
-## Decorator Factories (Fabriques de decorateurs)
+### 2.6 Le système legacy — `reflect-metadata`
 
-### Principe
+Le mode legacy s'active avec deux flags :
 
-Une **decorator factory** est une fonction qui retourne un decorateur. Elle permet de parametrer le decorateur.
+```json
+// tsconfig.json — mode NestJS / Angular / TypeORM
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+> **Vérifié Context7 :** `emitDecoratorMetadata` **requiert** `experimentalDecorators`. L'activer seul déclenche l'erreur **TS5052**. Les deux flags vont ensemble.
+
+En legacy, la signature est `(target, propertyKey, descriptor)` et on dispose des **décorateurs de paramètre** `(target, propertyKey, parameterIndex)`. Surtout, `emitDecoratorMetadata` fait émettre par TypeScript des **métadonnées de type** lisibles à l'exécution via la lib `reflect-metadata` :
 
 ```typescript
-// Decorateur direct (sans parametres)
-function MonDecorateur(valeur: Function, contexte: ClassDecoratorContext) {
-  // ...
-}
+import "reflect-metadata"; // à importer UNE fois, au tout premier point d'entrée
 
-// Decorator factory (avec parametres)
-function MonDecorateurAvecParams(param1: string, param2: number) {
-  // Retourne le vrai decorateur
-  return function (valeur: Function, contexte: ClassDecoratorContext) {
-    console.log(`Decorateur avec ${param1} et ${param2}`);
-  };
-}
-
-// Utilisation
-@MonDecorateur
-class A {}
-
-@MonDecorateurAvecParams("hello", 42)
-class B {}
-```
-
-### Exemples concrets de factories
-
-```typescript
-// Factory pour un decorateur de validation de plage
-function Plage(min: number, max: number) {
-  return function (
-    valeur: ClassAccessorDecoratorTarget<any, number>,
-    contexte: ClassAccessorDecoratorContext<any, number>
-  ) {
-    return {
-      set(this: any, val: number) {
-        if (val < min || val > max) {
-          throw new RangeError(
-            `${String(contexte.name)} doit etre entre ${min} et ${max}, recu : ${val}`
-          );
-        }
-        valeur.set.call(this, val);
-      },
-      get(this: any): number {
-        return valeur.get.call(this);
-      },
-    };
-  };
-}
-
-// Factory pour un decorateur de longueur de chaine
-function LongueurMax(max: number) {
-  return function (
-    valeur: ClassAccessorDecoratorTarget<any, string>,
-    contexte: ClassAccessorDecoratorContext<any, string>
-  ) {
-    return {
-      set(this: any, val: string) {
-        if (val.length > max) {
-          throw new Error(
-            `${String(contexte.name)} ne doit pas depasser ${max} caracteres`
-          );
-        }
-        valeur.set.call(this, val);
-      },
-      get(this: any): string {
-        return valeur.get.call(this);
-      },
-    };
-  };
-}
-
-class Employe {
-  @LongueurMax(50)
-  accessor nom: string = "";
-
-  @Plage(18, 65)
-  accessor age: number = 18;
-
-  @Plage(0, 100)
-  accessor performance: number = 50;
-}
-
-const employe = new Employe();
-employe.nom = "Jean Dupont";        // OK
-employe.age = 30;                    // OK
-// employe.age = 10;                 // RangeError : age doit etre entre 18 et 65
-// employe.nom = "A".repeat(51);     // Erreur : ne doit pas depasser 50 caracteres
-```
-
-### Factory avec options
-
-```typescript
-// Options de configuration pour un decorateur de cache
-interface OptionsCacheTTL {
-  dureeVie: number;         // En millisecondes
-  clePersonnalisee?: string;
-}
-
-function Cache(options: OptionsCacheTTL) {
-  const cache = new Map<string, { valeur: any; expiration: number }>();
-
-  return function (
-    methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
-  ) {
-    const nomMethode = options.clePersonnalisee ?? String(contexte.name);
-
-    function methodeAvecCache(this: any, ...args: any[]) {
-      const cle = `${nomMethode}:${JSON.stringify(args)}`;
-      const maintenant = Date.now();
-
-      // Verifier le cache
-      const entree = cache.get(cle);
-      if (entree && entree.expiration > maintenant) {
-        console.log(`[CACHE] Hit pour ${cle}`);
-        return entree.valeur;
-      }
-
-      // Appeler la methode originale
-      console.log(`[CACHE] Miss pour ${cle}`);
-      const resultat = methodeOriginale.call(this, ...args);
-
-      // Stocker dans le cache
-      cache.set(cle, {
-        valeur: resultat,
-        expiration: maintenant + options.dureeVie,
-      });
-
-      return resultat;
-    }
-
-    return methodeAvecCache;
-  };
-}
-
-class ServiceDonnees {
-  @Cache({ dureeVie: 5000 })  // Cache de 5 secondes
-  obtenirUtilisateur(id: number) {
-    console.log(`Chargement utilisateur ${id}...`);
-    return { id, nom: "Alice" };
-  }
-
-  @Cache({ dureeVie: 60000, clePersonnalisee: "config" })
-  obtenirConfiguration() {
-    console.log("Chargement configuration...");
-    return { theme: "sombre", langue: "fr" };
-  }
-}
-
-const service = new ServiceDonnees();
-service.obtenirUtilisateur(1);  // [CACHE] Miss - charge depuis la source
-service.obtenirUtilisateur(1);  // [CACHE] Hit - retourne du cache
-service.obtenirUtilisateur(2);  // [CACHE] Miss - id different
-```
-
----
-
-## Composition de decorateurs
-
-### Ordre d'application
-
-Les decorateurs sont appliques de **bas en haut** (du plus proche de la cible vers le plus eloigne) mais evalues de **haut en bas**.
-
-```typescript
-function Premier(
-  methode: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  console.log("Premier decorateur EVALUE");
-  return function (this: any, ...args: any[]) {
-    console.log("Premier decorateur EXECUTE (avant)");
-    const resultat = methode.call(this, ...args);
-    console.log("Premier decorateur EXECUTE (apres)");
-    return resultat;
-  };
-}
-
-function Deuxieme(
-  methode: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  console.log("Deuxieme decorateur EVALUE");
-  return function (this: any, ...args: any[]) {
-    console.log("Deuxieme decorateur EXECUTE (avant)");
-    const resultat = methode.call(this, ...args);
-    console.log("Deuxieme decorateur EXECUTE (apres)");
-    return resultat;
-  };
-}
-
-class Exemple {
-  @Premier   // Evalue en 1er, execute en dernier (enveloppe exterieure)
-  @Deuxieme  // Evalue en 2eme, execute en premier (enveloppe interieure)
-  saluer() {
-    console.log("Bonjour !");
-  }
-}
-
-const ex = new Exemple();
-ex.saluer();
-// Premier decorateur EVALUE
-// Deuxieme decorateur EVALUE
-// Premier decorateur EXECUTE (avant)
-// Deuxieme decorateur EXECUTE (avant)
-// Bonjour !
-// Deuxieme decorateur EXECUTE (apres)
-// Premier decorateur EXECUTE (apres)
-```
-
-### Analogie de la composition
-
-La composition de decorateurs fonctionne comme des **poupees russes** (matriochkas) : chaque decorateur enveloppe le précédent. L'appel traverse les couches de l'exterieur vers l'interieur, puis revient de l'interieur vers l'exterieur.
-
-```
-Appel -> [Premier] -> [Deuxieme] -> [Methode originale]
-Retour <- [Premier] <- [Deuxieme] <- [Methode originale]
-```
-
----
-
-## Reflect Metadata (decorateurs experimentaux)
-
-### Qu'est-ce que reflect-metadata ?
-
-`reflect-metadata` est une bibliotheque qui permet d'**attacher des metadonnees** a des classes, méthodes et propriétés. Elle fonctionne avec les decorateurs experimentaux.
-
-```bash
-npm install reflect-metadata
-```
-
-```typescript
-// A importer en tout premier dans le point d'entree
-import "reflect-metadata";
-
-// Definir des metadonnees personnalisees
-function Type(type: string) {
-  return function (cible: any, nomPropriete: string) {
-    Reflect.defineMetadata("type:custom", type, cible, nomPropriete);
-  };
-}
-
-function Requis(cible: any, nomPropriete: string) {
-  const proprieteRequises: string[] =
-    Reflect.getMetadata("requis", cible) || [];
-  proprieteRequises.push(nomPropriete);
-  Reflect.defineMetadata("requis", proprieteRequises, cible);
-}
-
-class Formulaire {
-  @Requis
-  @Type("string")
-  nom!: string;
-
-  @Requis
-  @Type("email")
-  email!: string;
-
-  @Type("number")
-  age?: number;
-}
-
-// Lire les metadonnees
-const proprieteRequises = Reflect.getMetadata("requis", Formulaire.prototype);
-console.log(proprieteRequises); // ["nom", "email"]
-
-const typeNom = Reflect.getMetadata("type:custom", Formulaire.prototype, "nom");
-console.log(typeNom); // "string"
-```
-
-### emitDecoratorMetadata
-
-Avec `"emitDecoratorMetadata": true`, TypeScript emet automatiquement des metadonnees sur les types des paramètres, du retour et des propriétés.
-
-```typescript
-// Avec emitDecoratorMetadata: true
-class ServiceExemple {
-  constructor(
-    private logger: LoggerService,
-    private config: ConfigService
-  ) {}
-
-  traiter(donnees: string): number {
-    return 0;
-  }
-}
-
-// TypeScript genere automatiquement :
-// Reflect.defineMetadata("design:paramtypes",
-//   [LoggerService, ConfigService], ServiceExemple);
-// Reflect.defineMetadata("design:returntype", Number, ServiceExemple.prototype, "traiter");
-// Reflect.defineMetadata("design:type", Function, ServiceExemple.prototype, "traiter");
-```
-
----
-
-## Cas d'usage réels
-
-### 1. Système de validation
-
-```typescript
-// Decorateurs de validation complets
-const VALIDATIONS = Symbol("validations");
-
-interface RegleValidation {
-  propriete: string;
-  validateur: (valeur: any) => boolean;
-  message: string;
-}
-
-function ajouterValidation(
-  cible: any,
-  propriete: string,
-  validateur: (valeur: any) => boolean,
-  message: string
-) {
-  const validations: RegleValidation[] =
-    cible[VALIDATIONS] || [];
-  validations.push({ propriete, validateur, message });
-  cible[VALIDATIONS] = validations;
-}
-
-// Decorateurs de validation (experimentaux pour simplifier)
-function EstRequis(cible: any, propriete: string) {
-  ajouterValidation(
-    cible,
-    propriete,
-    (v) => v !== null && v !== undefined && v !== "",
-    `${propriete} est requis`
-  );
-}
-
-function EstEmail(cible: any, propriete: string) {
-  ajouterValidation(
-    cible,
-    propriete,
-    (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
-    `${propriete} doit etre un email valide`
-  );
-}
-
-function Longueur(min: number, max: number) {
-  return function (cible: any, propriete: string) {
-    ajouterValidation(
-      cible,
-      propriete,
-      (v) => typeof v === "string" && v.length >= min && v.length <= max,
-      `${propriete} doit avoir entre ${min} et ${max} caracteres`
-    );
-  };
-}
-
-// Fonction de validation
-function valider<T extends object>(instance: T): string[] {
-  const erreurs: string[] = [];
-  const proto = Object.getPrototypeOf(instance);
-  const validations: RegleValidation[] = proto[VALIDATIONS] || [];
-
-  for (const { propriete, validateur, message } of validations) {
-    const valeur = (instance as any)[propriete];
-    if (!validateur(valeur)) {
-      erreurs.push(message);
-    }
-  }
-
-  return erreurs;
-}
-
-// Utilisation
-class InscriptionDTO {
-  @EstRequis
-  @Longueur(2, 50)
-  nom!: string;
-
-  @EstRequis
-  @EstEmail
-  email!: string;
-
-  @Longueur(8, 100)
-  motDePasse!: string;
-}
-
-const inscription = new InscriptionDTO();
-inscription.nom = "A"; // Trop court
-inscription.email = "invalide";
-inscription.motDePasse = "court";
-
-const erreurs = valider(inscription);
-console.log(erreurs);
-// [
-//   "nom doit avoir entre 2 et 50 caracteres",
-//   "email doit etre un email valide",
-//   "motDePasse doit avoir entre 8 et 100 caracteres"
-// ]
-```
-
-### 2. Injection de dépendances (DI) simplifiee
-
-```typescript
-// Un conteneur DI simple utilisant des decorateurs
-
-// Registre des services
-const conteneur = new Map<string, { classe: any; singleton: boolean; instance?: any }>();
-
-// Decorateur pour enregistrer un service
-function Service(options: { singleton?: boolean } = {}) {
-  return function (valeur: Function, contexte: ClassDecoratorContext) {
-    const nom = String(contexte.name);
-    conteneur.set(nom, {
-      classe: valeur,
-      singleton: options.singleton ?? true,
-    });
-    console.log(`[DI] Service ${nom} enregistre (singleton: ${options.singleton ?? true})`);
-  };
-}
-
-// Fonction pour resoudre un service
-function resoudre<T>(nom: string): T {
-  const entry = conteneur.get(nom);
-  if (!entry) {
-    throw new Error(`Service ${nom} non trouve dans le conteneur`);
-  }
-
-  if (entry.singleton) {
-    if (!entry.instance) {
-      entry.instance = new entry.classe();
-    }
-    return entry.instance;
-  }
-
-  return new entry.classe();
-}
-
-// Utilisation
-@Service({ singleton: true })
-class LoggerService {
-  log(message: string) {
-    console.log(`[${new Date().toISOString()}] ${message}`);
-  }
-}
-
-@Service({ singleton: true })
-class ConfigService {
-  private config = new Map<string, any>();
-
-  obtenir(cle: string): any {
-    return this.config.get(cle);
-  }
-
-  definir(cle: string, valeur: any): void {
-    this.config.set(cle, valeur);
-  }
-}
-
-@Service({ singleton: false })
-class GestionnaireRequetes {
-  private logger = resoudre<LoggerService>("LoggerService");
-
-  traiter(requete: string) {
-    this.logger.log(`Traitement de la requete : ${requete}`);
-  }
-}
-
-// Resolution
-const gestionnaire1 = resoudre<GestionnaireRequetes>("GestionnaireRequetes");
-const gestionnaire2 = resoudre<GestionnaireRequetes>("GestionnaireRequetes");
-// gestionnaire1 !== gestionnaire2 (pas singleton)
-
-const logger1 = resoudre<LoggerService>("LoggerService");
-const logger2 = resoudre<LoggerService>("LoggerService");
-// logger1 === logger2 (singleton)
-```
-
-### 3. Serialisation / Deserialisation
-
-```typescript
-// Decorateurs pour controler la serialisation JSON
-
-const CHAMPS_SERIALISES = Symbol("serialises");
-const CHAMPS_TRANSFORMES = Symbol("transformes");
-
-interface OptionsChamp {
-  nom?: string;         // Nom dans le JSON (si different)
-  exclure?: boolean;    // Ne pas serialiser
-  transformer?: (valeur: any) => any; // Transformation a la serialisation
-}
-
-function Champ(options: OptionsChamp = {}) {
-  return function (cible: any, propriete: string) {
-    // Enregistrer les options de serialisation
-    const champs: Map<string, OptionsChamp> =
-      cible[CHAMPS_SERIALISES] || new Map();
-    champs.set(propriete, options);
-    cible[CHAMPS_SERIALISES] = champs;
-  };
-}
-
-function Exclure(cible: any, propriete: string) {
-  Champ({ exclure: true })(cible, propriete);
-}
-
-// Fonction de serialisation
-function serialiser<T extends object>(instance: T): Record<string, any> {
-  const proto = Object.getPrototypeOf(instance);
-  const champs: Map<string, OptionsChamp> = proto[CHAMPS_SERIALISES] || new Map();
-  const resultat: Record<string, any> = {};
-
-  for (const [propriete, options] of champs) {
-    if (options.exclure) continue;
-
-    const nomSortie = options.nom || propriete;
-    let valeur = (instance as any)[propriete];
-
-    if (options.transformer) {
-      valeur = options.transformer(valeur);
-    }
-
-    resultat[nomSortie] = valeur;
-  }
-
-  return resultat;
-}
-
-// Utilisation
-class UtilisateurAPI {
-  @Champ()
-  id!: number;
-
-  @Champ({ nom: "full_name" })
-  nomComplet!: string;
-
-  @Champ({ nom: "email_address" })
-  email!: string;
-
-  @Exclure
-  motDePasse!: string;
-
-  @Champ({
-    nom: "created_at",
-    transformer: (d: Date) => d.toISOString(),
-  })
-  dateCreation!: Date;
-}
-
-const utilisateur = new UtilisateurAPI();
-utilisateur.id = 1;
-utilisateur.nomComplet = "Alice Dupont";
-utilisateur.email = "alice@example.com";
-utilisateur.motDePasse = "secret123";
-utilisateur.dateCreation = new Date();
-
-const json = serialiser(utilisateur);
-console.log(json);
-// {
-//   id: 1,
-//   full_name: "Alice Dupont",
-//   email_address: "alice@example.com",
-//   created_at: "2026-03-08T10:30:00.000Z"
-// }
-// Notez : motDePasse est absent (exclu) et les noms sont transformes
-```
-
-### 4. Apercu des decorateurs NestJS
-
-NestJS est le framework le plus connu utilisant massivement les decorateurs en TypeScript.
-
-```typescript
-// Ceci est un APERCU de la syntaxe NestJS (decorateurs experimentaux)
-// NestJS utilise encore les decorateurs experimentaux en 2026
-
-// Un controleur REST typique dans NestJS
-@Controller("utilisateurs")
-class UtilisateurController {
-  constructor(private readonly service: UtilisateurService) {}
-
-  @Get()
-  async obtenirTous(): Promise<Utilisateur[]> {
-    return this.service.obtenirTous();
-  }
-
-  @Get(":id")
-  async obtenirParId(@Param("id") id: string): Promise<Utilisateur> {
-    return this.service.obtenirParId(parseInt(id));
-  }
-
-  @Post()
-  @HttpCode(201)
-  async creer(@Body() dto: CreerUtilisateurDTO): Promise<Utilisateur> {
-    return this.service.creer(dto);
-  }
-
-  @Put(":id")
-  @UseGuards(AuthGuard)
-  async modifier(
-    @Param("id") id: string,
-    @Body() dto: ModifierUtilisateurDTO
-  ): Promise<Utilisateur> {
-    return this.service.modifier(parseInt(id), dto);
-  }
-
-  @Delete(":id")
-  @UseGuards(AuthGuard, AdminGuard)
-  async supprimer(@Param("id") id: string): Promise<void> {
-    return this.service.supprimer(parseInt(id));
-  }
-}
-
-// Un service injectable
 @Injectable()
-class UtilisateurService {
-  constructor(
-    @InjectRepository(UtilisateurEntity)
-    private readonly repo: Repository<UtilisateurEntity>
-  ) {}
-
-  async obtenirTous(): Promise<Utilisateur[]> {
-    return this.repo.find();
-  }
+class RappelService {
+  constructor(private repo: RappelRepository, private log: Logger) {}
 }
 
-// Un DTO avec validation (class-validator)
-class CreerUtilisateurDTO {
-  @IsString()
-  @MinLength(2)
-  @MaxLength(50)
-  nom!: string;
+// Grâce à emitDecoratorMetadata, TypeScript a émis :
+//   Reflect.defineMetadata("design:paramtypes",
+//     [RappelRepository, Logger], RappelService);
 
-  @IsEmail()
-  email!: string;
-
-  @IsString()
-  @MinLength(8)
-  motDePasse!: string;
-}
-
-// NestJS utilise reflect-metadata pour :
-// 1. L'injection de dependances (connaitre les types des parametres du constructeur)
-// 2. La validation (class-validator + class-transformer)
-// 3. Le routage (associer des chemins HTTP a des methodes)
-// 4. Les guards et interceptors (securite et transformation)
+// Le conteneur DI lit ça pour savoir quoi instancier :
+const deps = Reflect.getMetadata("design:paramtypes", RappelService);
+// [class RappelRepository, class Logger]  → le conteneur les résout et les injecte
 ```
+
+Les clés `design:*` émises automatiquement : `design:type` (type d'une propriété), `design:paramtypes` (types des paramètres), `design:returntype` (type de retour). **Elles n'existent QUE en mode legacy avec `emitDecoratorMetadata`.** Le système standard n'émet rien de tel.
+
+### 2.7 Pourquoi NestJS reste legacy (et l'incompatibilité)
+
+Trois raisons cumulées :
+
+1. **Décorateurs de paramètre** — indispensables (`@Param`, `@Body`, injection constructeur). Absents en standard.
+2. **`design:paramtypes`** — le conteneur DI lit les types du constructeur à l'exécution. Le standard n'émet aucune métadonnée de type.
+3. **Écosystème** — TypeORM, class-validator, class-transformer sont tous en legacy. Migrer NestJS casserait tout l'écosystème.
+
+**Les deux systèmes sont mutuellement exclusifs par fichier de compilation.** Le flag `experimentalDecorators` bascule *tout* le projet dans un mode ou l'autre. Un décorateur écrit pour l'un ne fonctionne pas dans l'autre : les signatures diffèrent (`(value, context)` vs `(target, key, descriptor)`), et une méthode legacy attend `descriptor.value` là où le standard reçoit directement la fonction.
+
+> **En pratique 2026 :** `Symbol.metadata` et `context.metadata` **existent déjà** dans le standard (Stage 3, implémentés en TS 5.2, 2023) — un décorateur standard peut donc attacher des métadonnées via `context.metadata[clé] = …`, lisibles ensuite sur `Classe[Symbol.metadata]`. Ce qui reste **en discussion** à TC39, c'est le **décorateur de paramètre** standard : tant qu'il n'existe pas, NestJS ne peut pas migrer. Écris NestJS en legacy, ton code applicatif neuf en standard, et ne mélange jamais les deux signatures.
 
 ---
 
-## Pratique : Exercices
+## 3. Worked examples
 
-### Exercice 1 : Decorateur @Deprecated
+### Exemple 1 — `@logged` standard sur une méthode de service (TribuZen)
 
-Creez un decorateur `@Deprecated` qui affiche un avertissement quand une méthode est appelee.
-
-<details>
-<summary>Solution</summary>
+Objectif : journaliser tous les appels d'une méthode de `RappelService`, sans toucher au corps. Config par défaut TS 5, aucun flag.
 
 ```typescript
-// Version simple
-function Deprecated(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
+// src/decorators/logged.ts — décorateur STANDARD (Stage 3)
+// Signature imposée : (value, context). value = la méthode, context = métadonnées.
+function logged(
+  value: (...args: any[]) => any,
+  context: ClassMethodDecoratorContext,
 ) {
-  const nomMethode = String(contexte.name);
+  const nom = String(context.name); // context.name = nom de la méthode décorée
 
-  function methodeDepreciee(this: any, ...args: any[]) {
-    console.warn(
-      `[ATTENTION] La methode ${nomMethode} est depreciee et sera supprimee prochainement.`
-    );
-    return methodeOriginale.call(this, ...args);
-  }
-
-  return methodeDepreciee;
-}
-
-// Version factory avec message personnalise
-function DeprecatedAvecMessage(message?: string, remplacement?: string) {
-  return function (
-    methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
-  ) {
-    const nomMethode = String(contexte.name);
-    let dejaAverti = false;
-
-    function methodeDepreciee(this: any, ...args: any[]) {
-      if (!dejaAverti) {
-        const msg = message || `La methode ${nomMethode} est depreciee.`;
-        const rempl = remplacement ? ` Utilisez ${remplacement} a la place.` : "";
-        console.warn(`[DEPRECATED] ${msg}${rempl}`);
-        dejaAverti = true; // N'avertir qu'une seule fois
-      }
-      return methodeOriginale.call(this, ...args);
-    }
-
-    return methodeDepreciee;
-  };
-}
-
-// Utilisation
-class MonAPI {
-  @Deprecated
-  ancienneMethode() {
-    return "resultat";
-  }
-
-  @DeprecatedAvecMessage(
-    "obtenirDonnees v1 n'est plus maintenue",
-    "obtenirDonneesV2()"
-  )
-  obtenirDonnees() {
-    return [];
-  }
-
-  obtenirDonneesV2() {
-    return [{ id: 1 }];
-  }
-}
-
-const api = new MonAPI();
-api.ancienneMethode();
-// [ATTENTION] La methode ancienneMethode est depreciee...
-
-api.obtenirDonnees();
-// [DEPRECATED] obtenirDonnees v1 n'est plus maintenue. Utilisez obtenirDonneesV2() a la place.
-
-api.obtenirDonnees(); // Pas de deuxieme avertissement
-```
-</details>
-
-### Exercice 2 : Decorateur @Retry
-
-Creez un decorateur qui relance automatiquement une méthode async en cas d'echec.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Factory de decorateur de retry
-function Retry(options: { tentatives: number; delaiMs: number }) {
-  return function (
-    methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
-  ) {
-    const nomMethode = String(contexte.name);
-
-    async function methodeAvecRetry(this: any, ...args: any[]) {
-      let dernierErreur: Error | undefined;
-
-      for (let tentative = 1; tentative <= options.tentatives; tentative++) {
-        try {
-          return await methodeOriginale.call(this, ...args);
-        } catch (erreur) {
-          dernierErreur = erreur as Error;
-          console.warn(
-            `[RETRY] ${nomMethode} - tentative ${tentative}/${options.tentatives} echouee: ${dernierErreur.message}`
-          );
-
-          if (tentative < options.tentatives) {
-            // Attendre avant de retenter (avec backoff exponentiel)
-            const delai = options.delaiMs * Math.pow(2, tentative - 1);
-            console.log(`[RETRY] Prochaine tentative dans ${delai}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, delai));
-          }
-        }
-      }
-
-      throw new Error(
-        `${nomMethode} a echoue apres ${options.tentatives} tentatives: ${dernierErreur?.message}`
-      );
-    }
-
-    return methodeAvecRetry;
-  };
-}
-
-// Utilisation
-class ServiceExterne {
-  private compteurAppels = 0;
-
-  @Retry({ tentatives: 3, delaiMs: 1000 })
-  async appelerAPI(endpoint: string): Promise<any> {
-    this.compteurAppels++;
-    console.log(`Appel #${this.compteurAppels} a ${endpoint}`);
-
-    // Simuler un echec intermittent
-    if (this.compteurAppels < 3) {
-      throw new Error("Connexion refusee");
-    }
-
-    return { succes: true, donnees: "resultat" };
-  }
-}
-
-// Test
-const service = new ServiceExterne();
-// Va echouer 2 fois puis reussir a la 3eme tentative
-const resultat = await service.appelerAPI("/api/donnees");
-```
-</details>
-
-### Exercice 3 : Decorateur @Memoize
-
-Creez un decorateur qui met en cache les résultats d'une méthode pure.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Decorateur de memoisation
-function Memoize(
-  methodeOriginale: Function,
-  contexte: ClassMethodDecoratorContext
-) {
-  const cache = new Map<string, any>();
-  const nomMethode = String(contexte.name);
-
-  function methodeMemoized(this: any, ...args: any[]) {
-    const cle = JSON.stringify(args);
-
-    if (cache.has(cle)) {
-      console.log(`[MEMO] Cache hit pour ${nomMethode}(${cle})`);
-      return cache.get(cle);
-    }
-
-    console.log(`[MEMO] Cache miss pour ${nomMethode}(${cle})`);
-    const resultat = methodeOriginale.call(this, ...args);
-    cache.set(cle, resultat);
+  // On RETOURNE une fonction de remplacement (le wrap).
+  return function (this: any, ...args: any[]) {
+    console.log(`[LOG] → ${nom}(`, args, `)`);
+    const resultat = value.apply(this, args); // appelle la méthode d'origine
+    console.log(`[LOG] ← ${nom} =`, resultat);
     return resultat;
-  }
-
-  // Ajouter une methode pour vider le cache
-  (methodeMemoized as any).viderCache = () => {
-    cache.clear();
-    console.log(`[MEMO] Cache de ${nomMethode} vide`);
-  };
-
-  return methodeMemoized;
-}
-
-// Version avec TTL (Time To Live)
-function MemoizeAvecTTL(ttlMs: number) {
-  return function (
-    methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
-  ) {
-    const cache = new Map<string, { valeur: any; expiration: number }>();
-
-    function methodeMemoized(this: any, ...args: any[]) {
-      const cle = JSON.stringify(args);
-      const maintenant = Date.now();
-
-      const entree = cache.get(cle);
-      if (entree && entree.expiration > maintenant) {
-        return entree.valeur;
-      }
-
-      const resultat = methodeOriginale.call(this, ...args);
-      cache.set(cle, { valeur: resultat, expiration: maintenant + ttlMs });
-      return resultat;
-    }
-
-    return methodeMemoized;
   };
 }
 
-// Utilisation
-class Mathematiques {
-  @Memoize
-  fibonacci(n: number): number {
-    if (n <= 1) return n;
-    return this.fibonacci(n - 1) + this.fibonacci(n - 2);
-  }
-
-  @MemoizeAvecTTL(5000) // Cache de 5 secondes
-  calculerLourd(x: number): number {
-    // Simuler un calcul couteux
-    let resultat = 0;
-    for (let i = 0; i < x * 1000000; i++) {
-      resultat += Math.sin(i);
-    }
-    return resultat;
+// src/services/rappel.service.ts
+class RappelService {
+  @logged
+  envoyer(rappelId: string): string {
+    return `rappel ${rappelId} envoyé`;
   }
 }
 
-const maths = new Mathematiques();
-console.log(maths.fibonacci(10)); // Calcule et cache chaque etape
-console.log(maths.fibonacci(10)); // Retourne directement du cache
+const s = new RappelService();
+s.envoyer("r-42");
+// [LOG] → envoyer( [ 'r-42' ] )
+// [LOG] ← envoyer = rappel r-42 envoyé
 ```
-</details>
 
-### Exercice 4 : Decorateur @Authorize
+**Points à retenir :** pas de parenthèses (`@logged`, pas `@logged()`), signature `(value, context)`, on retourne le wrap. Aucune dépendance à `reflect-metadata`.
 
-Creez un decorateur qui vérifié les permissions avant d'exécuter une méthode.
+### Exemple 2 — la version legacy `@Injectable`-like avec `reflect-metadata`
 
-<details>
-<summary>Solution</summary>
+Objectif : reproduire en miniature ce que fait NestJS — un conteneur DI qui lit les types du constructeur. Config : `experimentalDecorators` + `emitDecoratorMetadata`.
 
 ```typescript
-// Systeme d'autorisation avec decorateurs
-type Role = "admin" | "editeur" | "lecteur" | "invite";
+// tsconfig.json → "experimentalDecorators": true, "emitDecoratorMetadata": true
+import "reflect-metadata"; // OBLIGATOIRE, une seule fois au point d'entrée
 
-// Simuler l'utilisateur courant
-const utilisateurCourant = {
-  nom: "Alice",
-  roles: ["editeur", "lecteur"] as Role[],
-};
-
-function Authorize(...rolesRequis: Role[]) {
-  return function (
-    methodeOriginale: Function,
-    contexte: ClassMethodDecoratorContext
-  ) {
-    const nomMethode = String(contexte.name);
-
-    function methodeProtegee(this: any, ...args: any[]) {
-      // Verifier si l'utilisateur a au moins un des roles requis
-      const autorise = rolesRequis.some((role) =>
-        utilisateurCourant.roles.includes(role)
-      );
-
-      if (!autorise) {
-        throw new Error(
-          `[ACCES REFUSE] ${utilisateurCourant.nom} n'a pas les permissions ` +
-            `pour ${nomMethode}. Roles requis : ${rolesRequis.join(", ")}. ` +
-            `Roles de l'utilisateur : ${utilisateurCourant.roles.join(", ")}.`
-        );
-      }
-
-      console.log(
-        `[AUTH] ${utilisateurCourant.nom} autorise pour ${nomMethode}`
-      );
-      return methodeOriginale.call(this, ...args);
-    }
-
-    return methodeProtegee;
+// --- Le décorateur (legacy) : marque la classe comme injectable ---
+const INJECTABLE = Symbol("injectable");
+function Injectable(): ClassDecorator {
+  // Signature legacy d'un décorateur de classe : (target) => void
+  return (target: Function) => {
+    Reflect.defineMetadata(INJECTABLE, true, target);
   };
 }
 
-class GestionContenu {
-  @Authorize("lecteur", "editeur", "admin")
-  lire(id: number) {
-    return { id, titre: "Mon article" };
-  }
-
-  @Authorize("editeur", "admin")
-  modifier(id: number, contenu: string) {
-    console.log(`Article ${id} modifie`);
-  }
-
-  @Authorize("admin")
-  supprimer(id: number) {
-    console.log(`Article ${id} supprime`);
-  }
+// --- Les dépendances ---
+@Injectable() // ← indispensable : resolve() jette si INJECTABLE absent (résolution récursive)
+class RappelRepository {
+  findAll() { return ["r-1", "r-2"]; }
 }
 
-const gestion = new GestionContenu();
+@Injectable()
+class RappelService {
+  // emitDecoratorMetadata émet design:paramtypes = [RappelRepository]
+  constructor(private readonly repo: RappelRepository) {}
+  lister() { return this.repo.findAll(); }
+}
 
-gestion.lire(1);     // OK - Alice est lecteur
-gestion.modifier(1, "Nouveau contenu"); // OK - Alice est editeur
+// --- Le conteneur DI minimal : lit design:paramtypes et résout récursivement ---
+function resolve<T>(cible: new (...a: any[]) => T): T {
+  if (!Reflect.getMetadata(INJECTABLE, cible)) {
+    throw new Error(`${cible.name} n'est pas @Injectable()`);
+  }
+  // La métadonnée émise par TypeScript grâce à emitDecoratorMetadata :
+  const deps: any[] = Reflect.getMetadata("design:paramtypes", cible) ?? [];
+  const args = deps.map((dep) => resolve(dep)); // résolution récursive
+  return new cible(...args);
+}
 
-try {
-  gestion.supprimer(1); // ERREUR - Alice n'est pas admin
-} catch (e) {
-  console.error((e as Error).message);
-  // [ACCES REFUSE] Alice n'a pas les permissions pour supprimer...
+const service = resolve(RappelService); // instancie RappelRepository puis l'injecte
+console.log(service.lister()); // ["r-1", "r-2"]
+```
+
+**Le pont NestJS :** ce `resolve` est exactement l'idée du conteneur NestJS. `@Injectable()` marque la classe, `design:paramtypes` donne la liste des dépendances, le conteneur les instancie et les injecte. Dans le vrai NestJS c'est industrialisé (scopes, modules, providers), mais le mécanisme sous-jacent — `reflect-metadata` + `design:paramtypes` — est celui-ci. → cours NestJS, module 09.
+
+**Fading — compare les deux signatures côte à côte :**
+
+```typescript
+// STANDARD (Stage 3)          →  (value, context)
+function loggedStd(value: Function, ctx: ClassMethodDecoratorContext) { /* return wrap */ }
+
+// LEGACY (experimental)       →  (target, key, descriptor)
+function loggedLegacy(target: any, key: string, desc: PropertyDescriptor) {
+  const original = desc.value;                 // en legacy, la méthode est dans desc.value
+  desc.value = function (...args: any[]) { return original.apply(this, args); };
 }
 ```
-</details>
 
 ---
 
-## Résumé
+## 4. Pièges & misconceptions
 
-### Decorateurs Stage 3 vs Experimentaux
+### PIÈGE #1 — Confondre les deux signatures
 
-| Aspect | Stage 3 | Experimentaux |
-|--------|---------|---------------|
-| tsconfig | Aucune option speciale | `experimentalDecorators: true` |
-| Parametres de classe | Non supportes | Supportes |
-| `accessor` keyword | Requis pour les propriétés | Non nécessaire |
-| reflect-metadata | Non intégré | Supporte avec `emitDecoratorMetadata` |
-| Frameworks | Nouveaux projets | Angular, NestJS (legacy) |
-| Standard TC39 | Oui | Non |
+```typescript
+// ❌ Signature legacy écrite dans un projet standard (défaut TS 5)
+function logged(target: any, key: string, descriptor: PropertyDescriptor) {
+  descriptor.value = descriptor.value; // descriptor est undefined en standard → crash / types faux
+}
 
-### Types de decorateurs
+// ✅ En standard, c'est (value, context)
+function logged(value: Function, context: ClassMethodDecoratorContext) { /* ... */ }
+```
 
-| Type | Cible | Cas d'usage |
-|------|-------|-------------|
-| Classe | La classe entière | Enregistrement, scellement, mixins |
-| Méthode | Une méthode | Logging, cache, retry, auth |
-| Accesseur | Un getter/setter | Validation, observation |
-| Champ | Une propriété (Stage 3 limite) | Metadata |
+**Discrimination :** legacy = 3 args `(target, key, descriptor)`, la méthode est dans `descriptor.value`. Standard = 2 args `(value, context)`, la méthode EST `value`. Le flag `experimentalDecorators` décide lequel s'applique.
 
-### Points clés
+### PIÈGE #2 — Croire que `reflect-metadata` marche en standard
 
-1. **Les decorateurs sont des fonctions** : rien de magique, juste des patterns fonctionnels
-2. **Les factories** permettent de parametrer les decorateurs
-3. **La composition** suit l'ordre interieur vers exterieur a l'exécution
-4. **reflect-metadata** est essentiel pour la DI dans les frameworks experimentaux
-5. **Stage 3 est l'avenir** : privilegiez-le pour les nouveaux projets
-6. Les decorateurs excellent pour les **preoccupations transverses** : logging, cache, sécurité, validation
+```typescript
+// ❌ Mode standard, sans experimentalDecorators
+@Injectable()
+class Service { constructor(private repo: Repo) {} }
+Reflect.getMetadata("design:paramtypes", Service); // undefined !
+```
+
+`design:paramtypes` n'est émis QUE par `emitDecoratorMetadata`, qui **exige** `experimentalDecorators` (sinon erreur TS5052). En standard, aucune métadonnée de type n'existe. **C'est pour ça que NestJS ne peut pas passer en standard sans réécrire son conteneur.**
+
+### PIÈGE #3 — Oublier `import "reflect-metadata"`
+
+```typescript
+// ❌ emitDecoratorMetadata activé mais lib jamais importée
+@Injectable() class Service {}
+Reflect.getMetadata("design:paramtypes", Service); // TypeError: Reflect.getMetadata is not a function
+```
+
+`reflect-metadata` **patche l'objet global `Reflect`**. Il faut l'importer **une seule fois, en tout premier** dans le point d'entrée (`main.ts`). NestJS le fait pour toi via `@nestjs/core`.
+
+### PIÈGE #4 — Vouloir un décorateur de paramètre en standard
+
+```typescript
+// ❌ Standard : erreur TS1206 "Decorators are not valid here"
+class Controller {
+  handle(@Body() dto: Dto) {}       // interdit en standard
+}
+```
+
+Il n'y a **pas** de décorateur de paramètre standard. Si tu vois `@Param()`, `@Body()`, `@Inject()` sur des paramètres, tu es forcément dans un projet legacy (`experimentalDecorators: true`).
+
+### PIÈGE #5 — Field vs accessor pour intercepter une écriture
+
+```typescript
+// ❌ Un décorateur de FIELD ne peut pas intercepter les écritures futures
+function positif(_v: undefined, ctx: ClassFieldDecoratorContext) {
+  return (init: number) => init; // ne voit QUE la valeur initiale, pas les set suivants
+}
+class P { @positif prix = 0; }
+// p.prix = -5 → aucune validation
+
+// ✅ Utiliser `accessor` pour intercepter get ET set
+class P2 { @positifAccessor accessor prix = 0; } // set validé à chaque écriture
+```
+
+Field decorator = transforme la valeur **initiale** uniquement. Pour valider chaque écriture, il faut le mot-clé `accessor` et retourner `{ get, set }`.
 
 ---
 
-## Pour aller plus loin
+## 5. Ancrage TribuZen
 
-Vous avez maintenant couvert les aspects les plus avances du système de types TypeScript et les decorateurs. Pour continuer votre apprentissage :
+Le backend TribuZen tourne sur **NestJS** — donc en **mode legacy** (`experimentalDecorators` + `emitDecoratorMetadata`, `reflect-metadata` importé par le framework). Les décorateurs y sont partout :
 
-- Explorez les **type challenges** sur [type-challenges](https://github.com/type-challenges/type-challenges) pour tester vos compétences en type-level programming
-- Etudiez le code source de **NestJS** pour voir des decorateurs en production
-- Consultez la proposition TC39 des decorateurs pour suivre les evolutions futures
-- Experimentez avec les **builder patterns** et les **state machines** type-safe dans vos projets
+- **`@Injectable()`** sur chaque service (`RappelService`, `TribuService`, `NotificationService`) — le conteneur lit `design:paramtypes` pour injecter les dépendances du constructeur. C'est l'Exemple 2, en vrai.
+- **`@Controller('rappels')`, `@Get()`, `@Post()`, `@Param('id')`, `@Body()`** — routage HTTP + injection de paramètres (décorateurs de paramètre, donc legacy obligatoire).
+- **`@Entity()`, `@Column()`, `@OneToMany()`** (TypeORM) sur les entités `Tribu`, `Membre`, `Rappel` — mapping ORM par métadonnées.
+- **`@IsEmail()`, `@MinLength()`** (class-validator) sur les DTO d'inscription — validation par métadonnées.
+
+À côté, le **code applicatif transverse maison** (helpers hors framework, scripts) utilise des **décorateurs standard** : un `@logged` (Exemple 1) sur les méthodes de service qu'on veut tracer en dev, un `@measure` pour le temps d'exécution. Pas de `reflect-metadata`, juste `(value, context)`.
+
+Fichiers cibles dans `smaurier/tribuzen` :
+
+```
+tribuzen-api/src/
+  rappels/
+    rappel.service.ts        # @Injectable() — legacy, DI par design:paramtypes
+    rappel.controller.ts     # @Controller @Get @Post @Param @Body — legacy
+    dto/creer-rappel.dto.ts  # @IsString @MinLength — class-validator, legacy
+  common/decorators/
+    logged.decorator.ts      # @logged — STANDARD (value, context), usage dev
+  main.ts                    # import "reflect-metadata" en première ligne
+```
+
+> **Le pont explicite :** l'Exemple 2 de ce module *est* le cœur de l'injection de dépendances NestJS. Quand tu arriveras au module 09 du cours NestJS, tu retrouveras `@Injectable()` + `reflect-metadata` + `design:paramtypes` — tu sauras déjà ce qui se passe sous le capot.
 
 ---
 
-<!-- parcours-recommande -->
+## 6. Points clés
 
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 14 decorateurs](../screencasts/screencast-14-decorateurs.md)
-2. **Lab** : [lab-14-decorateurs](../labs/lab-14-decorateurs/README)
-3. **Quiz** : [quiz 14 decorateurs](../quizzes/quiz-14-decorateurs.html)
-:::
+1. Deux systèmes derrière la syntaxe `@` : **standard** (Stage 3, TS 5.0, défaut) et **legacy** (`experimentalDecorators`). Le flag tsconfig décide lequel.
+2. Décorateur **standard** : signature `(value, context)`, `context.kind` ∈ {class, method, getter, setter, field, accessor}, `context.name`, `context.addInitializer`.
+3. Ce qu'on **retourne** dépend de `kind` : wrap pour method/getter/setter, `{get,set}` pour accessor, `(init) => valeur` pour field, classe pour class.
+4. Le standard n'a **AUCUN décorateur de paramètre** — erreur TS1206.
+5. Décorateur **legacy** : signature `(target, key, descriptor)`, la méthode est dans `descriptor.value`, décorateurs de paramètre autorisés.
+6. **`emitDecoratorMetadata` exige `experimentalDecorators`** (sinon TS5052) et émet `design:type` / `design:paramtypes` / `design:returntype`, lisibles via `reflect-metadata`.
+7. **NestJS reste legacy** : il lui faut les décorateurs de paramètre (injection) et `design:paramtypes` (types du constructeur). Le standard n'offre ni l'un ni l'autre.
+8. `import "reflect-metadata"` une seule fois au point d'entrée — la lib patche l'objet global `Reflect`.
+9. Les deux systèmes sont **mutuellement exclusifs** par compilation ; un décorateur écrit pour l'un ne marche pas dans l'autre.
+
+---
+
+## 7. Seeds Anki
+
+```
+Quels sont les deux systèmes de décorateurs en TypeScript et qu'est-ce qui les distingue au niveau tsconfig ?|Standard (Stage 3, TS 5.0, aucun flag — mode par défaut) et legacy (experimental, "experimentalDecorators": true). Le flag experimentalDecorators bascule tout le projet dans l'un ou l'autre.
+Quelle est la signature d'un décorateur standard (Stage 3) ?|(value, context) — value = la chose décorée (constructeur, méthode…), context = métadonnées avec context.kind, context.name et context.addInitializer.
+Quelles valeurs peut prendre context.kind pour un décorateur standard ?|"class", "method", "getter", "setter", "field" ou "accessor".
+Peut-on écrire un décorateur de paramètre en mode standard (Stage 3) ?|Non. Le système standard n'a aucun décorateur de paramètre : @dec sur un paramètre déclenche l'erreur TS1206. Seul le mode legacy les supporte.
+Que faut-il pour que design:paramtypes soit disponible à l'exécution, et via quelle lib le lit-on ?|Il faut "emitDecoratorMetadata": true (qui exige "experimentalDecorators": true, sinon TS5052) et importer "reflect-metadata". On lit alors Reflect.getMetadata("design:paramtypes", Classe).
+Pourquoi NestJS reste-t-il sur les décorateurs legacy ?|Parce qu'il a besoin (1) des décorateurs de paramètre (injection constructeur, @Param/@Body) absents en standard, et (2) de design:paramtypes émis par emitDecoratorMetadata pour connaître les types du constructeur à l'exécution — le standard n'émet aucune métadonnée de type.
+Quelle est la différence de signature entre un décorateur de méthode standard et legacy ?|Standard : (value, context) où value EST la méthode. Legacy : (target, key, descriptor) où la méthode est dans descriptor.value. Ils sont incompatibles.
+Comment un décorateur de field standard transforme-t-il une valeur, et comment intercepter les écritures futures ?|Un field decorator retourne (valeurInitiale) => nouvelleValeur — il ne voit que la valeur initiale. Pour intercepter get ET set à chaque écriture, il faut le mot-clé accessor et retourner { get, set }.
+À quoi sert context.addInitializer dans un décorateur standard ?|À enregistrer une fonction exécutée à l'initialisation (après définition pour les membres statiques, avant les initialiseurs d'instance sinon) — ex. auto-bind d'une méthode sur l'instance.
+```
+
+---
+
+## Pont vers le lab
+
+> Lab associé : `00-typescript/labs/lab-14-decorateurs/README.md`. Écrire un `@logged` standard `(value, context)` sur un service, puis reconstruire un mini-conteneur DI legacy avec `reflect-metadata` et `design:paramtypes` — le cœur de NestJS.

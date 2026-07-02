@@ -1,1036 +1,430 @@
-# 13 — Types récursifs & Type-Level Programming
+---
+titre: Types récursifs et type-level programming
+cours: 00-typescript
+notions: [types récursifs, DeepPartial, DeepReadonly, type JSON récursif, récursion sur tuples, length reverse tail, accumulateurs de types, tail-call des types, limite de profondeur de récursion, coût de compilation, quand ne pas faire de type-programming]
+outcomes: [écrire un type récursif sûr avec cas d'arrêt, construire DeepReadonly et DeepPartial, dérouler un tuple avec un accumulateur, reconnaître et éviter Type instantiation is excessively deep, décider quand le type-programming nuit à la maintenabilité]
+prerequis: [12-mapped-types-template-literals]
+next: 14-decorateurs-metadata
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: types utilitaires TribuZen - DeepReadonly d'une Family figée, DeepPartial d'un Member pour un patch profond, Paths des clés
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 6 heures
-> **Difficulte** : 5/5
-> **Prérequis** : Conditional types, infer, mapped types, template literal types, tuples
-> **Objectifs** :
-> - Comprendre et créer des types récursifs
-> - Maîtriser l'arithmetique au niveau des types
-> - Parser des chaines au niveau du système de types
-> - Connaître les limites de récursion de TypeScript
-> - Explorer le type-level programming comme discipline
+# Types récursifs et type-level programming
+
+> **Outcomes — tu sauras FAIRE :** écrire un type récursif avec cas d'arrêt, construire `DeepReadonly`/`DeepPartial`, dérouler un tuple avec accumulateur, reconnaître l'erreur `Type instantiation is excessively deep` et décider quand NE PAS faire de type-programming.
+> **Difficulté :** :star::star::star::star::star:
+
+> **Ce module est un cran au-dessus.** L'objet n'est pas de te transformer en gymnaste du système de types. C'est de savoir écrire les 3-4 types récursifs *utiles* (deep partial, deep readonly, chemins de clés), de reconnaître quand tu tapes dans un mur (profondeur, temps de compil), et surtout de savoir t'arrêter avant que le type devienne moins lisible que le code qu'il protège.
+
+## 1. Cas concret d'abord
+
+Dans l'admin TribuZen, une `Family` porte des données imbriquées : la famille, ses réglages, la liste de ses membres. Deux besoins réels, contradictoires en apparence :
+
+```ts
+interface Address {
+  city: string;
+  zip: string;
+}
+
+interface Member {
+  id: string;
+  displayName: string;
+  email?: string;
+  address: Address;          // objet imbriqué
+}
+
+interface Family {
+  id: string;
+  name: string;
+  settings: {                // objet imbriqué
+    isPublic: boolean;
+    locale: 'fr' | 'en';
+  };
+  members: Member[];         // tableau d'objets imbriqués
+}
+```
+
+**Besoin 1 — figer une famille pour l'affichage.** On charge une `Family` depuis l'API et on veut garantir que *rien* ne la mute pendant le rendu — ni `family.name`, ni `family.settings.locale`, ni `family.members[0].address.city`. `Readonly<Family>` ne fige que le premier niveau : `family.settings.locale = 'en'` reste autorisé. Il faut descendre récursivement.
+
+**Besoin 2 — patcher un membre partiellement.** L'endpoint `PATCH /members/:id` reçoit un objet où *n'importe quelle* clé, à *n'importe quelle profondeur*, peut être absente : `{ address: { city: 'Lyon' } }` sans `zip`. `Partial<Member>` ne rend optionnel que le premier niveau : il exige encore un `address` complet. Là aussi, il faut descendre.
+
+`Readonly` et `Partial` sont les briques du module 10. Ici on les fait **descendre en récursion**. C'est exactement l'usage 80/20 des types récursifs. Le reste du module montre aussi le côté « acrobatie » (arithmétique sur tuples) — utile à *lire*, dangereux à *écrire* en prod.
 
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+## 2. Théorie complète, concise
 
-## Introduction — Qu'est-ce qu'on fait vraiment dans ce module ?
+### 2.1 Un type récursif = un type qui se référence lui-même
 
-### Le problème qu'on cherche à résoudre
+Comme une fonction récursive, un type récursif a besoin de deux choses : un **cas général** qui se rappelle, et un **cas d'arrêt** qui termine la descente.
 
-Jusqu'ici, on a surtout utilisé les types pour **décrire** des données. Ici, on commence a les utiliser pour **calculer** d'autres types.
-
-Par exemple :
-
-- descendre récursivement dans un objet profond
-- transformer une structure imbriquée niveau par niveau
-- parser une chaîne au niveau du système de types
-- faire dépendre un type du résultat d'un autre calcul de type
-
-Dit autrement : on ne se contente plus d'annoter du code, on fait travailler le système de types lui-même.
-
-### La solution : penser les types comme des structures qui se transforment
-
-Le type-level programming consiste a écrire des règles qui s'exécutent pendant la compilation. Ce ne sont pas des programmes runtime : ce sont des programmes pour le compilateur.
-
-### Analogie
-
-Imagine un correcteur extrêmement avancé : il ne se contente pas de vérifier ton texte, il reconstruit aussi sa grammaire, ses motifs et ses dépendances avant même l'exécution. C'est l'idée générale du module.
-
-> ⚠️ **Repère important** : ce module est difficile non parce que la syntaxe est longue, mais parce qu'il faut changer de point de vue. On manipule moins des valeurs que des formes de types.
-
----
-
-## Types récursifs : les fondamentaux
-
-### Qu'est-ce qu'un type récursif ?
-
-Un type récursif est un type qui se **référence lui-même** dans sa définition. C'est l'équivalent au niveau des types d'une fonction recursive.
-
-### Comment le lire correctement ?
-
-Le bon réflexe est le même qu'avec une fonction récursive :
-
-- repérer le cas général qui se répète
-- repérer le cas d'arrêt qui met fin a la descente
-
-Sans cas d'arrêt, la structure n'a pas de point de sortie logique.
-
-```typescript
-// Un arbre binaire : chaque noeud contient une valeur
-// et peut avoir un sous-arbre gauche et un sous-arbre droit
-type ArbreBinaire<T> = {
-  valeur: T;
-  gauche: ArbreBinaire<T> | null;
-  droite: ArbreBinaire<T> | null;
-};
-
-const arbre: ArbreBinaire<number> = {
-  valeur: 10,
-  gauche: {
-    valeur: 5,
-    gauche: { valeur: 2, gauche: null, droite: null },
-    droite: { valeur: 7, gauche: null, droite: null },
-  },
-  droite: {
-    valeur: 15,
-    gauche: null,
-    droite: { valeur: 20, gauche: null, droite: null },
-  },
-};
-```
-
-### Liste chainee typee
-
-```typescript
-// Une liste chainee : chaque element pointe vers le suivant
-type ListeChainee<T> = {
-  valeur: T;
-  suivant: ListeChainee<T> | null;
-};
-
-const liste: ListeChainee<string> = {
-  valeur: "premier",
-  suivant: {
-    valeur: "deuxieme",
-    suivant: {
-      valeur: "troisieme",
-      suivant: null,
-    },
-  },
-};
-
-// Version avec des types differents pour chaque element (type-safe)
-type ListeHeterogene<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? { valeur: Premier; suivant: Reste extends [] ? null : ListeHeterogene<Reste> }
-    : null;
-
-type MaListe = ListeHeterogene<[string, number, boolean]>;
-// {
-//   valeur: string;
-//   suivant: {
-//     valeur: number;
-//     suivant: {
-//       valeur: boolean;
-//       suivant: null;
-//     };
-//   };
-// }
-```
-
-### JSON récursif
-
-Le type JSON est un très bon exemple de récursion naturelle : une valeur JSON peut contenir d'autres valeurs JSON, qui peuvent elles-mêmes contenir d'autres valeurs JSON.
-
-```typescript
-// Le type JSON est naturellement recursif
+```ts
+// Type JSON : une valeur JSON contient d'autres valeurs JSON.
+// Cas d'arrêt = les primitives (string, number, boolean, null).
+// Cas général = tableau ou objet de JsonValue.
 type JsonValue =
   | string
   | number
   | boolean
   | null
   | JsonValue[]
-  | { [cle: string]: JsonValue };
+  | { [key: string]: JsonValue };
 
-// Valide
-const exemple: JsonValue = {
-  nom: "Alice",
-  age: 30,
-  adresses: [
-    {
-      rue: "123 rue Principale",
-      coordonnees: {
-        lat: 48.8566,
-        lng: 2.3522,
-      },
-    },
-  ],
-  actif: true,
-  supprime: null,
-};
-
-// Invalide (les fonctions ne sont pas du JSON)
-// const mauvais: JsonValue = { fn: () => {} }; // Erreur
+const ok: JsonValue = { nom: 'Alice', tags: ['a', 'b'], meta: { n: 1 } };
+// const ko: JsonValue = { fn: () => {} }; // ❌ une fonction n'est pas du JSON
 ```
 
----
+Ici la récursion est *structurelle* (l'objet peut contenir des objets). TypeScript l'autorise sans limite pratique parce qu'elle décrit une forme, elle ne *calcule* rien.
 
-## Recursive conditional types
+### 2.2 DeepReadonly — figer en profondeur
 
-### Aplatir un type profondement imbrique
+On combine un **mapped type** (module 12) avec un **conditional type** (module 11) qui se rappelle sur chaque valeur.
 
-Cette section est centrale : elle montre qu'un conditional type peut se rappeler lui-même tant qu'il retrouve la forme attendue.
+```ts
+type DeepReadonly<T> =
+  T extends (infer U)[]                       // cas tableau
+    ? ReadonlyArray<DeepReadonly<U>>
+    : T extends object                        // cas objet
+      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+      : T;                                     // cas d'arrêt : primitive
 
-Lis ce genre de définition comme :
+type FrozenFamily = DeepReadonly<Family>;
+// family.settings.locale = 'en'          → ❌ Cannot assign, readonly
+// family.members[0].address.city = 'x'   → ❌ readonly jusqu'en bas
+```
 
-- "si je vois encore un tableau, je continue"
-- "sinon, j'ai atteint la valeur finale"
+Lecture : « si c'est un tableau, fige ses éléments récursivement ; sinon si c'est un objet, remappe chaque clé en `readonly` + récursion sur la valeur ; sinon (primitive) rends tel quel ». Le cas d'arrêt est la primitive : `string`, `number`, `boolean` ne matchent ni `[]` ni `object`, la récursion s'arrête.
 
-```typescript
-// Aplatir un type tableau profondement imbrique
-type AplatirProfond<T> =
-  T extends readonly (infer E)[]
-    ? AplatirProfond<E>
-    : T;
+> Note : on traite les tableaux *avant* `object` car en TS un tableau **est** un `object`. Sans la branche tableau en premier, on mapperait les index numériques et on perdrait `ReadonlyArray`.
 
-type A1 = AplatirProfond<number[][][][]>;    // number
-type A2 = AplatirProfond<string[][]>;         // string
-type A3 = AplatirProfond<boolean>;            // boolean
+### 2.3 DeepPartial — rendre optionnel en profondeur
 
-// Aplatir un tuple a un seul niveau
-type AplatirTuple<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends any[]
-      ? [...Premier, ...AplatirTuple<Reste>]
-      : [Premier, ...AplatirTuple<Reste>]
+Même squelette, mais on ajoute le modificateur `?` à chaque niveau.
+
+```ts
+type DeepPartial<T> =
+  T extends (infer U)[]
+    ? DeepPartial<U>[]
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
+
+type MemberPatch = DeepPartial<Member>;
+const patch: MemberPatch = { address: { city: 'Lyon' } }; // ✅ zip absent, id absent
+```
+
+`{ [K in keyof T]?: ... }` : le `?` rend chaque clé optionnelle, et `DeepPartial<T[K]>` propage l'optionnalité aux sous-objets.
+
+### 2.4 Récursion sur les tuples
+
+Un tuple se déstructure au niveau des types avec `infer` et le rest `...`. C'est le pattern de base de tout parcours de tuple.
+
+```ts
+// Tail : tout sauf le premier
+type Tail<T extends readonly unknown[]> =
+  T extends readonly [unknown, ...infer Rest] ? Rest : [];
+
+type T1 = Tail<[1, 2, 3]>;   // [2, 3]
+
+// Length : propriété native, PAS besoin de récursion
+type Length<T extends readonly unknown[]> = T['length'];
+type L1 = Length<[1, 2, 3]>; // 3
+
+// Reverse : récursion — on retire la tête et on la remet à la fin
+type Reverse<T extends readonly unknown[]> =
+  T extends readonly [infer Head, ...infer Rest]
+    ? [...Reverse<Rest>, Head]
     : [];
 
-type AT1 = AplatirTuple<[1, [2, 3], [4, 5]]>;
-// [1, 2, 3, 4, 5]
-
-// Aplatir un tuple profondement (multi-niveaux)
-type AplatirTupleProfond<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends any[]
-      ? [...AplatirTupleProfond<Premier>, ...AplatirTupleProfond<Reste>]
-      : [Premier, ...AplatirTupleProfond<Reste>]
-    : [];
-
-type ATP1 = AplatirTupleProfond<[1, [2, [3, [4]]]]>;
-// [1, 2, 3, 4]
+type R1 = Reverse<[1, 2, 3]>; // [3, 2, 1]
 ```
 
-### Inverser un tuple
+Retiens que `T['length']` est natif : n'écris jamais un compteur récursif quand une propriété existe. C'est la première règle anti-coût.
 
-```typescript
-type Inverser<T extends any[]> =
-  T extends [infer Premier, ...infer Reste]
-    ? [...Inverser<Reste>, Premier]
-    : [];
+### 2.5 Accumulateurs de types et tail-call
 
-type I1 = Inverser<[1, 2, 3, 4, 5]>;
-// [5, 4, 3, 2, 1]
+Comme en programmation fonctionnelle, un **accumulateur** (paramètre générique avec valeur par défaut) sert à construire le résultat en position terminale. Depuis TS 4.5, quand l'appel récursif est *directement* le résultat (pas enveloppé dans un `[...X, ...]`), le compilateur applique une optimisation « tail-call » et supporte des profondeurs bien plus grandes.
 
-type I2 = Inverser<["a", "b", "c"]>;
-// ["c", "b", "a"]
+```ts
+// ❌ NON tail : l'appel récursif est enveloppé dans [...Reverse<Rest>, Head]
+type ReverseNaive<T extends readonly unknown[]> =
+  T extends [infer H, ...infer R] ? [...ReverseNaive<R>, H] : [];
 
-type I3 = Inverser<[]>;
-// []
-```
-
-### Longueur d'un tuple
-
-```typescript
-// La propriete "length" d'un tuple est un nombre literal
-type Longueur<T extends any[]> = T["length"];
-
-type L1 = Longueur<[1, 2, 3]>;     // 3
-type L2 = Longueur<["a", "b"]>;     // 2
-type L3 = Longueur<[]>;              // 0
-
-// Compter recursivement (equivalent, mais montrant le principe)
-type CompterRecursif<T extends any[], Acc extends any[] = []> =
-  T extends [any, ...infer Reste]
-    ? CompterRecursif<Reste, [...Acc, any]>
-    : Acc["length"];
-
-type CR1 = CompterRecursif<[1, 2, 3, 4]>; // 4
-```
-
----
-
-## Arithmetique au niveau des types
-
-TypeScript ne supporte pas les operations arithmetiques nativement au niveau des types. Mais on peut les **simuler** en utilisant des tuples comme representation des nombres.
-
-### Pourquoi cette idée fonctionne ?
-
-Parce qu'un tuple a une longueur connue au niveau du type. Donc représenter un nombre par un tuple de cette longueur permet ensuite d'utiliser des opérations sur tuples pour simuler des calculs.
-
-### Le principe : les nombres comme tuples
-
-```typescript
-// Le nombre N est represente par un tuple de longueur N
-// 0 = []
-// 1 = [any]
-// 2 = [any, any]
-// 3 = [any, any, any]
-// etc.
-
-// Creer un tuple de longueur N
-type ConstruireTuple<
-  N extends number,
-  Acc extends any[] = []
-> =
-  Acc["length"] extends N
-    ? Acc
-    : ConstruireTuple<N, [...Acc, any]>;
-
-type T0 = ConstruireTuple<0>;  // []
-type T3 = ConstruireTuple<3>;  // [any, any, any]
-type T5 = ConstruireTuple<5>;  // [any, any, any, any, any]
-```
-
-### Addition
-
-```typescript
-// Addition : concatener deux tuples et prendre la longueur
-type Additionner<A extends number, B extends number> =
-  [...ConstruireTuple<A>, ...ConstruireTuple<B>]["length"] & number;
-
-type Somme1 = Additionner<3, 4>;   // 7
-type Somme2 = Additionner<10, 5>;  // 15
-type Somme3 = Additionner<0, 0>;   // 0
-type Somme4 = Additionner<1, 99>;  // 100
-```
-
-### Soustraction
-
-```typescript
-// Soustraction : retirer des elements du debut d'un tuple
-type Soustraire<A extends number, B extends number> =
-  ConstruireTuple<A> extends [...ConstruireTuple<B>, ...infer Reste]
-    ? Reste["length"]
-    : never; // Resultat negatif non supporte
-
-type Diff1 = Soustraire<10, 3>;  // 7
-type Diff2 = Soustraire<5, 5>;   // 0
-type Diff3 = Soustraire<100, 1>; // 99
-// type Diff4 = Soustraire<3, 10>; // never (negatif)
-```
-
-### Multiplication (via récursion)
-
-```typescript
-// Multiplication : additionner A, B fois
-type Multiplier<
-  A extends number,
-  B extends number,
-  Acc extends any[] = []
-> =
-  B extends 0
-    ? Acc["length"] & number
-    : Multiplier<
-        A,
-        Soustraire<B, 1> & number,
-        [...Acc, ...ConstruireTuple<A>]
-      >;
-
-type Produit1 = Multiplier<3, 4>;   // 12
-type Produit2 = Multiplier<5, 5>;   // 25
-type Produit3 = Multiplier<7, 0>;   // 0
-type Produit4 = Multiplier<2, 10>;  // 20
-```
-
-### Comparaison
-
-```typescript
-// Verifier si A est inferieur a B
-type EstInferieur<A extends number, B extends number> =
-  ConstruireTuple<A> extends [...ConstruireTuple<B>, ...infer _]
-    ? false
-    : A extends B
-    ? false
-    : true;
-
-type LT1 = EstInferieur<3, 5>;   // true
-type LT2 = EstInferieur<5, 3>;   // false
-type LT3 = EstInferieur<3, 3>;   // false
-
-// Verifier si A est egal a B
-type EstEgal<A extends number, B extends number> =
-  A extends B ? (B extends A ? true : false) : false;
-
-// Minimum et Maximum
-type Min<A extends number, B extends number> =
-  EstInferieur<A, B> extends true ? A : B;
-
-type Max<A extends number, B extends number> =
-  EstInferieur<A, B> extends true ? B : A;
-
-type Min1 = Min<3, 7>;  // 3
-type Max1 = Max<3, 7>;  // 7
-```
-
-### Range : générer une sequence de nombres
-
-```typescript
-// Generer un tuple [0, 1, 2, ..., N-1]
-type Range<
-  N extends number,
-  Acc extends number[] = []
-> =
-  Acc["length"] extends N
-    ? Acc
-    : Range<N, [...Acc, Acc["length"]]>;
-
-type R5 = Range<5>;   // [0, 1, 2, 3, 4]
-type R3 = Range<3>;   // [0, 1, 2]
-type R0 = Range<0>;   // []
-
-// Convertir en union
-type RangeUnion<N extends number> = Range<N>[number];
-
-type RU5 = RangeUnion<5>; // 0 | 1 | 2 | 3 | 4
-```
-
----
-
-## String parsing au niveau des types
-
-### Parser une chaine en tokens
-
-```typescript
-// Decouper une chaine par un separateur
-type Split<S extends string, Sep extends string> =
-  S extends `${infer Debut}${Sep}${infer Fin}`
-    ? [Debut, ...Split<Fin, Sep>]
-    : S extends ""
-    ? []
-    : [S];
-
-type Mots = Split<"bonjour le monde", " ">;
-// ["bonjour", "le", "monde"]
-
-type Segments = Split<"/api/utilisateurs/123", "/">;
-// ["", "api", "utilisateurs", "123"]
-```
-
-### Joindre un tuple en chaine
-
-```typescript
-// L'inverse de Split : joindre un tuple avec un separateur
-type Join<
-  T extends string[],
-  Sep extends string
-> =
-  T extends []
-    ? ""
-    : T extends [infer Premier extends string]
-    ? Premier
-    : T extends [infer Premier extends string, ...infer Reste extends string[]]
-    ? `${Premier}${Sep}${Join<Reste, Sep>}`
-    : never;
-
-type J1 = Join<["a", "b", "c"], "-">;   // "a-b-c"
-type J2 = Join<["hello", "world"], " ">; // "hello world"
-type J3 = Join<["seul"], ".">;           // "seul"
-type J4 = Join<[], ",">;                  // ""
-```
-
-### Remplacer dans une chaine
-
-```typescript
-// Remplacer toutes les occurrences d'un pattern
-type RemplaceAll<
-  S extends string,
-  Chercher extends string,
-  Remplacer extends string
-> =
-  S extends `${infer Debut}${Chercher}${infer Fin}`
-    ? RemplaceAll<`${Debut}${Remplacer}${Fin}`, Chercher, Remplacer>
-    : S;
-
-type R1 = RemplaceAll<"hello world", "o", "0">;
-// "hell0 w0rld"
-
-type R2 = RemplaceAll<"aaa", "a", "bb">;
-// Attention : boucle infinie potentielle si Remplacer contient Chercher !
-// En pratique TypeScript detecte et limite la recursion
-```
-
-### Compter les caracteres d'une chaine
-
-```typescript
-// Longueur d'une chaine au niveau des types
-type LongueurChaine<
-  S extends string,
-  Acc extends any[] = []
-> =
-  S extends `${infer _}${infer Reste}`
-    ? LongueurChaine<Reste, [...Acc, any]>
-    : Acc["length"];
-
-type LC1 = LongueurChaine<"hello">;    // 5
-type LC2 = LongueurChaine<"bonjour">;  // 7
-type LC3 = LongueurChaine<"">;          // 0
-```
-
-### Trim (supprimer les espaces)
-
-```typescript
-// Supprimer les espaces au debut
-type TrimDebut<S extends string> =
-  S extends ` ${infer Reste}` ? TrimDebut<Reste> :
-  S extends `\t${infer Reste}` ? TrimDebut<Reste> :
-  S extends `\n${infer Reste}` ? TrimDebut<Reste> :
-  S;
-
-// Supprimer les espaces a la fin
-type TrimFin<S extends string> =
-  S extends `${infer Reste} ` ? TrimFin<Reste> :
-  S extends `${infer Reste}\t` ? TrimFin<Reste> :
-  S extends `${infer Reste}\n` ? TrimFin<Reste> :
-  S;
-
-// Trim complet
-type Trim<S extends string> = TrimDebut<TrimFin<S>>;
-
-type T1 = Trim<"  hello  ">;     // "hello"
-type T2 = Trim<"\t bonjour \n">; // "bonjour"
-```
-
----
-
-## Type-level JSON parser (simplifie)
-
-C'est un des exemples les plus impressionnants de type-level programming : un parser JSON qui fonctionne entièrement au niveau des types.
-
-```typescript
-// Parser un nombre
-type ParseNombre<S extends string> =
-  S extends `${infer N extends number}` ? N : never;
-
-type PN1 = ParseNombre<"42">;    // 42
-type PN2 = ParseNombre<"3.14">;  // 3.14
-
-// Parser un booleen
-type ParseBooleen<S extends string> =
-  S extends "true" ? true :
-  S extends "false" ? false :
-  never;
-
-// Parser null
-type ParseNull<S extends string> =
-  S extends "null" ? null : never;
-
-// Parser une chaine JSON (entre guillemets)
-type ParseChaineJSON<S extends string> =
-  S extends `"${infer Contenu}"` ? Contenu : never;
-
-// Parser une valeur simple
-type ParseValeur<S extends string> =
-  Trim<S> extends `"${infer _}"` ? ParseChaineJSON<Trim<S>> :
-  Trim<S> extends "true" ? true :
-  Trim<S> extends "false" ? false :
-  Trim<S> extends "null" ? null :
-  ParseNombre<Trim<S>> extends never ? never :
-  ParseNombre<Trim<S>>;
-
-// Tests
-type V1 = ParseValeur<'"hello"'>;  // "hello"
-type V2 = ParseValeur<"42">;       // 42
-type V3 = ParseValeur<"true">;     // true
-type V4 = ParseValeur<"null">;     // null
-```
-
-> **Note** : Un parser JSON complet au niveau des types est possible mais extremement complexe (des centaines de lignes). L'exemple ci-dessus montre les principes de base. Pour voir une implementation complete, consultez les projets comme `type-challenges` sur GitHub.
-
----
-
-## Type-level state machines
-
-### Machine a états typee
-
-```typescript
-// Definir les etats et transitions d'une machine a etats
-interface Transitions {
-  eteint: "allumer";
-  allume: "eteindre" | "mettre_en_veille";
-  veille: "reveiller" | "eteindre";
-}
-
-// Le type de l'action suivante depend de l'etat actuel
-type ActionsSuivantes<Etat extends keyof Transitions> = Transitions[Etat];
-
-type A1 = ActionsSuivantes<"eteint">;  // "allumer"
-type A2 = ActionsSuivantes<"allume">;  // "eteindre" | "mettre_en_veille"
-type A3 = ActionsSuivantes<"veille">;  // "reveiller" | "eteindre"
-
-// Definir les transitions d'etat
-type EtatSuivant<
-  Etat extends keyof Transitions,
-  Action extends ActionsSuivantes<Etat>
-> =
-  Etat extends "eteint"
-    ? Action extends "allumer" ? "allume" : never
-  : Etat extends "allume"
-    ? Action extends "eteindre" ? "eteint"
-    : Action extends "mettre_en_veille" ? "veille"
-    : never
-  : Etat extends "veille"
-    ? Action extends "reveiller" ? "allume"
-    : Action extends "eteindre" ? "eteint"
-    : never
-  : never;
-
-// Verifier une sequence de transitions
-type VerifierSequence<
-  Etat extends keyof Transitions,
-  Actions extends string[]
-> =
-  Actions extends [infer Premiere, ...infer Reste]
-    ? Premiere extends ActionsSuivantes<Etat>
-      ? Reste extends string[]
-        ? VerifierSequence<EtatSuivant<Etat, Premiere & ActionsSuivantes<Etat>> & keyof Transitions, Reste>
-        : EtatSuivant<Etat, Premiere & ActionsSuivantes<Etat>>
-      : never // Action invalide dans cet etat
-    : Etat; // Fin de la sequence, retourne l'etat final
-
-// Tests
-type Seq1 = VerifierSequence<"eteint", ["allumer", "mettre_en_veille", "reveiller"]>;
-// "allume"
-
-type Seq2 = VerifierSequence<"eteint", ["allumer", "eteindre"]>;
-// "eteint"
-```
-
-### Machine a états avec une classe
-
-```typescript
-// Implementation runtime avec verification au niveau des types
-class MachineEtat<Etat extends keyof Transitions> {
-  constructor(private etat: Etat) {}
-
-  transition<Action extends ActionsSuivantes<Etat>>(
-    action: Action
-  ): MachineEtat<EtatSuivant<Etat, Action> & keyof Transitions> {
-    // Logique de transition runtime
-    const nouvelEtat = this.calculerNouvelEtat(action);
-    return new MachineEtat(nouvelEtat) as any;
-  }
-
-  private calculerNouvelEtat(action: string): any {
-    const transitions: Record<string, Record<string, string>> = {
-      eteint: { allumer: "allume" },
-      allume: { eteindre: "eteint", mettre_en_veille: "veille" },
-      veille: { reveiller: "allume", eteindre: "eteint" },
-    };
-    return transitions[this.etat as string]?.[action];
-  }
-
-  obtenirEtat(): Etat {
-    return this.etat;
-  }
-}
-
-// Utilisation type-safe
-const machine = new MachineEtat("eteint");
-const allume = machine.transition("allumer");
-// allume est de type MachineEtat<"allume">
-
-const enVeille = allume.transition("mettre_en_veille");
-// enVeille est de type MachineEtat<"veille">
-
-// Erreur de compilation ! "allumer" n'est pas une action valide depuis "veille"
-// enVeille.transition("allumer");
-```
-
----
-
-## Limites de récursion TypeScript
-
-### La profondeur maximale
-
-TypeScript impose une **limite de récursion** pour éviter les boucles infinies et les temps de compilation excessifs.
-
-```typescript
-// TypeScript supporte environ 1000 niveaux de recursion pour les types
-// Mais en pratique, il est recommande de rester sous 50-100 niveaux
-
-// Ce type atteindra la limite si N est trop grand
-type GrandTuple<N extends number, Acc extends any[] = []> =
-  Acc["length"] extends N
-    ? Acc
-    : GrandTuple<N, [...Acc, any]>;
-
-// OK
-type T50 = GrandTuple<50>;   // Fonctionne
-
-// Potentiellement problematique pour de tres grandes valeurs
-// type T10000 = GrandTuple<10000>; // Peut echouer
-```
-
-### Tail-call optimization
-
-Depuis TypeScript 4.5, les types récursifs beneficient d'une **optimisation tail-call** dans certains cas. Cela signifie que si la récursion est en position terminale, TypeScript peut gérer une profondeur beaucoup plus grande.
-
-```typescript
-// Version SANS tail-call optimization
-// Le resultat est construit en "empilant" les appels
-type InverserSans<T extends any[]> =
-  T extends [infer P, ...infer R]
-    ? [...InverserSans<R>, P]  // L'appel recursif n'est PAS en position terminale
-    : [];                       // car le spread [..., P] est apres
-
-// Version AVEC tail-call optimization (accumulateur)
-type InverserAvec<T extends any[], Acc extends any[] = []> =
-  T extends [infer P, ...infer R]
-    ? InverserAvec<R, [P, ...Acc]>  // L'appel recursif EST en position terminale
+// ✅ Tail : l'appel récursif EST le résultat, l'accumulateur porte le travail
+type ReverseTail<T extends readonly unknown[], Acc extends unknown[] = []> =
+  T extends [infer H, ...infer R]
+    ? ReverseTail<R, [H, ...Acc]>   // rien autour de l'appel → tail-call
     : Acc;
 
-// Les deux donnent le meme resultat, mais la version avec accumulateur
-// supporte des tuples beaucoup plus grands
-type Test1 = InverserSans<[1, 2, 3, 4, 5]>;  // [5, 4, 3, 2, 1]
-type Test2 = InverserAvec<[1, 2, 3, 4, 5]>;   // [5, 4, 3, 2, 1]
+type R2 = ReverseTail<[1, 2, 3]>; // [3, 2, 1], tient sur de gros tuples
 ```
 
-### Techniques pour optimiser la récursion
+Même résultat, mais la version accumulateur encaisse des tuples beaucoup plus longs avant de saturer.
 
-```typescript
-// 1. Utiliser un accumulateur (tail-call)
-type CompterAvecAcc<T extends any[], Acc extends any[] = []> =
-  T extends [any, ...infer R]
-    ? CompterAvecAcc<R, [...Acc, any]>
-    : Acc["length"];
+### 2.6 La limite de récursion — le mur réel
 
-// 2. Diviser pour regner (quand applicable)
-// Au lieu de traiter un element a la fois, traiter par paires
-type LongueurOptimisee<T extends any[]> =
-  T extends { length: infer L extends number } ? L : never;
+TypeScript borne la profondeur de récursion (~50 instanciations en position non-tail, plus haut en tail) pour éviter les boucles infinies et protéger les temps de compilation. Au-delà :
 
-// 3. Utiliser les types natifs quand possible
-// Preferer T["length"] a un compteur recursif maison
 ```
+Type instantiation is excessively deep and possibly infinite. ts(2589)
+```
+
+```ts
+type BuildTuple<N extends number, Acc extends unknown[] = []> =
+  Acc['length'] extends N ? Acc : BuildTuple<N, [...Acc, unknown]>;
+
+type Ok = BuildTuple<40>;      // ✅ ok
+// type Boom = BuildTuple<900>; // ❌ ts(2589) Type instantiation is excessively deep
+```
+
+Ce n'est pas un bug à contourner : c'est un **signal**. Si tu heurtes ce mur, la question n'est presque jamais « comment forcer plus de profondeur » mais « pourquoi je calcule ça au niveau des types ».
+
+### 2.7 Le coût de compilation
+
+Chaque instanciation de type conditionnel récursif a un coût. Un type-programme trop ambitieux ne « plante » pas toujours — il rend surtout ton éditeur lent : autocomplétion qui rame, `tsc` qui passe de 3 s à 30 s, erreurs affichées avec 2 s de retard. Ce coût est invisible en revue de code et bien réel au quotidien. `tsc --extendedDiagnostics` (temps de check) et `tsc --generateTrace` (profil détaillé) permettent de le mesurer si un fichier devient lent.
+
+### 2.8 Quand NE PAS faire de type-programming
+
+C'est la partie la plus importante du module. Le type-level programming est **puissant mais à doser**. Repères de décision :
+
+| Situation | Verdict |
+|---|---|
+| `DeepPartial`, `DeepReadonly`, un `Paths<T>` pour un helper d'accès | ✅ légitime, réutilisable, borné |
+| Type utilitaire dans une **librairie** consommée par d'autres | ✅ le coût est amorti sur les usagers |
+| Arithmétique sur tuples, parser, FizzBuzz au niveau des types | 🎓 exercice de compréhension, à *lire* — pas en prod |
+| Le type est plus long/complexe que le code runtime qu'il valide | ❌ inverse le rapport coût/valeur |
+| Tu heurtes `ts(2589)` et tu cherches à « forcer » | ❌ recule, valide à l'exécution (Zod, un test) |
+| Un collègue devra maintenir ce type sans toi | ❌ si tu ne peux pas l'expliquer en 2 phrases, simplifie |
+
+Règle honnête : **le meilleur type récursif est le plus court qui règle un vrai problème.** Passé ce point, chaque niveau de finesse se paie en lisibilité et en temps de compilation — souvent au bénéfice de personne. Une validation runtime (module Zod plus tard) est fréquemment plus robuste, plus lisible et *plus sûre* qu'un type-programme acrobatique, parce qu'elle vérifie de vraies valeurs, pas juste des formes.
 
 ---
 
-## Comparaison avec Haskell et le type-level programming
+## 3. Worked examples
 
-### Analogies avec la programmation fonctionnelle
+### Exemple 1 — `DeepReadonly<Family>` pas à pas
 
-Le type-level programming en TypeScript partage beaucoup de concepts avec Haskell :
+Objectif : figer une `Family` entière, membres et adresses compris.
 
-```typescript
-// Haskell : data List a = Nil | Cons a (List a)
-// TypeScript :
-type Liste<T> =
-  | { tag: "vide" }
-  | { tag: "element"; valeur: T; suivant: Liste<T> };
+```ts
+type DeepReadonly<T> =
+  T extends (infer U)[]
+    ? ReadonlyArray<DeepReadonly<U>>
+    : T extends object
+      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+      : T;
 
-// Haskell : map :: (a -> b) -> [a] -> [b]
-// TypeScript (au niveau des types) :
-type MapperTuple<T extends any[], F extends Record<any, any>> =
-  T extends [infer Premier, ...infer Reste]
-    ? [Premier extends keyof F ? F[Premier] : never, ...MapperTuple<Reste, F>]
-    : [];
+type FrozenFamily = DeepReadonly<Family>;
 
-// Mapping de types
-type Correspondances = {
-  "chaine": string;
-  "nombre": number;
-  "booleen": boolean;
-};
+declare const f: FrozenFamily;
 
-type Resultat = MapperTuple<["chaine", "nombre", "booleen"], Correspondances>;
-// [string, number, boolean]
+f.name;                         // string (lecture ok)
+// f.name = 'x';                // ❌ readonly niveau 1
+// f.settings.locale = 'en';    // ❌ readonly niveau 2 (l'objet settings)
+// f.members[0].address.city='';// ❌ readonly niveau 3 (dans le tableau)
 ```
 
-### Ce que TypeScript ne peut pas faire (facilement)
+Déroulé pour `f.members[0].address.city` :
+1. `Family` est un `object` → on remappe chaque clé en `readonly`, dont `members`.
+2. `members` est `Member[]` → branche tableau → `ReadonlyArray<DeepReadonly<Member>>`.
+3. `Member` est un `object` → remap `readonly`, dont `address`.
+4. `address` est un `object` → remap `readonly`, dont `city`.
+5. `city` est `string` → cas d'arrêt, rendu tel quel mais la clé qui le porte est `readonly`.
 
-```typescript
-// 1. Les nombres negatifs au niveau des types
-// Il n'y a pas de representant natif pour les nombres negatifs
+Chaque niveau ajoute *un* `DeepReadonly` : profondeur = imbrication réelle de `Family`, soit 3-4. Aucun risque de `ts(2589)` sur une structure métier normale.
 
-// 2. La recursion infinie
-// TypeScript impose des limites strictes de recursion
+### Exemple 2 — `DeepPartial<Member>` pour un patch, avec la nuance tableau
 
-// 3. Les types dependants complets
-// On ne peut pas avoir un type qui depend d'une valeur runtime
-// (sauf via des workarounds comme les branded types)
+Objectif : typer le body d'un `PATCH` où tout est optionnel en profondeur.
 
-// 4. Les HKTs (Higher-Kinded Types) natifs
-// TypeScript ne supporte pas nativement les types de types
-// On peut les simuler avec des workarounds :
-interface TypeConstructeur {
-  type: unknown;
-}
+```ts
+type DeepPartial<T> =
+  T extends (infer U)[]
+    ? DeepPartial<U>[]
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
 
-interface TableauConstructeur extends TypeConstructeur {
-  type: this["type"] extends infer T ? T[] : never;
-}
+type MemberPatch = DeepPartial<Member>;
 
-// Mais c'est verbeux et limité
+const p1: MemberPatch = {};                          // ✅ patch vide
+const p2: MemberPatch = { displayName: 'Bob' };      // ✅ un champ
+const p3: MemberPatch = { address: { city: 'Lyon' } }; // ✅ sous-objet partiel
+// const p4: MemberPatch = { address: { city: 1 } };   // ❌ city reste un string
 ```
 
----
+Point de vigilance sur les tableaux : `DeepPartial` rend les *éléments* partiels (`DeepPartial<U>[]`) mais **pas** le tableau lui-même optionnel élément par élément. Un `Member[]` patché reste « une liste d'éléments partiels », pas « une liste à trous ». Pour un vrai patch d'API on remplace en général le tableau entier — un patch profond *dans* un tableau est un mauvais signal de design côté endpoint.
 
-## Exercices puzzles
+### Exemple 3 (survol) — `Paths<T>` : les chemins de clés
 
-### Exercice 1 : Fibonacci au niveau des types
+Type récursif qui produit l'union des chemins pointés d'un objet. À *lire* et comprendre — on ne le réécrit pas de tête.
 
-Implementez le calcul de Fibonacci au niveau des types.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Fibonacci avec des tuples comme representation des nombres
-type Fibonacci<
-  N extends number,
-  Precedent extends any[] = [],        // F(n-2), demarre a 0
-  Courant extends any[] = [any],       // F(n-1), demarre a 1
-  Compteur extends any[] = []          // Compteur de 0 a N
-> =
-  Compteur["length"] extends N
-    ? Precedent["length"]
-    : Fibonacci<
-        N,
-        Courant,                         // Le nouveau precedent = ancien courant
-        [...Precedent, ...Courant],      // Le nouveau courant = somme
-        [...Compteur, any]               // Incrementer le compteur
-      >;
-
-type Fib0 = Fibonacci<0>;   // 0
-type Fib1 = Fibonacci<1>;   // 1
-type Fib2 = Fibonacci<2>;   // 1
-type Fib3 = Fibonacci<3>;   // 2
-type Fib4 = Fibonacci<4>;   // 3
-type Fib5 = Fibonacci<5>;   // 5
-type Fib6 = Fibonacci<6>;   // 8
-type Fib7 = Fibonacci<7>;   // 13
-type Fib8 = Fibonacci<8>;   // 21
-type Fib10 = Fibonacci<10>; // 55
-```
-</details>
-
-### Exercice 2 : Inverser une chaine au niveau des types
-
-Creez un type `InverserChaine<S>` qui inverse une chaine.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Version simple (sans accumulateur)
-type InverserChaineSimple<S extends string> =
-  S extends `${infer Premier}${infer Reste}`
-    ? `${InverserChaineSimple<Reste>}${Premier}`
-    : "";
-
-// Version avec accumulateur (tail-call optimized)
-type InverserChaine<
-  S extends string,
-  Acc extends string = ""
-> =
-  S extends `${infer Premier}${infer Reste}`
-    ? InverserChaine<Reste, `${Premier}${Acc}`>
-    : Acc;
-
-// Tests
-type IC1 = InverserChaine<"hello">;    // "olleh"
-type IC2 = InverserChaine<"abc">;      // "cba"
-type IC3 = InverserChaine<"a">;        // "a"
-type IC4 = InverserChaine<"">;          // ""
-type IC5 = InverserChaine<"TypeScript">; // "tpircSepyT"
-```
-</details>
-
-### Exercice 3 : Type-level FizzBuzz
-
-Implementez FizzBuzz au niveau des types pour les nombres de 1 a N.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Helpers : divisibilite par 3 et 5
-// On utilise la soustraction repetee
-
-type EstDivisiblePar3<N extends number, Acc extends any[] = ConstruireTuple<N>> =
-  Acc extends [any, any, any, ...infer Reste]
-    ? Reste["length"] extends 0
-      ? true
-      : EstDivisiblePar3<Reste["length"], Reste>
-    : Acc["length"] extends 0
-    ? true
-    : false;
-
-type EstDivisiblePar5<N extends number, Acc extends any[] = ConstruireTuple<N>> =
-  Acc extends [any, any, any, any, any, ...infer Reste]
-    ? Reste["length"] extends 0
-      ? true
-      : EstDivisiblePar5<Reste["length"], Reste>
-    : Acc["length"] extends 0
-    ? true
-    : false;
-
-// FizzBuzz pour un seul nombre
-type FizzBuzzUnique<N extends number> =
-  EstDivisiblePar3<N> extends true
-    ? EstDivisiblePar5<N> extends true
-      ? "FizzBuzz"
-      : "Fizz"
-    : EstDivisiblePar5<N> extends true
-    ? "Buzz"
-    : N;
-
-// Generer la sequence FizzBuzz de 1 a N
-type FizzBuzz<
-  N extends number,
-  Compteur extends any[] = [any],   // Commence a 1
-  Acc extends any[] = []
-> =
-  Compteur["length"] extends Additionner<N, 1>
-    ? Acc
-    : FizzBuzz<
-        N,
-        [...Compteur, any],
-        [...Acc, FizzBuzzUnique<Compteur["length"]>]
-      >;
-
-// Test
-type FB15 = FizzBuzz<15>;
-// [1, 2, "Fizz", 4, "Buzz", "Fizz", 7, 8, "Fizz", "Buzz", 11, "Fizz", 13, 14, "FizzBuzz"]
-```
-</details>
-
-### Exercice 4 : Deep Get type-safe
-
-Creez un type qui permet d'acceder à une valeur profondement imbriquee de manière type-safe.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Split une chaine par "."
-type SplitChemin<S extends string> =
-  S extends `${infer Cle}.${infer Reste}`
-    ? [Cle, ...SplitChemin<Reste>]
-    : [S];
-
-// Naviguer recursivement dans un type
-type NaviguerType<T, Chemin extends string[]> =
-  Chemin extends [infer Premier, ...infer Reste]
-    ? Premier extends keyof T
-      ? Reste extends string[]
-        ? NaviguerType<T[Premier], Reste>
-        : T[Premier]
-      : Premier extends `${number}`
-      ? T extends (infer E)[]
-        ? Reste extends string[]
-          ? NaviguerType<E, Reste>
-          : E
-        : never
-      : never
-    : T;
-
-// Type final
-type DeepGet<T, Chemin extends string> = NaviguerType<T, SplitChemin<Chemin>>;
-
-// Test
-interface BaseDeDonnees {
-  utilisateurs: {
-    profil: {
-      nom: string;
-      contact: {
-        email: string;
-        telephones: string[];
-      };
-    };
-    preferences: {
-      theme: "clair" | "sombre";
-      langue: string;
-    };
-  }[];
-}
-
-type T1 = DeepGet<BaseDeDonnees, "utilisateurs">;
-// { profil: ...; preferences: ... }[]
-
-type T2 = DeepGet<BaseDeDonnees, "utilisateurs.0.profil.nom">;
-// string
-
-type T3 = DeepGet<BaseDeDonnees, "utilisateurs.0.profil.contact.email">;
-// string
-
-type T4 = DeepGet<BaseDeDonnees, "utilisateurs.0.preferences.theme">;
-// "clair" | "sombre"
-```
-</details>
-
-### Exercice 5 : Permutations d'un tuple
-
-Creez un type qui généré toutes les permutations d'un tuple.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Retirer un element d'un tuple par index
-type Retirer<T extends any[], E> =
-  T extends [infer Premier, ...infer Reste]
-    ? Premier extends E
-      ? Reste
-      : [Premier, ...Retirer<Reste, E>]
-    : [];
-
-// Generer toutes les permutations
-type Permutations<T extends any[], Acc extends any[] = []> =
-  T["length"] extends 0
-    ? [Acc]
-    : T[number] extends infer E
-    ? E extends E // Distribution sur chaque element
-      ? Permutations<Retirer<T, E>, [...Acc, E]>
-      : never
+```ts
+type Paths<T> =
+  T extends object
+    ? {
+        [K in keyof T & string]:
+          T[K] extends object
+            ? K | `${K}.${Paths<T[K]>}`   // clé seule OU clé.sous-chemin
+            : K;
+      }[keyof T & string]
     : never;
 
-// Test
-type P1 = Permutations<[1, 2]>;
-// [[1, 2], [2, 1]]
-
-type P2 = Permutations<[1, 2, 3]>;
-// [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]
-
-// Attention : le nombre de permutations est N!, donc
-// pour N = 4 on obtient 24 types, N = 5 donne 120 types, etc.
-// Ne pas depasser N = 6-7 pour eviter les problemes de performance.
+type FamilyPaths = Paths<Family>;
+// "id" | "name" | "settings" | "settings.isPublic" | "settings.locale"
+// | "members" | "members.length" | "members.at" | "members.push" | ...  ⚠️
 ```
-</details>
+
+> **⚠️ Ce `Paths` ne gère PAS les tableaux.** Un tableau est un `object`, donc `members: Member[]` fait récurser `Paths<Member[]>` sur les **clés du prototype Array** : la sortie se pollue de `"members.length"`, `"members.at"`, `"members.push"`… et ne produit **jamais** `"members.0.displayName"`. Avant d'exiger un `Paths` sur un modèle avec tableaux (c'est le cas dans la variante J+30 du lab, `members: Member[]`), il faut le **borner** : traiter tout tableau comme une **feuille** (on ne descend pas dedans). Une clause en tête suffit —
+>
+> ```ts
+> type Paths<T> =
+>   T extends readonly unknown[]
+>     ? never // ne pas indexer un tableau : arrête la récursion ici
+>     : T extends object
+>       ? { [K in keyof T & string]:
+>             T[K] extends readonly unknown[]
+>               ? K                                   // "members" reste une feuille
+>               : T[K] extends object
+>                 ? K | `${K}.${Paths<T[K]>}`
+>                 : K;
+>         }[keyof T & string]
+>       : never;
+> // => "id" | "name" | "settings" | "settings.isPublic" | "settings.locale" | "members"
+> // (plus de "members.length"/"members.push")
+> ```
+
+Usage typique : contraindre une fonction `get(family, path)` à n'accepter que des chemins valides. C'est le cas d'usage *légitime* d'un type récursif un peu poussé : il sécurise une vraie API d'accès. Même bornée aux tableaux, méfiance — sur un modèle très profond, `Paths<T>` explose combinatoirement et peut déclencher `ts(2589)`. Si ça arrive : borne aussi la profondeur ou repasse à un `string` simple validé à l'exécution.
 
 ---
 
-## Résumé
+## 4. Pièges & misconceptions
 
-### Concepts maitrises
+### PIÈGE #1 — Oublier le cas d'arrêt
 
-| Concept | Description |
-|---------|-------------|
-| Types récursifs | Types qui se referencent eux-memes |
-| Arbres et listes | Structures de donnees recursives |
-| Arithmetique type-level | Addition, soustraction via tuples |
-| String parsing | Decomposer et transformer des chaines |
-| State machines | Vérifier des sequences de transitions |
-| Tail-call optimization | Accumulateur pour récursion profonde |
+```ts
+// ❌ Pas de branche primitive → la récursion ne termine jamais proprement
+type DeepReadonlyKO<T> = { readonly [K in keyof T]: DeepReadonlyKO<T[K]> };
+// Sur T[K] = string, keyof string donne les méthodes de String → bruit/erreurs
 
-### Regles d'or du type-level programming
+// ✅ La branche `: T` finale arrête sur les primitives
+type DeepReadonlyOK<T> =
+  T extends object ? { readonly [K in keyof T]: DeepReadonlyOK<T[K]> } : T;
+```
 
-1. **Representez les nombres par des tuples** pour l'arithmetique
-2. **Utilisez un accumulateur** pour la tail-call optimization
-3. **Restez sous 50-100 niveaux** de récursion en pratique
-4. **Testez incrementalement** : chaque type intermédiaire separement
-5. **Evitez la complexite inutile** : le type-level programming est puissant mais difficile a maintenir
-6. **Documentez abondamment** : les types complexes sont incomprehensibles sans explication
+Un type récursif SANS cas d'arrêt est l'équivalent d'une fonction sans condition de sortie.
 
-### Quand utiliser le type-level programming ?
+### PIÈGE #2 — Traiter `object` avant les tableaux
 
-- **Oui** : Libraries, frameworks, outils de validation, ORMs
-- **Non** : Code metier simple, applications CRUD basiques
-- **Avec prudence** : Quand la complexite du type dépasse celle du code runtime
+```ts
+// ❌ Un array EST un object → cette branche l'attrape et mappe ses index
+type DeepRO_KO<T> =
+  T extends object ? { readonly [K in keyof T]: DeepRO_KO<T[K]> } : T;
+// DeepRO_KO<string[]> devient un objet indexé, pas un ReadonlyArray
+
+// ✅ Tester le tableau EN PREMIER
+type DeepRO_OK<T> =
+  T extends (infer U)[] ? ReadonlyArray<DeepRO_OK<U>>
+  : T extends object ? { readonly [K in keyof T]: DeepRO_OK<T[K]> }
+  : T;
+```
+
+Ordre des branches conditionnelles : du plus spécifique (tableau) au plus général (objet).
+
+### PIÈGE #3 — Croire que `ts(2589)` est un bug à contourner
+
+```ts
+type BuildTuple<N extends number, A extends unknown[] = []> =
+  A['length'] extends N ? A : BuildTuple<N, [...A, unknown]>;
+// type X = BuildTuple<5000>; // ts(2589)
+```
+
+Ce n'est pas TypeScript qui « bloque » : c'est un garde-fou contre une boucle potentiellement infinie et un temps de compilation explosif. **Le corriger ne veut pas dire pousser la limite** — ça veut dire reconsidérer si ce calcul doit vraiment vivre dans les types.
+
+### PIÈGE #4 — Confondre récursion structurelle et récursion calculatoire
+
+```ts
+// Récursion STRUCTURELLE : décrit une forme, coût quasi nul, illimitée en pratique
+type Tree<T> = { value: T; children: Tree<T>[] };
+
+// Récursion CALCULATOIRE : le compilateur déroule un calcul, coût réel, bornée
+type Multiply<A extends number, B extends number, Acc extends unknown[] = []> =
+  never; // (implémentation lourde — voir exercices type-challenges)
+```
+
+La première (arbres, listes, JSON) est bénigne et courante. La seconde (arithmétique, parsing) est ce qui te met en danger. Confondre les deux fait croire que « les types récursifs sont chers » — non, c'est le *calcul* au niveau des types qui l'est.
+
+### PIÈGE #5 — Écrire un type-programme là où une valeur suffit
+
+```ts
+// ❌ Valider un format d'email au niveau des types
+type IsEmail<S extends string> = S extends `${string}@${string}.${string}` ? S : never;
+// Fragile : laisse passer des chaînes absurdes, illisible à étendre, aucun message
+
+// ✅ Valider la VALEUR à l'exécution (aperçu Zod, module ultérieur)
+// const Email = z.string().email(); → message d'erreur clair, robuste, testable
+```
+
+Si la règle porte sur une *valeur* (contenu d'une string, plage d'un nombre), la valider à l'exécution est presque toujours supérieur à un type-programme.
 
 ---
 
-## Pour aller plus loin
+## 5. Ancrage TribuZen
 
-Le prochain module, **[14 — Decorateurs & Metadata (Stage 3)](./14-decorateurs-metadata.md)**, change de registre et explore les decorateurs — une fonctionnalite qui combine le runtime et le système de types pour de la metaprogrammation elegante.
+Dans `smaurier/tribuzen`, ces types récursifs vivent dans un module d'utilitaires transverses, `src/types/deep.ts`, et servent trois usages concrets.
+
+**`DeepReadonly<Family>`** — quand le store charge une famille pour l'affichage read-only (page publique d'une tribu), on expose `DeepReadonly<Family>` aux composants. Garantie à la compilation : aucun composant ne peut muter `family.settings.locale` ni `family.members[i].address.city` par accident. Le `readonly` descend jusqu'aux feuilles.
+
+**`DeepPartial<Member>`** — le body de `PATCH /members/:id` est typé `DeepPartial<Member>`. Le front peut envoyer `{ address: { city: 'Lyon' } }` sans reconstruire un `Member` complet, et TS refuse `{ address: { city: 42 } }` (le type feuille reste `string`).
+
+**`Paths<Family>`** (survol) — un helper `getPath(family, path)` typé pour l'export CSV / les colonnes configurables de l'admin : `path` n'accepte que des chemins réels (`"settings.locale"`, `"name"`). Type puissant, mais surveillé : si le modèle grossit et que `Paths` devient lent ou déclenche `ts(2589)`, on retombe sur un `string` validé à l'exécution. C'est exactement la décision « quand s'arrêter » du module, prise sur un cas réel.
+
+```
+tribuzen/src/
+  types/
+    index.ts          ← Family, Member, Address (modèle métier)
+    deep.ts           ← DeepReadonly, DeepPartial, Paths (ce module)
+  api/
+    members.ts        ← PATCH body: DeepPartial<Member>
+  features/
+    family/
+      PublicFamilyView.tsx  ← props: DeepReadonly<Family>
+```
+
+**Frontière assumée :** au-delà de ces trois types, TribuZen ne fait *pas* de type-programming. Les validations de contenu (email, code postal, plages) passent par une validation runtime, pas par des types acrobatiques. C'est un choix de maintenabilité, pas une limite de compétence.
 
 ---
 
-<!-- parcours-recommande -->
+## 6. Points clés
 
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 13 type programming](../screencasts/screencast-13-type-programming.md)
-2. **Lab** : [lab-13-type-programming](../labs/lab-13-type-programming/README)
-3. **Quiz** : [quiz 13 type programming](../quizzes/quiz-13-type-programming.html)
-:::
+1. Un type récursif se référence lui-même et exige un **cas d'arrêt** (branche primitive `: T`), comme une fonction récursive exige une condition de sortie.
+2. `DeepReadonly<T>` et `DeepPartial<T>` = un mapped type qui se rappelle sur `T[K]` ; ce sont les types récursifs *utiles* du quotidien.
+3. Tester le **tableau avant l'objet** : en TS un array est un object, sinon on perd `ReadonlyArray` et on mappe les index.
+4. `T['length']` est natif — jamais de compteur récursif quand une propriété existe.
+5. Un **accumulateur** en position terminale active la tail-call (TS 4.5+) et encaisse des tuples bien plus longs.
+6. `Type instantiation is excessively deep ts(2589)` est un **garde-fou**, pas un bug : recule au lieu de forcer la profondeur.
+7. Le type-programming a un **coût de compilation** réel (éditeur lent, `tsc` lent) invisible en revue — mesurable avec `--extendedDiagnostics`.
+8. Quand s'arrêter : si le type est plus complexe que le code qu'il protège, ou impossible à expliquer en deux phrases, préfère une **validation runtime**. Le meilleur type récursif est le plus court qui règle un vrai problème.
+
+---
+
+## 7. Seeds Anki
+
+```
+Qu'est-ce qui distingue un type récursif d'un type normal, et de quoi a-t-il obligatoirement besoin ?|Il se référence lui-même dans sa définition. Il a besoin d'un cas d'arrêt (une branche qui ne se rappelle pas, typiquement la branche primitive ': T') sinon il ne termine pas.
+Pourquoi Readonly<T> ne suffit-il pas pour figer une Family imbriquée, et que fait DeepReadonly ?|Readonly ne fige que le premier niveau : family.settings.locale reste mutable. DeepReadonly est un mapped type récursif qui applique readonly à chaque clé ET se rappelle sur T[K] jusqu'aux primitives.
+Dans DeepReadonly/DeepPartial, pourquoi tester le tableau AVANT l'objet ?|En TypeScript un tableau est un object. Si on teste object en premier, la branche attrape le tableau et mappe ses index numériques, on perd ReadonlyArray et la sémantique de liste. Ordre : du plus spécifique au plus général.
+Comment récupère-t-on la longueur d'un tuple au niveau des types, et quelle règle de coût cela illustre ?|Avec la propriété native T['length']. Règle : ne jamais écrire un compteur récursif quand une propriété native existe — c'est la première optimisation anti-coût.
+Qu'est-ce qu'un accumulateur de types et quel gain apporte la position terminale (tail) ?|Un paramètre générique avec valeur par défaut ([] ou '') qui porte le résultat en construction. Si l'appel récursif EST le résultat (pas enveloppé dans [...X, ...]), TS 4.5+ applique une optimisation tail-call et supporte une profondeur bien plus grande.
+Que signifie l'erreur ts(2589) 'Type instantiation is excessively deep' et quelle est la bonne réaction ?|TS a dépassé sa limite de récursion (garde-fou contre boucle infinie et compilation explosive). Bonne réaction : reculer et se demander si ce calcul doit vivre dans les types — pas chercher à forcer plus de profondeur.
+Quel est le coût caché du type-programming poussé et comment le mesurer ?|Un coût de compilation : autocomplétion lente, tsc qui passe de secondes à dizaines de secondes, erreurs affichées en retard. Invisible en revue de code. Mesurable avec tsc --extendedDiagnostics et --generateTrace.
+Quand NE PAS faire de type-programming ?|Quand le type devient plus complexe que le code runtime qu'il valide, quand la règle porte sur une valeur (email, plage) mieux validée à l'exécution, quand tu heurtes ts(2589) et cherches à forcer, ou quand tu ne peux pas l'expliquer en 2 phrases. Préfère alors une validation runtime.
+Quelle est la différence entre récursion structurelle et récursion calculatoire, côté coût ?|Structurelle (arbre, liste, JSON) : décrit une forme, coût quasi nul, illimitée en pratique. Calculatoire (arithmétique, parsing sur tuples) : le compilateur déroule un calcul, coût réel et bornée. C'est la seconde qui met en danger, pas la première.
+```
+
+---
+
+## Pont vers le lab
+
+> Lab associé : `00-typescript/labs/lab-13-type-programming/README.md`. Construire `DeepReadonly` et `DeepPartial` pour le modèle TribuZen, les éprouver sur `Family`/`Member`, puis toucher volontairement le mur `ts(2589)` pour ancrer la limite — et décider où s'arrêter.

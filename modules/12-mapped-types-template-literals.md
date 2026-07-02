@@ -1,516 +1,267 @@
-# 12 — Mapped Types & Template Literal Types
-
-> **Duree estimee** : 5 heures
-> **Difficulte** : 4/5
-> **Prérequis** : Generics, conditional types, infer, keyof, unions
-> **Objectifs** :
-> - Maîtriser les mapped types et leurs modificateurs
-> - Comprendre le key remapping avec `as`
-> - Utiliser les template literal types pour manipuler des chaines au niveau des types
-> - Combiner mapped types et template literals pour des transformations avancees
-
+---
+titre: Mapped types et template literal types
+cours: 00-typescript
+notions: [mapped type, modificateurs readonly et optionnel, plus et moins devant les modificateurs, key remapping avec as, filtrage de clés via never, template literal types, intrinsic string types Uppercase Lowercase Capitalize Uncapitalize, combiner mapped template et conditional, reconstruire Partial et Readonly]
+outcomes: [écrire un mapped type qui transforme valeurs et modificateurs, renommer et filtrer des clés avec as, construire des noms de types avec les template literal types, combiner mapped conditional et template pour générer une API typée]
+prerequis: [11-conditional-types]
+next: 13-types-recursifs-type-programming
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: types dérivés du domaine (Getters, Nullable, noms d'événements membre) dans tribuzen/types
+last-reviewed: 2026-07
 ---
 
-> **⚠️ Ce module est un cran au-dessus.** C'est normal de galerer ici. Si tu bloques plus de 20 min, relis la théorie du module précédent. Si après 45 min c'est toujours flou, passe au module suivant et reviens plus tard — certains concepts prennent des jours a decanter.
+# Mapped types et template literal types
 
-## Introduction — Pourquoi ces deux notions vont ensemble ?
+> **Outcomes — tu sauras FAIRE :** écrire un mapped type qui transforme valeurs et modificateurs, renommer et filtrer des clés avec `as`, construire des noms de types avec les template literal types, combiner mapped + conditional + template pour générer une API typée.
+> **Difficulté :** :star::star::star::star:
 
-### Le problème qu'on cherche à résoudre
+## 1. Cas concret d'abord
 
-À ce stade, on veut souvent automatiser des transformations de types au lieu de les écrire a la main :
+Tu attaques la couche formulaires de TribuZen. Un collègue veut un état d'édition de membre où **chaque champ peut être `null`** tant qu'il n'est pas rempli, plus un objet de **getters** (`getDisplayName`, `getEmail`) pour l'affichage. Il l'a écrit à la main :
 
-- rendre toutes les propriétés readonly ou optionnelles
-- fabriquer des getters a partir des clés d'un objet
-- renommer des clés selon une convention
-- produire des noms d'événements ou de méthodes a partir de chaînes
+```ts
+import type { MemberBase } from "@/types";
 
-Le problème, c'est que ces transformations paraissent vite "magiques" si on ne voit pas le mécanisme derrière.
+// ❌ Recopié champ par champ depuis MemberBase — se désynchronise au moindre ajout
+interface MemberDraft {
+  id: string | null;
+  familyId: string | null;
+  displayName: string | null;
+  role: "admin" | "parent" | "enfant" | null;
+  email: string | null;
+  avatarUrl: string | null;
+  joinedAt: Date | null;
+}
 
-### La solution : transformer soit les clés, soit les chaînes, soit les deux
-
-Dans ce module, on combine deux familles d'outils :
-
-- les **mapped types** pour parcourir et transformer les propriétés d'un type objet
-- les **template literal types** pour construire et transformer des types string
-
-La vraie puissance arrive quand on combine les deux.
-
-### Analogie
-
-Un mapped type, c'est comme une machine qui reprend le plan d'une maison pièce par pièce pour le modifier. Un template literal type, c'est comme assembler des étiquettes mot par mot. Ensemble, ils permettent de reconstruire a la fois la structure et les noms.
-
-> 💡 **Conseil de lecture** : quand un exemple te semble abstrait, demande-toi toujours "qu'est-ce qui change ici : la valeur, la clé, ou le nom sous forme de string ?"
-
----
-
-## Comment progresser dans ce module sans te perdre
-
-Le plus simple est de le lire en trois étapes :
-
-1. D'abord les mapped types simples : on garde les mêmes clés et on transforme seulement les valeurs ou les modificateurs.
-2. Ensuite le remapping avec `as` : on commence a changer les noms de propriétés.
-3. Enfin les template literal types : on construit dynamiquement des chaînes, puis on les combine avec les clés.
-
-> 💡 **Repère utile** : tant que tu n'es pas a l'aise avec l'étape 1, ne te force pas a raisonner tout de suite sur `as`, `Capitalize`, `never` et les noms dynamiques en même temps.
-
----
-
-## Mapped Types : les bases
-
-### Syntaxe fondamentale
-
-La bonne lecture d'un mapped type est :
-
-- `keyof T` = toutes les clés de `T`
-- `K in keyof T` = on parcourt chaque clé
-- `T[K]` = on récupère le type de la valeur associée a cette clé
-
-Autrement dit, un mapped type est une boucle sur les propriétés d'un type objet.
-
-```typescript
-// Un mapped type itere sur les cles d'un type
-type MonMappedType<T> = {
-  [K in keyof T]: T[K];
-};
-
-// C'est un "identity" mapped type : il reproduit le type a l'identique
-// Mais on peut modifier la valeur, la cle, ou les modificateurs
+interface MemberGetters {
+  getId: () => string;
+  getFamilyId: () => string;
+  getDisplayName: () => string;
+  getRole: () => "admin" | "parent" | "enfant";
+  getEmail: () => string | undefined;
+  getAvatarUrl: () => string | undefined;
+  getJoinedAt: () => Date;
+}
 ```
 
-### Modifier les valeurs
+**Trois problèmes immédiats :**
+1. `MemberDraft` recopie `MemberBase`. Le jour où on ajoute `phone` à `MemberBase`, `MemberDraft` ne le sait pas — le type ment.
+2. `MemberGetters` a fallu retaper chaque nom capitalisé à la main (`getDisplayName`…) — source d'erreurs.
+3. Aucun lien entre ces types et `MemberBase` : rien ne garantit qu'ils restent alignés.
 
-Dans cette série d'exemples, les clés restent identiques. Ce qui change, c'est uniquement le type des valeurs.
+Ce module te donne les outils pour **dériver** ces deux types de `MemberBase` en une ligne chacun, et rester synchronisé automatiquement.
 
-```typescript
-interface Utilisateur {
+---
+
+## 2. Théorie complète, concise
+
+### 2.1 Le mapped type : une boucle sur les clés
+
+Un mapped type parcourt les clés d'un type objet et produit une nouvelle propriété pour chacune. La lecture des trois morceaux :
+
+- `keyof T` = l'union de toutes les clés de `T`
+- `K in keyof T` = « pour chaque clé `K` »
+- `T[K]` = le type de la valeur associée à `K` (indexed access)
+
+```ts
+// Identity : reproduit T à l'identique. La brique de base.
+type Identique<T> = {
+  [K in keyof T]: T[K];
+};
+```
+
+À partir de cette boucle, on peut changer **trois choses indépendantes** : la valeur (`T[K]`), les modificateurs (`readonly`, `?`), et le nom de la clé (via `as`, section 2.4).
+
+### 2.2 Transformer la valeur
+
+Les clés restent identiques ; seul le type de la valeur change.
+
+```ts
+interface Membre {
   nom: string;
   age: number;
   actif: boolean;
-  email: string;
 }
-
-// Transformer toutes les valeurs en string
-type ToutEnString<T> = {
-  [K in keyof T]: string;
-};
-
-type UtilisateurString = ToutEnString<Utilisateur>;
-// { nom: string; age: string; actif: string; email: string }
-
-// Envelopper chaque valeur dans un tableau
-type EnTableau<T> = {
-  [K in keyof T]: T[K][];
-};
-
-type UtilisateurTableaux = EnTableau<Utilisateur>;
-// { nom: string[]; age: number[]; actif: boolean[]; email: string[] }
 
 // Envelopper chaque valeur dans une Promise
-type EnPromise<T> = {
-  [K in keyof T]: Promise<T[K]>;
-};
+type EnPromise<T> = { [K in keyof T]: Promise<T[K]> };
+// { nom: Promise<string>; age: Promise<number>; actif: Promise<boolean> }
 
-type UtilisateurAsync = EnPromise<Utilisateur>;
-// { nom: Promise<string>; age: Promise<number>; ... }
+// Rendre chaque valeur nullable — le cœur de MemberDraft
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+// { nom: string | null; age: number | null; actif: boolean | null }
+```
 
-// Creer des getters
+### 2.3 Les modificateurs : readonly et optionnel
+
+On peut **ajouter** ou **retirer** `readonly` et `?`. `+` ajoute (comportement par défaut, souvent implicite), `-` retire.
+
+```ts
+// Ajouter readonly à tout → c'est l'implémentation exacte de Readonly<T>
+type ReadonlyMaison<T> = { readonly [K in keyof T]: T[K] };
+
+// Ajouter ? à tout → c'est l'implémentation exacte de Partial<T>
+type PartialMaison<T> = { [K in keyof T]?: T[K] };
+
+// Retirer readonly (rendre mutable)
+type Mutable<T> = { -readonly [K in keyof T]: T[K] };
+
+// Retirer ? (rendre obligatoire) → c'est Required<T>
+type RequiredMaison<T> = { [K in keyof T]-?: T[K] };
+
+// Combiner : ajout explicite avec +, équivalent readonly + optionnel
+type Gelee<T> = { +readonly [K in keyof T]+?: T[K] };
+```
+
+> `+readonly` et `+?` sont rarement écrits car c'est le défaut. Le `-` est ce qui compte en pratique : c'est le seul moyen d'enlever un modificateur hérité.
+
+### 2.4 Key remapping avec `as`
+
+Depuis TypeScript 4.1, la clause `as` **renomme** la clé produite. La forme est `[K in keyof T as NouvelleClé]`. C'est là que les template literal types (section 2.6) entrent en jeu pour fabriquer le nouveau nom.
+
+```ts
+// Préfixer chaque clé avec "get" et la capitaliser
 type Getters<T> = {
-  [K in keyof T]: () => T[K];
-};
-
-type UtilisateurGetters = Getters<Utilisateur>;
-// { nom: () => string; age: () => number; ... }
-```
-
----
-
-## Les modificateurs : readonly et optionnel
-
-### Ajouter des modificateurs
-
-Ici, on ne change ni le nom des clés ni le type de leur valeur. On change seulement le statut de la propriété : lecture seule ou optionnelle.
-
-```typescript
-// Ajouter readonly a toutes les proprietes
-type ToutReadonly<T> = {
-  readonly [K in keyof T]: T[K];
-};
-// C'est exactement l'implementation de Readonly<T>
-
-// Ajouter le modificateur optionnel
-type ToutOptionnel<T> = {
-  [K in keyof T]?: T[K];
-};
-// C'est exactement l'implementation de Partial<T>
-
-// Combiner les deux
-type ReadonlyOptionnel<T> = {
-  readonly [K in keyof T]?: T[K];
-};
-
-interface Config {
-  hote: string;
-  port: number;
-  debug: boolean;
-}
-
-type ConfigGelee = ReadonlyOptionnel<Config>;
-// {
-//   readonly hote?: string;
-//   readonly port?: number;
-//   readonly debug?: boolean;
-// }
-```
-
-### Supprimer des modificateurs avec `-`
-
-```typescript
-// Supprimer readonly (rendre mutable)
-type Mutable<T> = {
-  -readonly [K in keyof T]: T[K];
-};
-
-interface Point {
-  readonly x: number;
-  readonly y: number;
-}
-
-type PointMutable = Mutable<Point>;
-// { x: number; y: number }  -- plus de readonly
-
-// Supprimer le modificateur optionnel (rendre obligatoire)
-type ToutObligatoire<T> = {
-  [K in keyof T]-?: T[K];
-};
-// C'est exactement l'implementation de Required<T>
-
-interface Preferences {
-  theme?: string;
-  langue?: string;
-  notifications?: boolean;
-}
-
-type PreferencesCompletes = ToutObligatoire<Preferences>;
-// { theme: string; langue: string; notifications: boolean }
-
-// Ajouter explicitement avec `+` (c'est le comportement par defaut)
-type ExpliciteReadonly<T> = {
-  +readonly [K in keyof T]+?: T[K];
-};
-// Equivalent a readonly + optionnel
-```
-
----
-
-## Key Remapping avec `as`
-
-### Syntaxe
-
-Depuis TypeScript 4.1, on peut **renommer les clés** dans un mapped type grâce à `as`.
-
-Cette fois, on ne modifie plus seulement la valeur d'une propriété : on fabrique un **nouveau nom de clé**.
-
-```typescript
-// Syntaxe : [K in keyof T as NouvelleClé]: T[K]
-type RenommerCles<T> = {
   [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];
 };
 
-interface Personne {
-  nom: string;
-  age: number;
-  email: string;
-}
-
-type PersonneGetters = RenommerCles<Personne>;
-// {
-//   getNom: () => string;
-//   getAge: () => number;
-//   getEmail: () => string;
-// }
+interface Personne { nom: string; age: number }
+type PersonneGetters = Getters<Personne>;
+// { getNom: () => string; getAge: () => number }
 ```
 
-### Renommer avec des prefixes et suffixes
+Le `string & K` est nécessaire : `keyof T` peut inclure `string | number | symbol`, or `Capitalize` n'accepte que des `string`. L'intersection `string & K` réduit `K` à sa part string.
 
-```typescript
-// Creer des setters
-type Setters<T> = {
-  [K in keyof T as `set${Capitalize<string & K>}`]: (valeur: T[K]) => void;
+### 2.5 Filtrer des clés en remappant vers `never`
+
+Si la clause `as` produit `never`, la propriété **disparaît**. Combiné à un conditional type, c'est un filtre de clés.
+
+```ts
+// Ne garder que les propriétés dont la valeur est une string
+type PickByType<T, V> = {
+  [K in keyof T as T[K] extends V ? K : never]: T[K];
 };
 
-type PersonneSetters = Setters<Personne>;
-// {
-//   setNom: (valeur: string) => void;
-//   setAge: (valeur: number) => void;
-//   setEmail: (valeur: string) => void;
-// }
+interface Mixte { nom: string; age: number; ville: string }
+type SeulementStrings = PickByType<Mixte, string>;
+// { nom: string; ville: string }
 
-// Creer des handlers d'evenements
-type EvenementHandlers<T> = {
-  [K in keyof T as `on${Capitalize<string & K>}Change`]: (
-    ancienneValeur: T[K],
-    nouvelleValeur: T[K]
-  ) => void;
-};
-
-type PersonneHandlers = EvenementHandlers<Personne>;
-// {
-//   onNomChange: (ancienneValeur: string, nouvelleValeur: string) => void;
-//   onAgeChange: (ancienneValeur: number, nouvelleValeur: number) => void;
-//   onEmailChange: (ancienneValeur: string, nouvelleValeur: string) => void;
-// }
-```
-
-### Filtrer des clés avec `as` et `never`
-
-Le remapping avec `as` permet aussi de **filtrer** des clés : si le nouveau nom est `never`, la propriété est exclue.
-
-> 🎯 **A retenir** : avec `as`, on peut soit renommer une clé, soit la supprimer. `never` veut dire ici : "ne génère aucune propriété".
-
-```typescript
-// Garder uniquement les proprietes de type string
-type ProprietesString<T> = {
-  [K in keyof T as T[K] extends string ? K : never]: T[K];
-};
-
-interface Mixte {
-  nom: string;
-  age: number;
-  email: string;
-  actif: boolean;
-  ville: string;
-}
-
-type SeulementStrings = ProprietesString<Mixte>;
-// { nom: string; email: string; ville: string }
-
-// Exclure les proprietes dont le nom commence par un underscore
+// Exclure les clés qui commencent par un underscore
 type SansPrives<T> = {
   [K in keyof T as K extends `_${string}` ? never : K]: T[K];
 };
+```
 
-interface AvecPrives {
-  nom: string;
-  _id: number;
-  email: string;
-  _cache: Map<string, any>;
-}
+> **À retenir :** avec `as`, une clé peut être renommée **ou** supprimée (`never`). C'est le seul mécanisme de filtrage de clés au niveau des mapped types.
 
-type Public = SansPrives<AvecPrives>;
-// { nom: string; email: string }
+### 2.6 Template literal types
 
-// Garder uniquement les methodes
-type SeulementMethodes<T> = {
-  [K in keyof T as T[K] extends Function ? K : never]: T[K];
-};
+Même syntaxe que les template strings JS, mais au niveau des types. On concatène des types string.
 
-// Garder uniquement les proprietes (pas les methodes)
-type SeulementProprietes<T> = {
-  [K in keyof T as T[K] extends Function ? never : K]: T[K];
+```ts
+type Salutation = `Bonjour ${string}`;
+const ok: Salutation = "Bonjour Alice";     // OK
+// const ko: Salutation = "Au revoir";       // Erreur
+
+// Distribution sur les unions → produit litéral cartésien
+type Couleur = "rouge" | "bleu";
+type Etat = "actif" | "inactif";
+type Classe = `${Couleur}-${Etat}`;
+// "rouge-actif" | "rouge-inactif" | "bleu-actif" | "bleu-inactif"
+```
+
+### 2.7 Intrinsic string types
+
+TypeScript fournit quatre transformateurs de string au niveau des types, distribués sur les unions :
+
+```ts
+type A = Uppercase<"join">;      // "JOIN"
+type B = Lowercase<"JOIN">;      // "join"
+type C = Capitalize<"join">;     // "Join"
+type D = Uncapitalize<"Join">;   // "join"
+
+type Events = "join" | "leave";
+type OnEvents = `on${Capitalize<Events>}`;   // "onJoin" | "onLeave"
+```
+
+### 2.8 Combiner mapped + template + conditional
+
+La puissance réelle : un mapped type qui remappe les clés via un template literal, en filtrant via un conditional. Exemple — générer des handlers `on…Change` uniquement pour les champs (pas les méthodes) :
+
+```ts
+type ChangeHandlers<T> = {
+  [K in keyof T as T[K] extends Function
+    ? never
+    : `on${Capitalize<string & K>}Change`]: (nouvelle: T[K]) => void;
 };
 ```
+
+C'est exactement le pattern qu'on appliquera à TribuZen en section 5.
 
 ---
 
-## Mapped types avances
+## 3. Worked examples
 
-### Transformer les clés en minuscules/majuscules
+### Exemple 1 — Reconstruire Partial et Readonly, puis résoudre le cas concret
 
-```typescript
-type ClesEnMajuscules<T> = {
-  [K in keyof T as Uppercase<string & K>]: T[K];
+On répare le cas d'ouverture en **dérivant** `MemberDraft` et `MemberGetters` de `MemberBase`.
+
+```ts
+import type { MemberBase } from "@/types";
+
+// ─── Briques maison (pour comprendre les utilitaires natifs) ─────────
+// Partial<T> réécrit : chaque clé devient optionnelle.
+type PartialMaison<T> = { [K in keyof T]?: T[K] };
+// Readonly<T> réécrit : chaque clé devient en lecture seule.
+type ReadonlyMaison<T> = { readonly [K in keyof T]: T[K] };
+
+// ─── 1. MemberDraft dérivé, jamais recopié ───────────────────────────
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+
+type MemberDraft = Nullable<MemberBase>;
+// Chaque champ de MemberBase devient `... | null`.
+// Ajoute `phone` à MemberBase → MemberDraft.phone: string | null apparaît seul.
+
+// ─── 2. MemberGetters dérivé via as + Capitalize ─────────────────────
+type Getters<T> = {
+  // `string & K` : garde seulement la part string de la clé,
+  // requis car Capitalize<> n'accepte pas number | symbol.
+  // `-readonly` + `-?` : un mapped type qui itère `[K in keyof T]` reste
+  // HOMOMORPHE même avec un remapping `as`, donc il PRÉSERVE les modificateurs
+  // de T. Sans neutralisation, `getId`/`getFamilyId` seraient `readonly` (hérité
+  // de `id`/`familyId`) et `getEmail`/`getAvatarUrl` optionnels (hérité du `?`).
+  // On les retire pour des getters uniformes et obligatoires.
+  -readonly [K in keyof T as `get${Capitalize<string & K>}`]-?: () => T[K];
 };
 
-interface ApiReponse {
-  userId: number;
-  userName: string;
-  userEmail: string;
-}
-
-type ReponseMajuscules = ClesEnMajuscules<ApiReponse>;
-// { USERID: number; USERNAME: string; USEREMAIL: string }
-```
-
-### Créer un type avec getters ET setters
-
-```typescript
-type GettersEtSetters<T> = {
-  [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];
-} & {
-  [K in keyof T as `set${Capitalize<string & K>}`]: (valeur: T[K]) => void;
-};
-
-interface Dimensions {
-  largeur: number;
-  hauteur: number;
-}
-
-type DimensionsAccesseurs = GettersEtSetters<Dimensions>;
+type MemberGetters = Getters<MemberBase>;
 // {
-//   getLargeur: () => number;
-//   getHauteur: () => number;
-// } & {
-//   setLargeur: (valeur: number) => void;
-//   setHauteur: (valeur: number) => void;
+//   getId: () => string;
+//   getFamilyId: () => string;
+//   getDisplayName: () => string;
+//   getRole: () => MemberRole;
+//   getEmail: () => string | undefined;   // email était optionnel → T[K] inclut undefined,
+//                                          // mais la propriété getEmail est requise (grâce à -?)
+//   getAvatarUrl: () => string | undefined;
+//   getJoinedAt: () => Date;
 // }
 ```
 
-### DeepReadonly et DeepPartial avec mapped types
+**Ce que ça apporte :** une seule source de vérité (`MemberBase`). Les deux types dérivés se mettent à jour tout seuls. Zéro recopie, zéro désynchronisation.
 
-```typescript
-// DeepReadonly recursif
-type DeepReadonly<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
-    : T;
+### Exemple 2 — Filtrer les clés puis générer des event handlers (fading)
 
-// DeepPartial recursif
-type DeepPartial<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { [K in keyof T]?: DeepPartial<T[K]> }
-    : T;
+On veut, à partir d'un état de formulaire, générer **un handler par champ éditable**, en excluant les identifiants `readonly`. On combine remapping, template literal et conditional.
 
-// DeepRequired recursif
-type DeepRequired<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { [K in keyof T]-?: DeepRequired<T[K]> }
-    : T;
-
-// DeepMutable recursif
-type DeepMutable<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { -readonly [K in keyof T]: DeepMutable<T[K]> }
-    : T;
-
-// Test
-interface AppConfig {
-  serveur: {
-    readonly hote: string;
-    readonly port: number;
-    ssl: {
-      readonly actif: boolean;
-      readonly certificat?: string;
-    };
-  };
-  logs?: {
-    niveau?: "debug" | "info" | "error";
-    fichier?: string;
-  };
-}
-
-type ConfigMutable = DeepMutable<AppConfig>;
-// Plus aucun readonly, meme en profondeur
-
-type ConfigComplete = DeepRequired<AppConfig>;
-// Plus aucun optionnel, meme en profondeur
-```
-
----
-
-## Template Literal Types
-
-Jusqu'ici, on a surtout manipulé la **structure** d'un objet. À partir d'ici, on va manipuler directement des **chaînes au niveau des types**.
-
-C'est ce deuxième bloc qui permet ensuite de fabriquer des noms dynamiques comme `getNom`, `onAgeChange` ou `margin-top`.
-
-### Syntaxe de base
-
-Les template literal types utilisent la même syntaxe que les template strings de JavaScript, mais au niveau des types.
-
-```typescript
-// Type literal simple
-type Salutation = `Bonjour ${string}`;
-
-const s1: Salutation = "Bonjour Alice";   // OK
-const s2: Salutation = "Bonjour monde";   // OK
-// const s3: Salutation = "Au revoir";     // Erreur !
-
-// Avec des unions, on obtient toutes les combinaisons
-type Couleur = "rouge" | "vert" | "bleu";
-type Taille = "petit" | "moyen" | "grand";
-
-type ClasseCSS = `${Couleur}-${Taille}`;
-// "rouge-petit" | "rouge-moyen" | "rouge-grand"
-// | "vert-petit" | "vert-moyen" | "vert-grand"
-// | "bleu-petit" | "bleu-moyen" | "bleu-grand"
-// = 9 combinaisons au total !
-```
-
-### Types utilitaires pour les chaines
-
-TypeScript fournit quatre utility types pour transformer les chaines au niveau des types :
-
-```typescript
-// Uppercase : convertir en majuscules
-type U1 = Uppercase<"hello">;      // "HELLO"
-type U2 = Uppercase<"bonjour">;    // "BONJOUR"
-
-// Lowercase : convertir en minuscules
-type L1 = Lowercase<"HELLO">;      // "hello"
-type L2 = Lowercase<"BONJOUR">;    // "bonjour"
-
-// Capitalize : premiere lettre en majuscule
-type C1 = Capitalize<"hello">;     // "Hello"
-type C2 = Capitalize<"bonjour">;   // "Bonjour"
-
-// Uncapitalize : premiere lettre en minuscule
-type UC1 = Uncapitalize<"Hello">;   // "hello"
-type UC2 = Uncapitalize<"Bonjour">; // "bonjour"
-
-// Ces types sont distribues sur les unions
-type Mois = "janvier" | "fevrier" | "mars";
-type MoisMaj = Capitalize<Mois>;
-// "Janvier" | "Fevrier" | "Mars"
-```
-
-### Pattern inference avec template literals et infer
-
-```typescript
-// Extraire des parties d'une chaine
-type ExtrairePrefixeSuffixe<T extends string> =
-  T extends `${infer Prefixe}_${infer Suffixe}`
-    ? { prefixe: Prefixe; suffixe: Suffixe }
-    : never;
-
-type R1 = ExtrairePrefixeSuffixe<"user_name">;
-// { prefixe: "user"; suffixe: "name" }
-
-type R2 = ExtrairePrefixeSuffixe<"btn_primary_large">;
-// { prefixe: "btn"; suffixe: "primary_large" }
-
-// Convertir camelCase en snake_case (simplifie)
-type CamelVersSnake<T extends string> =
-  T extends `${infer Debut}${infer Lettre}${infer Fin}`
-    ? Lettre extends Uppercase<Lettre>
-      ? Lettre extends Lowercase<Lettre>
-        ? `${Debut}${Lettre}${CamelVersSnake<Fin>}`
-        : `${Debut}_${Lowercase<Lettre>}${CamelVersSnake<Fin>}`
-      : `${Debut}${Lettre}${CamelVersSnake<Fin>}`
-    : T;
-
-type S1 = CamelVersSnake<"nomUtilisateur">;  // "nom_utilisateur"
-type S2 = CamelVersSnake<"dateDeNaissance">;  // "date_de_naissance"
-```
-
----
-
-## Combinaisons puissantes : Mapped Types + Template Literals
-
-### Pattern d'event handlers
-
-```typescript
-// Generer automatiquement des handlers pour chaque propriete
-type PropHandlers<T> = {
-  [K in keyof T as `on${Capitalize<string & K>}Change`]: (
-    callback: (ancienne: T[K], nouvelle: T[K]) => void
+```ts
+// Garde uniquement les clés dont la valeur n'est pas une fonction,
+// et remappe chacune en `on…Change`.
+type FieldChangeHandlers<T> = {
+  [K in keyof T as T[K] extends Function
+    ? never
+    : `on${Capitalize<string & K>}Change`]: (
+    ancienne: T[K],
+    nouvelle: T[K],
   ) => void;
 };
 
@@ -518,555 +269,139 @@ interface EtatFormulaire {
   nom: string;
   email: string;
   age: number;
+  valider(): boolean; // méthode → doit être exclue
 }
 
-type FormulaireHandlers = PropHandlers<EtatFormulaire>;
+type FormHandlers = FieldChangeHandlers<EtatFormulaire>;
 // {
-//   onNomChange: (callback: (ancienne: string, nouvelle: string) => void) => void;
-//   onEmailChange: (callback: (ancienne: string, nouvelle: string) => void) => void;
-//   onAgeChange: (callback: (ancienne: number, nouvelle: number) => void) => void;
+//   onNomChange: (ancienne: string, nouvelle: string) => void;
+//   onEmailChange: (ancienne: string, nouvelle: string) => void;
+//   onAgeChange: (ancienne: number, nouvelle: number) => void;
+//   // valider est absent : Function → never → clé supprimée
 // }
 ```
 
-### Créer des clés CSS-like
+Étapes de lecture, dans l'ordre où TypeScript les évalue :
+1. `K in keyof T` : boucle sur `nom | email | age | valider`.
+2. `T[K] extends Function ? never : …` : `valider` part vers `never`.
+3. Sinon on construit le nom : `` `on${Capitalize<string & K>}Change` `` → `onNomChange`, etc.
+4. La valeur devient `(ancienne, nouvelle) => void` typée avec `T[K]`.
 
-```typescript
-// Generer des proprietes CSS typees
-type Direction = "top" | "right" | "bottom" | "left";
-type ProprieteMarge = `margin-${Direction}`;
-// "margin-top" | "margin-right" | "margin-bottom" | "margin-left"
+---
 
-type ProprietePadding = `padding-${Direction}`;
-type ProprieteBordure = `border-${Direction}`;
+## 4. Pièges & misconceptions
 
-// Creer un type pour un objet de styles
-type Styles = {
-  [K in ProprieteMarge | ProprietePadding]?: string;
-};
+### PIÈGE #1 — `Capitalize<K>` directement, sans `string & K`
 
-const mesStyles: Styles = {
-  "margin-top": "10px",
-  "padding-left": "20px",
-  // "margin-center": "5px", // Erreur ! Pas une direction valide
+```ts
+// ❌ K peut être string | number | symbol ; Capitalize n'accepte que string
+type Getters<T> = { [K in keyof T as `get${Capitalize<K>}`]: () => T[K] };
+//                                              ~ Erreur : K non assignable à string
+
+// ✅ On intersecte avec string pour ne garder que la part string
+type GettersOk<T> = { [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K] };
+```
+
+**Pourquoi :** `keyof` d'un objet inclut potentiellement `number` (index numériques) et `symbol`. `string & K` élimine ces cas ; les clés non-string sont alors ignorées du résultat.
+
+### PIÈGE #2 — Confondre `-?` (retirer optionnel) et `?` (ajouter)
+
+```ts
+interface Prefs { theme?: string; langue?: string }
+
+// ? AJOUTE l'optionnel (ici déjà optionnel → sans effet visible)
+type EncoreOptionnel = { [K in keyof Prefs]?: Prefs[K] };
+
+// -? RETIRE l'optionnel → rend obligatoire (et retire aussi `| undefined`)
+type Obligatoire = { [K in keyof Prefs]-?: Prefs[K] };
+// { theme: string; langue: string }
+```
+
+**Signal :** si tu veux « forcer tous les champs remplis », c'est `-?`, pas `?`. Le `?` seul ne peut qu'ajouter.
+
+### PIÈGE #3 — Croire que `as never` filtre les valeurs
+
+```ts
+// as agit sur la CLÉ, pas sur la valeur.
+// never en position de clé supprime la propriété ; en position de valeur, non.
+type A<T> = { [K in keyof T as T[K] extends string ? K : never]: T[K] }; // filtre les clés ✅
+type B<T> = { [K in keyof T]: T[K] extends string ? T[K] : never };      // garde la clé, valeur = never ❌
+```
+
+Dans `B`, toutes les clés restent ; les non-strings prennent juste la valeur `never` (inhabitable). Pour **supprimer** une clé, le `never` doit être dans le `as`.
+
+### PIÈGE #4 — Template literal sur un type `string` large
+
+```ts
+type Prefixe<T extends string> = `on${T}`;
+type X = Prefixe<string>;   // `on${string}` — pas une union finie, juste un pattern
+type Y = Prefixe<"click" | "hover">; // "onclick" | "onhover" — union finie
+```
+
+**Pourquoi :** un template literal ne « déplie » en union que si l'entrée est une **union de littéraux**. Sur le type `string` large, il reste un motif ouvert. C'est voulu, mais surprend quand on attendait une énumération.
+
+---
+
+## 5. Ancrage TribuZen
+
+Ces transformations dérivent des types utilitaires depuis les formes du domaine, dans `tribuzen/types`. Le principe : **ne jamais recopier une forme**, la dériver.
+
+**`Nullable<T>`** — état d'édition. `type MemberDraft = Nullable<MemberBase>` sert l'écran de création/édition de membre où chaque champ vaut `null` tant que non saisi. Idem `type FamilyDraft = Nullable<Family>`.
+
+**`Getters<T>`** — accès en lecture pour l'affichage. `Getters<MemberBase>` produit `getDisplayName`, `getEmail`, `getRole`… via `` `get${Capitalize<string & K>}` ``. Utilisé par la couche présentation qui n'expose que des lectures.
+
+**Noms d'événements membre** — le bus d'événements de la famille émet `onJoin`, `onLeave`, `onRoleChange`. On les type depuis une union `MemberEvent`, garantissant qu'aucun nom hors nomenclature ne circule :
+
+```ts
+// tribuzen/types (extrait cible)
+export type MemberEvent = "join" | "leave" | "roleChange";
+
+// Noms d'événements typés : "onJoin" | "onLeave" | "onRoleChange"
+export type MemberEventName = `on${Capitalize<MemberEvent>}`;
+
+// Map handler par événement, payload typé sur le membre concerné
+export type MemberEventHandlers = {
+  [E in MemberEvent as `on${Capitalize<E>}`]: (memberId: string) => void;
 };
 ```
 
-### Convertir les clés d'un objet d'un format à un autre
-
-```typescript
-// Transformer les cles camelCase en SCREAMING_SNAKE_CASE pour des constantes
-type VersScreamingSnake<S extends string> =
-  S extends `${infer T}${infer U}`
-    ? U extends Uncapitalize<U>
-      ? `${Uppercase<T>}${VersScreamingSnake<U>}`
-      : `${Uppercase<T>}_${VersScreamingSnake<U>}`
-    : S;
-
-type SnakeTest = VersScreamingSnake<"nomUtilisateur">;
-// "NOM_UTILISATEUR"
-
-// Appliquer la transformation aux cles d'un objet
-type ObjetEnConstantes<T> = {
-  [K in keyof T as VersScreamingSnake<string & K>]: T[K];
-};
-
-interface ActionsApp {
-  ajouterUtilisateur: string;
-  supprimerArticle: string;
-  mettreAJour: string;
-}
-
-type Constantes = ObjetEnConstantes<ActionsApp>;
-// {
-//   AJOUTER_UTILISATEUR: string;
-//   SUPPRIMER_ARTICLE: string;
-//   METTRE_A_JOUR: string; // Simplifie ici
-// }
+Fichiers cibles dans `smaurier/tribuzen` :
+```
+tribuzen/src/types/
+  member.ts        # MemberBase, MemberEvent, MemberEventName
+  drafts.ts        # Nullable, MemberDraft, FamilyDraft
+  accessors.ts     # Getters, MemberGetters
 ```
 
 ---
 
-## Path Types : acceder a des propriétés imbriquees
+## 6. Points clés
 
-### Construire un type de chemins d'acces
+1. Un mapped type `{ [K in keyof T]: … }` est une boucle sur les clés ; on peut transformer valeur, modificateurs et nom indépendamment.
+2. Les modificateurs se pilotent avec `readonly`/`?` (ajout) et `-readonly`/`-?` (retrait) ; `+` est l'ajout explicite, rarement écrit.
+3. `Partial` = `{ [K in keyof T]?: T[K] }`, `Readonly` = `{ readonly [K in keyof T]: T[K] }`, `Required` = `-?` — tous des mapped types.
+4. `as` renomme une clé ; produire `never` via `as` **supprime** la propriété (filtrage de clés).
+5. Les template literal types concatènent des string au niveau des types et se distribuent sur les unions de littéraux.
+6. `Uppercase`/`Lowercase`/`Capitalize`/`Uncapitalize` transforment les string-types ; combinés à `as`, ils fabriquent des noms comme `getEmail` ou `onJoin`.
+7. Toujours écrire `Capitalize<string & K>` dans un remapping : `keyof T` n'est pas garanti `string`.
 
-```typescript
-// Generer toutes les cles d'acces possibles en notation pointee
-type CheminsPossibles<T, Prefixe extends string = ""> = {
-  [K in keyof T & string]: T[K] extends object
-    ? T[K] extends any[]
-      ? `${Prefixe}${K}` | `${Prefixe}${K}.${number}`
-      : `${Prefixe}${K}` | CheminsPossibles<T[K], `${Prefixe}${K}.`>
-    : `${Prefixe}${K}`;
-}[keyof T & string];
+---
 
-interface Formulaire {
-  utilisateur: {
-    nom: string;
-    adresse: {
-      rue: string;
-      ville: string;
-      codePostal: string;
-    };
-  };
-  produits: string[];
-}
+## 7. Seeds Anki
 
-type Chemins = CheminsPossibles<Formulaire>;
-// "utilisateur"
-// | "utilisateur.nom"
-// | "utilisateur.adresse"
-// | "utilisateur.adresse.rue"
-// | "utilisateur.adresse.ville"
-// | "utilisateur.adresse.codePostal"
-// | "produits"
-// | `produits.${number}`
 ```
-
-### Obtenir le type d'une valeur à partir d'un chemin
-
-```typescript
-// Obtenir le type d'une valeur en suivant un chemin
-type ObtenirParChemin<T, Chemin extends string> =
-  Chemin extends `${infer Cle}.${infer Reste}`
-    ? Cle extends keyof T
-      ? ObtenirParChemin<T[Cle], Reste>
-      : never
-    : Chemin extends keyof T
-    ? T[Chemin]
-    : never;
-
-// Tests
-type V1 = ObtenirParChemin<Formulaire, "utilisateur.nom">;
-// string
-
-type V2 = ObtenirParChemin<Formulaire, "utilisateur.adresse.ville">;
-// string
-
-type V3 = ObtenirParChemin<Formulaire, "utilisateur.adresse">;
-// { rue: string; ville: string; codePostal: string }
-
-// Combiner pour une fonction get typee
-function obtenir<T, C extends CheminsPossibles<T> & string>(
-  objet: T,
-  chemin: C
-): ObtenirParChemin<T, C> {
-  const cles = chemin.split(".");
-  let resultat: any = objet;
-  for (const cle of cles) {
-    resultat = resultat[cle];
-  }
-  return resultat;
-}
-
-const formulaire: Formulaire = {
-  utilisateur: {
-    nom: "Alice",
-    adresse: { rue: "123 rue Principale", ville: "Paris", codePostal: "75001" },
-  },
-  produits: ["stylo", "cahier"],
-};
-
-const ville = obtenir(formulaire, "utilisateur.adresse.ville");
-// TypeScript sait que ville est de type string
+Comment lit-on les trois morceaux d'un mapped type { [K in keyof T]: T[K] } ?|keyof T = union des clés de T ; K in keyof T = pour chaque clé K ; T[K] = type de la valeur associée (indexed access). C'est une boucle sur les propriétés.
+Quelle est l'implémentation maison de Partial<T> et de Readonly<T> ?|Partial<T> = { [K in keyof T]?: T[K] } (ajoute ?). Readonly<T> = { readonly [K in keyof T]: T[K] } (ajoute readonly). Ce sont des mapped types de base.
+À quoi servent les modificateurs -readonly et -? dans un mapped type ?|Ils RETIRENT un modificateur hérité : -readonly rend mutable, -? rend obligatoire (implémentation de Required). Le - est le seul moyen d'enlever readonly ou l'optionnel.
+Comment renomme-t-on une clé dans un mapped type, et comment en supprime-t-on une ?|Avec la clause as : [K in keyof T as NouvelleClé]. Si le nom produit est never, la propriété est supprimée — c'est le mécanisme de filtrage de clés.
+Pourquoi écrit-on Capitalize<string & K> plutôt que Capitalize<K> dans un remapping ?|keyof T peut valoir string | number | symbol, or Capitalize n'accepte que des string. string & K réduit K à sa part string ; les clés non-string sont ignorées.
+Que produit `on${Capitalize<"join" | "leave">}` ?|"onJoin" | "onLeave". Les intrinsic string types (Capitalize) et les template literals se distribuent sur les unions de littéraux.
+Comment générer, depuis un type T, des handlers on…Change uniquement pour les champs non-méthodes ?|Mapped + conditional + template : { [K in keyof T as T[K] extends Function ? never : `on${Capitalize<string & K>}Change`]: (v: T[K]) => void }. Le never filtre les méthodes.
+Un template literal type sur le type string large déplie-t-il une union ?|Non. `on${string}` reste un motif ouvert. Le dépliage en union finie n'a lieu que sur une union de littéraux, ex. "click" | "hover" → "onclick" | "onhover".
 ```
 
 ---
 
-## Patterns avances
+## Pont vers le lab
 
-### Builder pattern type avec mapped types
-
-```typescript
-// Creer un builder type-safe
-type Builder<T, Remplis extends keyof T = never> = {
-  [K in keyof T as K extends Remplis ? never : K extends string ? `avec${Capitalize<K>}` : never]:
-    (valeur: T[K]) => Builder<T, Remplis | K>;
-} & (
-  [Exclude<keyof T, Remplis>] extends [never]
-    ? { construire: () => T }
-    : {}
-);
-
-// Simplifie pour l'exemple, en pratique on utilise une implementation
-// a base de Proxy ou de classes
-
-interface Maison {
-  adresse: string;
-  surface: number;
-  chambres: number;
-  garage: boolean;
-}
-
-// Le builder n'expose "construire" que quand TOUTES les proprietes sont remplies
-// Cela garantit au niveau des types qu'on ne peut pas construire un objet incomplet
-```
-
-### Discriminated union helpers
-
-```typescript
-// Extraire le type d'un membre specifique d'une discriminated union
-type ExtraireVariante<
-  Union,
-  Tag extends string,
-  Valeur extends string
-> = Union extends { [K in Tag]: Valeur } ? Union : never;
-
-type Action =
-  | { type: "AJOUTER"; payload: { nom: string } }
-  | { type: "SUPPRIMER"; payload: { id: number } }
-  | { type: "MODIFIER"; payload: { id: number; nom: string } };
-
-type ActionAjouter = ExtraireVariante<Action, "type", "AJOUTER">;
-// { type: "AJOUTER"; payload: { nom: string } }
-
-// Generer un handler map type-safe
-type ActionHandlers<A extends { type: string }> = {
-  [T in A["type"]]: (action: Extract<A, { type: T }>) => void;
-};
-
-const handlers: ActionHandlers<Action> = {
-  AJOUTER: (action) => {
-    // action.payload est type { nom: string }
-    console.log(`Ajout de ${action.payload.nom}`);
-  },
-  SUPPRIMER: (action) => {
-    // action.payload est type { id: number }
-    console.log(`Suppression de l'ID ${action.payload.id}`);
-  },
-  MODIFIER: (action) => {
-    // action.payload est type { id: number; nom: string }
-    console.log(`Modification de ${action.payload.id}: ${action.payload.nom}`);
-  },
-};
-```
-
-### Mapper des tuples
-
-```typescript
-// Les mapped types fonctionnent aussi sur les tuples
-type TupleEnPromises<T extends any[]> = {
-  [K in keyof T]: Promise<T[K]>;
-};
-
-type Original = [string, number, boolean];
-type Promisifie = TupleEnPromises<Original>;
-// [Promise<string>, Promise<number>, Promise<boolean>]
-
-// Cela permet de typer Promise.all correctement
-async function toutCharger<T extends any[]>(
-  promesses: [...TupleEnPromises<T>]
-): Promise<T> {
-  return Promise.all(promesses) as any;
-}
-
-// Utilisation
-async function exemple() {
-  const [nom, age, actif] = await toutCharger<[string, number, boolean]>([
-    Promise.resolve("Alice"),
-    Promise.resolve(30),
-    Promise.resolve(true),
-  ]);
-  // nom: string, age: number, actif: boolean
-}
-```
-
----
-
-## Pratique : Exercices
-
-### Exercice 1 : Créer un type `Nullable<T>`
-
-Creez un type `Nullable<T>` qui rend toutes les propriétés de `T` potentiellement `null`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-type Nullable<T> = {
-  [K in keyof T]: T[K] | null;
-};
-
-// Test
-interface Profil {
-  nom: string;
-  age: number;
-  photo: string;
-}
-
-type ProfilNullable = Nullable<Profil>;
-// {
-//   nom: string | null;
-//   age: number | null;
-//   photo: string | null;
-// }
-
-// Version profonde
-type DeepNullable<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { [K in keyof T]: DeepNullable<T[K]> | null }
-    : T | null;
-```
-</details>
-
-### Exercice 2 : Transformer les clés d'un objet en camelCase
-
-Creez un type qui transforme les clés snake_case d'un objet en camelCase.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Transformer une chaine snake_case en camelCase
-type SnakeVersCamel<S extends string> =
-  S extends `${infer Debut}_${infer Lettre}${infer Fin}`
-    ? `${Debut}${Uppercase<Lettre>}${SnakeVersCamel<Fin>}`
-    : S;
-
-// Tests unitaires du type
-type SC1 = SnakeVersCamel<"nom_utilisateur">;      // "nomUtilisateur"
-type SC2 = SnakeVersCamel<"date_de_naissance">;     // "dateDeNaissance"
-type SC3 = SnakeVersCamel<"id">;                     // "id"
-
-// Appliquer aux cles d'un objet
-type ObjetCamelCase<T> = {
-  [K in keyof T as SnakeVersCamel<string & K>]: T[K];
-};
-
-// Test
-interface ReponseAPI {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-  email_address: string;
-  is_active: boolean;
-}
-
-type ReponseCamel = ObjetCamelCase<ReponseAPI>;
-// {
-//   userId: number;
-//   firstName: string;
-//   lastName: string;
-//   emailAddress: string;
-//   isActive: boolean;
-// }
-
-// Version recursive (profonde)
-type DeepCamelCase<T> =
-  T extends Function
-    ? T
-    : T extends object
-    ? { [K in keyof T as SnakeVersCamel<string & K>]: DeepCamelCase<T[K]> }
-    : T;
-```
-</details>
-
-### Exercice 3 : Créer un type `PickByType<T, V>`
-
-Creez un type qui ne garde que les propriétés dont la valeur est du type `V`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Filtrer les proprietes par type de valeur
-type PickByType<T, V> = {
-  [K in keyof T as T[K] extends V ? K : never]: T[K];
-};
-
-// Test
-interface Entite {
-  id: number;
-  nom: string;
-  description: string;
-  compteur: number;
-  actif: boolean;
-  tags: string[];
-}
-
-type ChampsString = PickByType<Entite, string>;
-// { nom: string; description: string }
-
-type ChampsNumber = PickByType<Entite, number>;
-// { id: number; compteur: number }
-
-type ChampsBoolean = PickByType<Entite, boolean>;
-// { actif: boolean }
-
-// Version inverse : OmitByType
-type OmitByType<T, V> = {
-  [K in keyof T as T[K] extends V ? never : K]: T[K];
-};
-
-type SansStrings = OmitByType<Entite, string>;
-// { id: number; compteur: number; actif: boolean; tags: string[] }
-```
-</details>
-
-### Exercice 4 : Générer des event names à partir d'un type
-
-A partir d'un type objet, generez un type union de tous les event names possibles au format `"propriete:change"`.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Generer des event names
-type EventNames<T> = {
-  [K in keyof T & string]: `${K}:change`;
-}[keyof T & string];
-
-interface Compteur {
-  valeur: number;
-  label: string;
-  actif: boolean;
-}
-
-type CompteurEvents = EventNames<Compteur>;
-// "valeur:change" | "label:change" | "actif:change"
-
-// Version plus complete avec le type de payload
-type EventMap<T> = {
-  [K in keyof T & string as `${K}:change`]: {
-    propriete: K;
-    ancienneValeur: T[K];
-    nouvelleValeur: T[K];
-  };
-};
-
-type CompteurEventMap = EventMap<Compteur>;
-// {
-//   "valeur:change": { propriete: "valeur"; ancienneValeur: number; nouvelleValeur: number };
-//   "label:change": { propriete: "label"; ancienneValeur: string; nouvelleValeur: string };
-//   "actif:change": { propriete: "actif"; ancienneValeur: boolean; nouvelleValeur: boolean };
-// }
-
-// Typer un emetteur d'evenements
-class EmetteurType<T extends Record<string, any>> {
-  private handlers: Partial<Record<string, Function[]>> = {};
-
-  sur<K extends keyof EventMap<T> & string>(
-    evenement: K,
-    handler: (payload: EventMap<T>[K]) => void
-  ): void {
-    if (!this.handlers[evenement]) {
-      this.handlers[evenement] = [];
-    }
-    this.handlers[evenement]!.push(handler);
-  }
-}
-
-const emetteur = new EmetteurType<Compteur>();
-emetteur.sur("valeur:change", (payload) => {
-  // payload est { propriete: "valeur"; ancienneValeur: number; nouvelleValeur: number }
-  console.log(`Valeur: ${payload.ancienneValeur} -> ${payload.nouvelleValeur}`);
-});
-```
-</details>
-
-### Exercice 5 : Split d'une chaine en tuple
-
-Creez un type `Split<S, Sep>` qui découpé une chaine en un tuple de sous-chaines.
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Decouper une chaine en tuple
-type Split<
-  S extends string,
-  Sep extends string
-> =
-  S extends `${infer Debut}${Sep}${infer Fin}`
-    ? [Debut, ...Split<Fin, Sep>]
-    : S extends ""
-    ? []
-    : [S];
-
-// Tests
-type S1 = Split<"a.b.c", ".">;        // ["a", "b", "c"]
-type S2 = Split<"hello world", " ">;   // ["hello", "world"]
-type S3 = Split<"un-deux-trois", "-">; // ["un", "deux", "trois"]
-type S4 = Split<"solo", ".">;          // ["solo"]
-type S5 = Split<"", ".">;             // []
-
-// Application : typer l'acces par chemin
-type AccesParChemin<T, Chemin extends string[]> =
-  Chemin extends [infer Premier, ...infer Reste]
-    ? Premier extends keyof T
-      ? Reste extends string[]
-        ? AccesParChemin<T[Premier], Reste>
-        : T[Premier]
-      : never
-    : T;
-
-// Combiner Split et AccesParChemin
-type Get<T, C extends string> = AccesParChemin<T, Split<C, ".">>;
-
-interface Donnees {
-  utilisateur: {
-    profil: {
-      nom: string;
-      age: number;
-    };
-  };
-}
-
-type Nom = Get<Donnees, "utilisateur.profil.nom">; // string
-type Age = Get<Donnees, "utilisateur.profil.age">; // number
-```
-</details>
-
----
-
-## Résumé
-
-### Mapped Types
-
-| Concept | Syntaxe | Effet |
-|---------|---------|-------|
-| Mapped type de base | `{ [K in keyof T]: ... }` | Itere sur les clés |
-| Ajouter readonly | `{ readonly [K in keyof T]: ... }` | Proprietes en lecture seule |
-| Retirer readonly | `{ -readonly [K in keyof T]: ... }` | Proprietes modifiables |
-| Ajouter optionnel | `{ [K in keyof T]?: ... }` | Proprietes optionnelles |
-| Retirer optionnel | `{ [K in keyof T]-?: ... }` | Proprietes obligatoires |
-| Key remapping | `{ [K in keyof T as ...]: ... }` | Renommer les clés |
-| Filtrer des clés | `as ... ? K : never` | Exclure des propriétés |
-
-### Template Literal Types
-
-| Type | Effet | Exemple |
-|------|-------|---------|
-| `` `${A}${B}` `` | Concatenation | `"hello" + "world"` |
-| `Uppercase<T>` | Majuscules | `"hello"` -> `"HELLO"` |
-| `Lowercase<T>` | Minuscules | `"HELLO"` -> `"hello"` |
-| `Capitalize<T>` | Premiere majuscule | `"hello"` -> `"Hello"` |
-| `Uncapitalize<T>` | Premiere minuscule | `"Hello"` -> `"hello"` |
-| `infer` dans template | Pattern matching | Extraire des parties |
-
-### Points clés
-
-1. Les mapped types sont la base de `Partial`, `Required`, `Readonly`, `Pick`
-2. Le key remapping avec `as` permet des renommages et filtrages puissants
-3. Les template literal types generent automatiquement toutes les combinaisons d'unions
-4. Combiner mapped types + template literals = transformations très expressives
-5. Les path types permettent un acces type-safe a des propriétés imbriquees
-
----
-
-## Pour aller plus loin
-
-Le prochain module, **[13 — Types récursifs & Type-Level Programming](./13-types-recursifs-type-programming.md)**, pousse ces concepts a l'extreme en explorant les types récursifs, l'arithmetique au niveau des types, et le parsing de chaines au niveau du système de types.
-
----
-
-<!-- parcours-recommande -->
-
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 12 mapped template](../screencasts/screencast-12-mapped-template.md)
-2. **Lab** : [lab-12-mapped-template](../labs/lab-12-mapped-template/README)
-3. **Visualisation** : [Conditional Types](../visualizations/conditional-types.html)
-4. **Quiz** : [quiz 12 mapped template](../quizzes/quiz-12-mapped-template.html)
-:::
+> Lab associé : `00-typescript/labs/lab-12-mapped-template/README.md`. Reconstruire `Partial`/`Readonly` maison, puis dériver `Nullable`, `Getters` et les noms d'événements membre depuis `MemberBase` — corrigé complet inline, variante J+30, application TribuZen.

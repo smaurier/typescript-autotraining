@@ -1,1479 +1,473 @@
-# 03 — Objets — Interfaces, Type Aliases & Structural Typing
+---
+titre: Objets, interfaces et types
+cours: 00-typescript
+notions: [forme d'un objet, interface vs type, propriétés optionnelles, readonly, index signatures, extends vs intersection, declaration merging, objets imbriqués, excess property checks, Record, structural typing]
+outcomes: [choisir interface ou type selon le cas, modéliser une forme d'objet avec readonly et optionnels, composer des types par extension et intersection, expliquer le typage structurel de TypeScript]
+prerequis: [02-fonctions]
+next: 04-unions-intersections-narrowing
+libs: [{ name: typescript, version: "^5" }]
+tribuzen: interfaces cœur du domaine (Family, Member, Post, Invitation) dans tribuzen/types
+last-reviewed: 2026-07
+---
 
-> **Duree estimee** : 4h00
-> **Difficulte** : 2/5
-> **Prérequis** : Module 02 (fonctions, callbacks, type predicates)
-> **Objectifs** :
-> - Définir la **forme** des objets avec des types inline, des interfaces et des type aliases
-> - Comprendre la différence entre `interface` et `type` et **quand utiliser quoi**
-> - Maîtriser `readonly`, les propriétés optionnelles, et les index signatures
-> - Comprendre le **structural typing** (duck typing) de TypeScript
-> - Utiliser les **intersections** (`&`) pour composer des types
-> - Comprendre l'excess property checking
+# Objets, interfaces et types
+
+> **Outcomes — tu sauras FAIRE :** choisir `interface` ou `type` selon le cas, modéliser une forme d'objet avec `readonly` et propriétés optionnelles, composer des types par extension et intersection, expliquer le typage structurel de TypeScript.
+> **Difficulté :** :star::star:
+
+## 1. Cas concret d'abord
+
+Tu démarres le domaine de TribuZen. Un collègue a « typé » les entités comme ça, éparpillé dans trois fichiers différents :
+
+```typescript
+// family.ts
+const famille: { id: string; nom: string; membres: any[] } = { /* ... */ };
+
+// member.ts — re-typé à la main, incompatible avec le précédent
+function inviter(membre: { id: string; nom: string; role: string }) { /* ... */ }
+
+// post.ts — encore une autre forme, le rôle est un string libre
+const post = { id: "p1", auteur: "m1", texte: "Coucou", role: "amdin" }; // typo "amdin" non détectée
+```
+
+**Quatre problèmes immédiats :**
+
+1. La **forme** de chaque entité est redéfinie à la main à chaque usage — aucune source de vérité.
+2. `role: string` accepte `"amdin"` (faute de frappe) sans broncher — aucune contrainte.
+3. `any[]` désactive tout typage sur les membres.
+4. Rien n'empêche de **muter** un `id` par erreur (`famille.id = "autre"`).
+
+Ce module te donne les outils — `interface`, `type`, `readonly`, propriétés optionnelles, `extends`, `Record` — pour définir **une seule fois** la forme de chaque entité, et laisser le compilateur refuser les objets mal formés. L'objectif : le fichier `tribuzen/types/index.ts` qui devient l'unique référence du domaine.
 
 ---
 
-## Types d'objets inline
+## 2. Théorie complète, concise
 
-### Syntaxe de base
+### 2.1 La « forme » d'un objet
 
-On peut définir la forme d'un objet directement dans l'annotation de type :
-
-```typescript
-// Type d'objet inline — on decrit la "forme" de l'objet
-const utilisateur: { nom: string; age: number; actif: boolean } = {
-  nom: "Alice",
-  age: 30,
-  actif: true,
-};
-
-// Parametre de fonction avec type inline
-function afficher(personne: { nom: string; age: number }): string {
-  return `${personne.nom} a ${personne.age} ans`;
-}
-
-afficher({ nom: "Alice", age: 30 }); // OK
-afficher({ nom: "Bob", age: 25 });   // OK
-// afficher({ nom: "Charlie" });      // Erreur : 'age' manquant
-// afficher("Alice");                  // Erreur : string n'est pas un objet
-```
-
-### Quand utiliser les types inline
-
-Les types inline sont pratiques pour des **cas simples et ponctuels**. Mais ils deviennent vite illisibles :
+En TypeScript, un type d'objet décrit sa **forme** (shape) : quelles propriétés existent et de quel type. On peut la déclarer inline, mais dès qu'elle est réutilisée on la nomme.
 
 ```typescript
-// Inline — trop long et repetitif
-function traiterCommande(
-  commande: {
-    id: number;
-    produits: { nom: string; prix: number; quantite: number }[];
-    client: { nom: string; email: string; adresse: { rue: string; ville: string } };
-    statut: "en_attente" | "validee" | "expediee" | "livree";
-  }
-): void {
-  // ...
+// Inline — pratique pour un cas unique, illisible dès que ça grossit
+function saluer(m: { displayName: string; role: string }): string {
+  return `Salut ${m.displayName}`;
 }
 
-// Mieux : utiliser des interfaces ou des type aliases (voir ci-dessous)
-```
-
----
-
-## Interfaces
-
-### Declaration
-
-Une **interface** définit un contrat : la forme que doit avoir un objet.
-
-```typescript
-// Declaration d'une interface
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-  actif: boolean;
+// Nommée — réutilisable, un seul endroit à faire évoluer
+interface Member {
+  displayName: string;
+  role: string;
 }
-
-// Utilisation
-const alice: Utilisateur = {
-  id: 1,
-  nom: "Alice",
-  email: "alice@example.com",
-  actif: true,
-};
-
-// TypeScript verifie que l'objet respecte l'interface
-// const bob: Utilisateur = {
-//   id: 2,
-//   nom: "Bob",
-//   // Erreur : Property 'email' is missing
-//   actif: true,
-// };
-
-// Utiliser dans les fonctions
-function saluer(utilisateur: Utilisateur): string {
-  return `Bonjour ${utilisateur.nom} !`;
+function saluer2(m: Member): string {
+  return `Salut ${m.displayName}`;
 }
 ```
 
-### Analogie — Le plan de l'architecte
+### 2.2 `interface` vs `type` — les deux façons de nommer une forme
 
-Une interface, c'est comme un **plan de maison** :
-
-- Le plan dit : "Il faut une cuisine, un salon, et deux chambres"
-- Toute maison construite selon ce plan **doit** avoir ces pieces
-- La maison peut avoir des pieces en plus (un garage, une cave), mais elle **doit** avoir au minimum ce que le plan exige
+Les deux nomment une forme d'objet et sont **interchangeables pour ce cas**. La différence tient à ce que chacun sait faire EN PLUS.
 
 ```typescript
-// Le "plan" de notre objet
-interface Maison {
-  cuisine: boolean;
-  salon: boolean;
-  chambres: number;
-}
-
-// Cette maison respecte le plan
-const maVilla: Maison = {
-  cuisine: true,
-  salon: true,
-  chambres: 4,
-};
-```
-
-### Proprietes optionnelles
-
-Certaines propriétés peuvent etre optionnelles avec `?` :
-
-```typescript
-interface ProfilUtilisateur {
-  nom: string;           // Obligatoire
-  email: string;         // Obligatoire
-  telephone?: string;    // Optionnel — type string | undefined
-  bio?: string;          // Optionnel
-  avatar?: string;       // Optionnel
-}
-
-// Les proprietes optionnelles peuvent etre omises
-const profil1: ProfilUtilisateur = {
-  nom: "Alice",
-  email: "alice@example.com",
-};
-
-const profil2: ProfilUtilisateur = {
-  nom: "Bob",
-  email: "bob@example.com",
-  telephone: "+33 6 12 34 56 78",
-  bio: "Developpeur TypeScript",
-};
-
-// Acceder a une propriete optionnelle — peut etre undefined
-function afficherTelephone(profil: ProfilUtilisateur): void {
-  if (profil.telephone) {
-    console.log(`Tel : ${profil.telephone}`);
-  } else {
-    console.log("Pas de telephone renseigne");
-  }
-
-  // Ou avec optional chaining
-  console.log(`Tel : ${profil.telephone ?? "non renseigne"}`);
-}
-```
-
-### Proprietes readonly
-
-`readonly` empeche la modification d'une propriété après la création :
-
-```typescript
-interface Configuration {
-  readonly version: string;
-  readonly port: number;
-  debug: boolean; // Peut etre modifie
-}
-
-const config: Configuration = {
-  version: "1.0.0",
-  port: 3000,
-  debug: false,
-};
-
-config.debug = true;       // OK — pas readonly
-// config.version = "2.0.0"; // Erreur : Cannot assign to 'version' because it is a read-only property
-// config.port = 8080;       // Erreur : readonly
-
-// Attention : readonly est superficiel (shallow)
-interface Donnees {
-  readonly valeurs: number[];
-}
-
-const data: Donnees = { valeurs: [1, 2, 3] };
-// data.valeurs = [4, 5, 6]; // Erreur : readonly
-data.valeurs.push(4);         // OK ! Le tableau lui-meme peut etre modifie
-// readonly protege la REFERENCE, pas le CONTENU
-
-// Pour un tableau vraiment immutable, utilise ReadonlyArray
-interface DonneesImmutables {
-  readonly valeurs: ReadonlyArray<number>;
-  // Ou : readonly valeurs: readonly number[];
-}
-
-const dataImmut: DonneesImmutables = { valeurs: [1, 2, 3] };
-// dataImmut.valeurs.push(4); // Erreur : Property 'push' does not exist
-```
-
-### Analogie — readonly = vitrine de musee
-
-`readonly`, c'est comme un objet dans une **vitrine de musee** :
-
-- Tu peux le **regarder** (lire la valeur)
-- Tu ne peux pas le **toucher** (modifier la valeur)
-- Mais si l'objet est un **sac ouvert** contenant des billes, tu peux quand même ajouter des billes dans le sac (mutation du contenu)
-
----
-
-## Extension d'interfaces
-
-### Syntaxe extends
-
-Les interfaces peuvent **hériter** d'autres interfaces :
-
-```typescript
-// Interface de base
-interface Entite {
-  id: number;
-  creeLe: Date;
-  misAJourLe: Date;
-}
-
-// Interface etendue — herite de Entite
-interface Utilisateur extends Entite {
-  nom: string;
-  email: string;
-  actif: boolean;
-}
-
-// Utilisateur a TOUTES les proprietes de Entite + les siennes
-const alice: Utilisateur = {
-  id: 1,
-  creeLe: new Date("2024-01-01"),
-  misAJourLe: new Date("2024-06-15"),
-  nom: "Alice",
-  email: "alice@example.com",
-  actif: true,
-};
-
-// Extension multiple
-interface Produit extends Entite {
-  nom: string;
-  prix: number;
-  stock: number;
-}
-
-// On peut etendre plusieurs interfaces
-interface ProduitAvecAvis extends Produit {
-  avis: { note: number; commentaire: string }[];
-  noteMoyenne: number;
-}
-```
-
-### Héritage multiple
-
-```typescript
-// Une interface peut etendre PLUSIEURS interfaces
-interface Horodatable {
-  creeLe: Date;
-  misAJourLe: Date;
-}
-
-interface Identifiable {
+interface MemberI {
   id: string;
+  displayName: string;
 }
 
-interface Nommable {
-  nom: string;
-}
-
-// Extension de 3 interfaces a la fois
-interface Document extends Horodatable, Identifiable, Nommable {
-  contenu: string;
-  taille: number;
-}
-
-const doc: Document = {
-  id: "doc-123",
-  nom: "Mon document",
-  contenu: "Lorem ipsum...",
-  taille: 1024,
-  creeLe: new Date(),
-  misAJourLe: new Date(),
-};
-```
-
----
-
-## Declaration merging (fusion d'interfaces)
-
-### Concept
-
-Une particularite des interfaces : si on declare **deux fois la même interface**, TypeScript les **fusionne** automatiquement :
-
-```typescript
-// Premiere declaration
-interface Fenetre {
-  titre: string;
-  largeur: number;
-}
-
-// Deuxieme declaration — FUSIONNEE avec la premiere
-interface Fenetre {
-  hauteur: number;
-  visible: boolean;
-}
-
-// Le resultat est comme si on avait ecrit :
-// interface Fenetre {
-//   titre: string;
-//   largeur: number;
-//   hauteur: number;
-//   visible: boolean;
-// }
-
-const fenetre: Fenetre = {
-  titre: "Ma fenetre",
-  largeur: 800,
-  hauteur: 600,
-  visible: true,
-};
-```
-
-### Cas d'usage : augmenter des types existants
-
-```typescript
-// La declaration merging est utile pour augmenter des types de librairies
-
-// Exemple : ajouter une propriete a l'objet Window du navigateur
-declare global {
-  interface Window {
-    maConfigApp: {
-      apiUrl: string;
-      version: string;
-    };
-  }
-}
-
-// Maintenant, window.maConfigApp est type
-window.maConfigApp = {
-  apiUrl: "https://api.example.com",
-  version: "1.0.0",
-};
-```
-
-> **Important** : Les `type` aliases ne supportent PAS la declaration merging. C'est l'une des différences clés avec les interfaces.
-
----
-
-## Type Aliases (type = ...)
-
-### Declaration
-
-Un **type alias** créé un nouveau nom pour un type existant :
-
-```typescript
-// Type alias pour un objet
-type Utilisateur = {
-  id: number;
-  nom: string;
-  email: string;
-  actif: boolean;
-};
-
-// Identique a l'interface pour l'utilisation
-const alice: Utilisateur = {
-  id: 1,
-  nom: "Alice",
-  email: "alice@example.com",
-  actif: true,
-};
-```
-
-### Ce que type peut faire (et pas interface)
-
-Les type aliases sont plus **flexibles** que les interfaces :
-
-```typescript
-// 1. Unions — IMPOSSIBLE avec interface
-type Statut = "actif" | "inactif" | "suspendu";
-type ResultatOuErreur = { data: string } | { erreur: string };
-
-// 2. Types primitifs — IMPOSSIBLE avec interface
-type Identifiant = string | number;
-type Callback = () => void;
-
-// 3. Tuples — IMPOSSIBLE avec interface
-type Coordonnees = [number, number];
-type Couleur = [number, number, number, number]; // RGBA
-
-// 4. Mapped types — IMPOSSIBLE avec interface
-type Optionnel<T> = {
-  [K in keyof T]?: T[K];
-};
-
-// 5. Conditional types — IMPOSSIBLE avec interface
-type SiTableau<T> = T extends unknown[] ? "tableau" : "autre";
-
-// 6. Template literal types — IMPOSSIBLE avec interface
-type EvenementSouris = `souris_${"click" | "move" | "enter" | "leave"}`;
-```
-
-### Type alias pour des objets
-
-```typescript
-// Les type aliases fonctionnent aussi bien que les interfaces pour les objets
-type Produit = {
-  id: number;
-  nom: string;
-  prix: number;
-  description?: string;
-  readonly reference: string;
-};
-
-const produit: Produit = {
-  id: 1,
-  nom: "Clavier mecanique",
-  prix: 89.99,
-  reference: "KB-001",
-};
-```
-
-### Extension avec &
-
-Les type aliases utilisent l'**intersection** (`&`) au lieu de `extends` :
-
-```typescript
-// Extension avec intersection
-type Entite = {
-  id: number;
-  creeLe: Date;
-};
-
-type Utilisateur = Entite & {
-  nom: string;
-  email: string;
-};
-
-// Equivalent a :
-// type Utilisateur = {
-//   id: number;
-//   creeLe: Date;
-//   nom: string;
-//   email: string;
-// };
-
-const alice: Utilisateur = {
-  id: 1,
-  creeLe: new Date(),
-  nom: "Alice",
-  email: "alice@example.com",
-};
-
-// Composition de plusieurs types
-type Horodatable = {
-  creeLe: Date;
-  misAJourLe: Date;
-};
-
-type Supprimable = {
-  supprimeLe?: Date;
-  estSupprime: boolean;
-};
-
-type Document = Entite & Horodatable & Supprimable & {
-  titre: string;
-  contenu: string;
-};
-```
-
----
-
-## Interface vs Type — Quand utiliser quoi ?
-
-### Tableau comparatif
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  INTERFACE vs TYPE ALIAS                                          │
-├──────────────────────────┬───────────────────────────────────────┤
-│      INTERFACE           │          TYPE ALIAS                    │
-├──────────────────────────┼───────────────────────────────────────┤
-│ Definir des objets       │ Definir des objets                    │
-│ Extension avec extends   │ Composition avec &                    │
-│ Declaration merging      │ PAS de declaration merging            │
-│ Pas de unions            │ Unions (A | B)                        │
-│ Pas de tuples            │ Tuples                                │
-│ Pas de types primitifs   │ Types primitifs                       │
-│ Pas de mapped types      │ Mapped types                          │
-│ Pas de conditional types │ Conditional types                     │
-│ Meilleur pour l'heritage │ Meilleur pour la composition          │
-│ Messages d'erreur plus   │ Messages d'erreur peuvent etre        │
-│ clairs                   │ plus complexes                        │
-└──────────────────────────┴───────────────────────────────────────┘
-```
-
-### Recommandation pratique
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  QUAND UTILISER QUOI ?                                        │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Utilise INTERFACE quand :                                   │
-│  - Tu definis la forme d'un OBJET ou d'une CLASSE           │
-│  - Tu veux que le type puisse etre ETENDU par d'autres      │
-│  - Tu definis un contrat public (API)                        │
-│  - Tu veux profiter de la declaration merging                │
-│                                                              │
-│  Utilise TYPE quand :                                        │
-│  - Tu fais une UNION (A | B)                                 │
-│  - Tu crees un TUPLE                                         │
-│  - Tu nommes un type PRIMITIF                                │
-│  - Tu fais de la composition complexe                        │
-│  - Tu utilises des mapped/conditional types                  │
-│                                                              │
-│  En cas de doute : utilise interface pour les objets,        │
-│  type pour tout le reste.                                    │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Exemples de bonnes pratiques
-
-```typescript
-// INTERFACE — Pour les objets et les contrats
-interface UtilisateurService {
-  trouverParId(id: number): Promise<Utilisateur>;
-  creer(donnees: CreerUtilisateur): Promise<Utilisateur>;
-  supprimer(id: number): Promise<void>;
-}
-
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-}
-
-// TYPE — Pour les unions, tuples, et compositions
-type CreerUtilisateur = Omit<Utilisateur, "id">;
-type Role = "admin" | "user" | "moderateur";
-type Coordonnees = [number, number];
-type Resultat<T> = { success: true; data: T } | { success: false; erreur: string };
-```
-
----
-
-## Structural Typing (Duck Typing)
-
-### Concept fondamental
-
-TypeScript utilise un système de types **structurel** : deux types sont compatibles si leurs **structures** (propriétés) sont compatibles. Peu importe le nom du type.
-
-```typescript
-// Deux interfaces avec des noms differents mais la meme structure
-interface Chat {
-  nom: string;
-  age: number;
-}
-
-interface Chien {
-  nom: string;
-  age: number;
-}
-
-// TypeScript les considere comme COMPATIBLES !
-const medor: Chien = { nom: "Medor", age: 5 };
-const chat: Chat = medor; // OK — meme structure
-
-function afficherAnimal(animal: Chat): void {
-  console.log(`${animal.nom} a ${animal.age} ans`);
-}
-
-afficherAnimal(medor); // OK — Chien a la meme structure que Chat
-```
-
-### Analogie — "Si ça marche comme un canard..."
-
-Le structural typing suit le principe du **duck typing** :
-
-> "Si ça marche comme un canard, si ça nage comme un canard, et si ça cancane comme un canard, alors c'est probablement un canard."
-
-En TypeScript :
-
-> "Si un objet a les propriétés `nom: string` et `age: number`, alors il est compatible avec tout type qui exige `nom: string` et `age: number`."
-
-```typescript
-// Peu importe le "nom" du type — seule la STRUCTURE compte
-interface Volant {
-  voler(): void;
-}
-
-interface Nageant {
-  nager(): void;
-}
-
-// Un canard sait voler ET nager
-const canard = {
-  voler() { console.log("Je vole !"); },
-  nager() { console.log("Je nage !"); },
-  cancaner() { console.log("Coin coin !"); },
-};
-
-// Le canard est compatible avec Volant (il a la methode voler)
-const oiseau: Volant = canard; // OK
-
-// Le canard est compatible avec Nageant (il a la methode nager)
-const poisson: Nageant = canard; // OK
-
-// Le canard a des proprietes EN PLUS — c'est acceptable
-```
-
-### Compatibilite = le type cible est un SOUS-ENSEMBLE
-
-```typescript
-interface Point2D {
-  x: number;
-  y: number;
-}
-
-interface Point3D {
-  x: number;
-  y: number;
-  z: number;
-}
-
-// Point3D est compatible avec Point2D (il a x et y, plus z en bonus)
-const point3d: Point3D = { x: 1, y: 2, z: 3 };
-const point2d: Point2D = point3d; // OK !
-
-// Mais l'inverse ne fonctionne pas
-// const point3d2: Point3D = point2d; // Erreur : 'z' manquant
-
-// Schema visuel :
-//
-//  Point2D requiert : { x, y }
-//  Point3D a :        { x, y, z }
-//
-//  Point3D ⊇ Point2D — donc Point3D est assignable a Point2D
-```
-
----
-
-## Excess Property Checking
-
-### Le comportement particulier
-
-TypeScript à un comportement **special** quand on assigne un **objet literal** directement :
-
-```typescript
-interface Config {
-  port: number;
-  host: string;
-}
-
-// CAS 1 : Objet literal — EXCESS PROPERTY CHECKING actif
-// const config: Config = {
-//   port: 3000,
-//   host: "localhost",
-//   debug: true, // Erreur ! 'debug' does not exist in type 'Config'
-// };
-
-// CAS 2 : Variable intermediaire — PAS d'excess property checking
-const options = {
-  port: 3000,
-  host: "localhost",
-  debug: true, // OK — c'est une propriete supplementaire
-};
-const config: Config = options; // OK ! Structural typing : options a port et host
-
-// CAS 3 : Assertion de type — PAS d'excess property checking
-const config2 = {
-  port: 3000,
-  host: "localhost",
-  debug: true,
-} as Config; // OK (mais on perd la verification)
-```
-
-### Pourquoi cette différence ?
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  EXCESS PROPERTY CHECKING                                     │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Quand tu passes un OBJET LITERAL directement, TypeScript    │
-│  verifie qu'il n'y a PAS de proprietes en trop.              │
-│                                                              │
-│  Pourquoi ? Parce que les proprietes en trop sont souvent    │
-│  des ERREURS (fautes de frappe, proprietes obsoletes).       │
-│                                                              │
-│  Quand tu passes une VARIABLE, TypeScript fait du            │
-│  structural typing normal (les proprietes en plus sont OK).  │
-│                                                              │
-│  C'est un FILET DE SECURITE supplementaire.                  │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Astuce pour contourner l'excess property checking
-
-```typescript
-interface Options {
-  couleur: string;
-  taille: number;
-}
-
-// Methode 1 : Variable intermediaire
-const opts = { couleur: "rouge", taille: 42, extra: true };
-const options1: Options = opts; // OK
-
-// Methode 2 : Index signature (si tu veux permettre des proprietes extra)
-interface OptionsFlexibles {
-  couleur: string;
-  taille: number;
-  [cle: string]: unknown; // Permet n'importe quelle propriete supplementaire
-}
-
-const options2: OptionsFlexibles = {
-  couleur: "rouge",
-  taille: 42,
-  extra: true, // OK grace a l'index signature
-};
-
-// Methode 3 : satisfies (garde la precision)
-const options3 = {
-  couleur: "rouge",
-  taille: 42,
-  extra: true,
-} satisfies Options; // Erreur ! satisfies applique l'excess check
-```
-
----
-
-## Index Signatures
-
-### Syntaxe
-
-Les index signatures permettent de définir des objets avec des **clés dynamiques** :
-
-```typescript
-// Objet avec des cles string et des valeurs number
-interface Scores {
-  [nomJoueur: string]: number;
-}
-
-const scores: Scores = {
-  Alice: 150,
-  Bob: 120,
-  Charlie: 180,
-};
-
-// On peut ajouter de nouvelles cles a tout moment
-scores["David"] = 95;
-scores.Eve = 200;
-
-// Toutes les valeurs sont de type number
-const scoreAlice: number = scores["Alice"]; // 150
-const scoreInconnu: number = scores["Inconnu"]; // undefined au runtime, mais type number !
-```
-
-### Types de clés possibles
-
-```typescript
-// Cle string — la plus courante
-interface Dictionnaire {
-  [cle: string]: string;
-}
-
-// Cle number — pour les tableaux associatifs
-interface IndexNumerique {
-  [index: number]: string;
-}
-
-const jours: IndexNumerique = {
-  0: "Lundi",
-  1: "Mardi",
-  2: "Mercredi",
-};
-
-// Combiner proprietes fixes et index signature
-interface ApiResponse {
-  status: number;         // Propriete fixe
-  message: string;        // Propriete fixe
-  [cle: string]: unknown; // Proprietes dynamiques (doit etre compatible)
-}
-
-const response: ApiResponse = {
-  status: 200,
-  message: "OK",
-  data: { users: [] },    // Propriete dynamique
-  timestamp: Date.now(),   // Propriete dynamique
-};
-```
-
-### Attention aux pieges
-
-```typescript
-// Piege 1 : Les proprietes fixes doivent etre compatibles avec l'index signature
-interface Mauvais {
-  nom: string;
-  // [cle: string]: number;
-  // Erreur : 'nom' (string) n'est pas compatible avec number
-}
-
-// Solution : utiliser une union
-interface Correct {
-  nom: string;
-  [cle: string]: string | number; // nom est string, qui fait partie de l'union
-}
-
-// Piege 2 : L'acces par cle retourne toujours le type declare, meme si la cle n'existe pas
-interface Scores {
-  [joueur: string]: number;
-}
-
-const scores: Scores = { Alice: 100 };
-const scoreBob: number = scores["Bob"]; // number (pas number | undefined !)
-// Au runtime, scoreBob est undefined — TypeScript ne le detecte pas par defaut
-
-// Solution : activer noUncheckedIndexedAccess dans tsconfig.json
-// Avec cette option, scores["Bob"] serait de type number | undefined
-```
-
----
-
-## Objets imbriques (nested objects)
-
-### Typer des structures profondes
-
-```typescript
-// Structure complexe avec des objets imbriques
-interface Adresse {
-  rue: string;
-  codePostal: string;
-  ville: string;
-  pays: string;
-}
-
-interface Contact {
-  email: string;
-  telephone?: string;
-  adresse: Adresse;
-}
-
-interface Entreprise {
-  nom: string;
-  siret: string;
-  contact: Contact;
-  employes: Employe[];
-}
-
-interface Employe {
-  id: number;
-  prenom: string;
-  nom: string;
-  poste: string;
-  salaire: number;
-  contact: Contact;
-}
-
-// Utilisation
-const entreprise: Entreprise = {
-  nom: "TechCorp",
-  siret: "123 456 789 00001",
-  contact: {
-    email: "contact@techcorp.fr",
-    telephone: "+33 1 23 45 67 89",
-    adresse: {
-      rue: "42 avenue des Champs-Elysees",
-      codePostal: "75008",
-      ville: "Paris",
-      pays: "France",
-    },
-  },
-  employes: [
-    {
-      id: 1,
-      prenom: "Alice",
-      nom: "Martin",
-      poste: "Developpeur Senior",
-      salaire: 55000,
-      contact: {
-        email: "alice.martin@techcorp.fr",
-        adresse: {
-          rue: "10 rue de Rivoli",
-          codePostal: "75001",
-          ville: "Paris",
-          pays: "France",
-        },
-      },
-    },
-  ],
-};
-```
-
-### Acceder aux propriétés imbriquees
-
-```typescript
-// Acces direct
-const villeEntreprise: string = entreprise.contact.adresse.ville;
-
-// Avec optional chaining (si des proprietes sont optionnelles)
-interface ProfilPartiel {
-  nom: string;
-  adresse?: {
-    rue?: string;
-    ville?: string;
-  };
-}
-
-const profil: ProfilPartiel = { nom: "Alice" };
-const ville: string | undefined = profil.adresse?.ville;
-console.log(ville ?? "Ville inconnue");
-```
-
----
-
-## Intersections (&) pour la composition
-
-### Concept
-
-L'intersection `&` combine plusieurs types en un seul. L'objet resultant doit avoir **toutes** les propriétés de chaque type :
-
-```typescript
-// Deux types de base
-type Horodatable = {
-  creeLe: Date;
-  misAJourLe: Date;
-};
-
-type Identifiable = {
+type MemberT = {
   id: string;
+  displayName: string;
 };
-
-// Intersection — combine les deux
-type Entite = Horodatable & Identifiable;
-// Equivalent a :
-// type Entite = {
-//   creeLe: Date;
-//   misAJourLe: Date;
-//   id: string;
-// };
-
-const entite: Entite = {
-  id: "abc-123",
-  creeLe: new Date(),
-  misAJourLe: new Date(),
-};
+// Pour un simple objet, MemberI et MemberT sont équivalents à l'usage.
 ```
 
-### Intersection vs extends
+Ce que **seul `type`** peut faire :
 
 ```typescript
-// Avec interface + extends :
-interface Animal {
-  nom: string;
+type Id = string | number;                         // union
+type Role = "admin" | "parent" | "enfant";         // union de littéraux
+type Point = [number, number];                     // tuple
+type Handler = (e: Event) => void;                  // alias de fonction
+type Partiel<T> = { [K in keyof T]?: T[K] };        // mapped type
+```
+
+Ce que **seul `interface`** peut faire :
+
+```typescript
+// Declaration merging : deux déclarations du même nom fusionnent (voir 2.6)
+interface Window { tribuzenVersion: string; }
+```
+
+**Règle de choix pratique :**
+
+| Tu définis… | Utilise |
+|---|---|
+| la forme d'un objet ou d'un contrat de service | `interface` |
+| une union (`A \| B`), un tuple, un alias de primitif/fonction | `type` |
+| un mapped/conditional type | `type` |
+| un type qu'une lib tierce doit pouvoir augmenter | `interface` |
+| en cas de doute sur un objet | `interface` (messages d'erreur plus lisibles) |
+
+> Convention répandue (et celle de ce cours) : **`interface` pour les objets du domaine**, **`type` pour tout le reste** (unions, tuples, alias). C'est ce qu'on applique dans `tribuzen/types`.
+
+### 2.3 Propriétés optionnelles et `readonly`
+
+```typescript
+interface MemberBase {
+  readonly id: string;   // figé après création — la modifier est une erreur de compilation
+  displayName: string;   // requise
+  email?: string;        // optionnelle → type réel : string | undefined
 }
 
-interface AnimalDomestique extends Animal {
-  proprietaire: string;
+const m: MemberBase = { id: "m1", displayName: "Alice" }; // email omis : OK
+// m.id = "m2";        // ❌ Cannot assign to 'id', it is a read-only property
+m.displayName = "Alice D."; // ✅ non readonly
+
+// Accès à une optionnelle : penser au undefined
+const domaine = m.email?.split("@")[1] ?? "inconnu";
+```
+
+**`readonly` est superficiel (shallow)** — il protège la référence, pas le contenu pointé :
+
+```typescript
+interface Family {
+  readonly memberIds: string[];
+}
+const f: Family = { memberIds: ["m1"] };
+// f.memberIds = [];      // ❌ réassignation interdite
+f.memberIds.push("m2");   // ✅ le tableau lui-même reste mutable !
+
+// Pour verrouiller le contenu : readonly string[] (ou ReadonlyArray<string>)
+interface FamilyStrict {
+  readonly memberIds: readonly string[];
+}
+```
+
+### 2.4 Index signatures et `Record`
+
+Une **index signature** décrit un objet aux **clés dynamiques** (inconnues à l'écriture) :
+
+```typescript
+interface ReactionMap {
+  [emoji: string]: number; // n'importe quelle clé string → une valeur number
+}
+const r: ReactionMap = { "👍": 3, "❤️": 7 };
+r["🎉"] = 1; // OK
+```
+
+`Record<K, V>` est le **utility type** qui fait la même chose, en plus concis, et permet de **fermer** l'ensemble des clés :
+
+```typescript
+type Reactions = Record<string, number>;              // clés ouvertes (= index signature)
+type RolePerms = Record<"admin" | "parent", boolean>; // clés FERMÉES : exactement admin + parent
+const perms: RolePerms = { admin: true, parent: false }; // ❌ si une clé manque ou est en trop
+```
+
+> Piège classique : l'accès par clé sur une index signature retourne le type déclaré **même si la clé n'existe pas** (`r["absent"]` est typé `number` mais vaut `undefined` au runtime). Active `noUncheckedIndexedAccess` dans `tsconfig` pour obtenir `number | undefined`.
+
+### 2.5 Composition : `extends` vs intersection `&`
+
+Deux façons d'ajouter des propriétés à une forme existante.
+
+```typescript
+// Avec interface → extends
+interface MemberBase { id: string; displayName: string; }
+interface AdminMember extends MemberBase {
+  canInvite: boolean; // AdminMember = tout MemberBase + canInvite
 }
 
-// Avec type + & :
-type AnimalType = {
-  nom: string;
-};
-
-type AnimalDomestiqueType = AnimalType & {
-  proprietaire: string;
-};
-
-// Les deux sont equivalents pour les objets
-// La difference est syntaxique
+// Avec type → intersection &
+type MemberBaseT = { id: string; displayName: string };
+type AdminMemberT = MemberBaseT & { canInvite: boolean };
 ```
 
-### Intersection de types incompatibles
+Les deux produisent la même forme. Différences :
+
+- `extends` **vérifie la compatibilité au moment de la déclaration** : si tu redéclares une propriété héritée avec un type incompatible, erreur immédiate et claire.
+- `&` **fusionne** — en cas de conflit sur une propriété, le résultat peut devenir `never` silencieusement (`{ x: string } & { x: number }` → `x: never`).
+- `interface extends` peut hériter de **plusieurs** interfaces : `interface C extends A, B {}`.
 
 ```typescript
-// Attention : l'intersection de types primitifs incompatibles donne 'never'
-type Impossible = string & number; // never — rien ne peut etre a la fois string ET number
-
-// Mais l'intersection d'objets fonctionne toujours
-type A = { x: number; y: number };
-type B = { y: number; z: number };
-type C = A & B;
-// C = { x: number; y: number; z: number }
-// La propriete 'y' commune doit etre compatible dans les deux types
-
-// Conflit de types sur une meme propriete
-type D = { status: string };
-type E = { status: number };
-type F = D & E;
-// F = { status: string & number } = { status: never }
-// Impossible a creer !
+// extends peut RESTREINDRE une propriété héritée vers un sous-type
+interface AdminMember2 extends MemberBase {
+  role: "admin"; // légal si MemberBase.role est un type plus large (ex: MemberRole)
+}
 ```
 
-### Patterns de composition
+### 2.6 Declaration merging (spécifique aux interfaces)
+
+Déclarer **deux fois la même interface** les fusionne. Impossible avec `type` (qui lèverait « Duplicate identifier »).
 
 ```typescript
-// Pattern : Mixin de comportements
-type Loggable = {
-  log(message: string): void;
-};
+interface Config { apiUrl: string; }
+interface Config { debug: boolean; }
+// Config = { apiUrl: string; debug: boolean }
 
-type Serialisable = {
-  toJSON(): string;
-};
+const c: Config = { apiUrl: "/api", debug: true };
+```
 
-type Validable = {
-  valider(): boolean;
-  erreurs: string[];
-};
+Usage réel : **augmenter** un type d'une librairie (ex. ajouter une propriété à `Window`, à `process.env`, aux types Express). Voir module 16.
 
-// Un formulaire combine plusieurs comportements
-type Formulaire = {
-  champs: Record<string, string>;
-} & Loggable & Serialisable & Validable;
+### 2.7 Objets imbriqués
 
-// Implementation
-const formulaire: Formulaire = {
-  champs: { nom: "Alice", email: "alice@example.com" },
-  erreurs: [],
-  log(message) {
-    console.log(`[FORM] ${message}`);
-  },
-  toJSON() {
-    return JSON.stringify(this.champs);
-  },
-  valider() {
-    this.erreurs = [];
-    if (!this.champs.nom) this.erreurs.push("Nom requis");
-    if (!this.champs.email) this.erreurs.push("Email requis");
-    return this.erreurs.length === 0;
-  },
-};
+Une propriété peut elle-même être une forme nommée — on compose des arbres de types :
+
+```typescript
+interface Address { city: string; zip: string; }
+interface Contact { email: string; address?: Address; }
+interface Company { name: string; contact: Contact; }
+
+const co: Company = { name: "TribuZen", contact: { email: "hi@tribuzen.app" } };
+const ville = co.contact.address?.city ?? "?"; // optional chaining sur l'imbriqué optionnel
+```
+
+### 2.8 Structural typing (duck typing) — LE concept clé
+
+TypeScript est **structurel** : deux types sont compatibles si leurs **structures** le sont, **peu importe leur nom**. C'est l'opposé du typage *nominal* (Java, C#) où seul le nom déclaré compte.
+
+```typescript
+interface Cat { name: string; legs: number; }
+interface Dog { name: string; legs: number; }
+
+const rex: Dog = { name: "Rex", legs: 4 };
+const asCat: Cat = rex; // ✅ même structure → compatible, malgré des noms différents
+```
+
+> « Si ça a `name: string` et `legs: number`, alors c'est assignable partout où on demande cette forme. » — le *duck typing*.
+
+**Règle de compatibilité : la cible doit être un sous-ensemble de la source.** Un objet avec **plus** de propriétés est assignable à un type qui en demande **moins** :
+
+```typescript
+interface Point2D { x: number; y: number; }
+interface Point3D { x: number; y: number; z: number; }
+
+const p3: Point3D = { x: 1, y: 2, z: 3 };
+const p2: Point2D = p3; // ✅ Point3D a tout ce que Point2D exige (+ z en bonus)
+// const bad: Point3D = p2; // ❌ z manquant
+```
+
+### 2.9 Excess property checks
+
+Exception au structural typing : quand on assigne un **objet littéral directement**, TypeScript refuse les propriétés **en trop** (filet contre les fautes de frappe).
+
+```typescript
+interface Options { color: string; size: number; }
+
+// ❌ objet littéral direct → excess property check
+// const o: Options = { color: "red", size: 42, extra: true };
+//   Object literal may only specify known properties, 'extra' does not exist
+
+// ✅ via une variable intermédiaire → structural typing normal, pas de check
+const tmp = { color: "red", size: 42, extra: true };
+const o: Options = tmp; // OK — tmp a color + size, le reste est ignoré
+
+// ✅ satisfies (module 10) applique le check tout en gardant le type précis
+const o2 = { color: "red", size: 42 } satisfies Options;
 ```
 
 ---
 
-## Type compatibility (compatibilite de types)
+## 3. Worked examples
 
-### Les regles
+### Exemple 1 — Modéliser `Member` avec base + admin (extension)
 
-TypeScript vérifié la compatibilite structurelle. Voici les regles principales :
+Objectif : un membre a une base commune ; un admin a des capacités en plus. On veut `id` immuable, `email` optionnel, et un `role` contraint (pas de `string` libre).
 
 ```typescript
-// Regle 1 : Un type avec PLUS de proprietes est assignable a un type avec MOINS
-interface Petit {
-  x: number;
+// 1. Le rôle est un ensemble fermé de valeurs → type union (pas interface)
+type MemberRole = "admin" | "parent" | "enfant";
+
+// 2. Forme commune → interface, id readonly, email optionnel
+interface MemberBase {
+  readonly id: string;
+  readonly familyId: string;
+  displayName: string;
+  role: MemberRole;
+  email?: string;         // un enfant peut ne pas en avoir
+  joinedAt: Date;
 }
 
-interface Grand {
-  x: number;
-  y: number;
-  z: number;
+// 3. Admin = base + capacités. extends AJOUTE sans réécrire.
+interface AdminMember extends MemberBase {
+  role: "admin";          // on restreint le champ hérité à la valeur littérale
+  canInvite: boolean;
+  canRemoveMembers: boolean;
 }
 
-let petit: Petit;
-let grand: Grand = { x: 1, y: 2, z: 3 };
+// Usage
+const enfant: MemberBase = {
+  id: "m1",
+  familyId: "f1",
+  displayName: "Léa",
+  role: "enfant",
+  joinedAt: new Date(),
+  // email omis : légal car optionnel
+};
 
-petit = grand; // OK — Grand a tout ce que Petit exige (et plus)
-// grand = petit; // Erreur — Petit n'a pas y et z
+const chef: AdminMember = {
+  id: "m2",
+  familyId: "f1",
+  displayName: "Alice",
+  role: "admin",          // "parent" serait refusé : AdminMember.role = "admin"
+  email: "alice@tribuzen.app",
+  joinedAt: new Date(),
+  canInvite: true,
+  canRemoveMembers: true,
+};
 
-// Regle 2 : Les fonctions sont compatibles si les parametres correspondent
-type FonctionA = (x: number) => void;
-type FonctionB = (x: number, y: number) => void;
-
-let fnA: FonctionA = (x) => console.log(x);
-let fnB: FonctionB = (x, y) => console.log(x, y);
-
-fnB = fnA; // OK — fnA ignore simplement le parametre y
-// fnA = fnB; // Erreur — fnB a besoin de 2 parametres
-
-// C'est essentiel pour les callbacks :
-[1, 2, 3].forEach((item) => console.log(item));
-// forEach attend (item, index, array) => void
-// Mais notre callback n'utilise que 'item' — c'est valide
+// enfant.id = "x";       // ❌ readonly
+// chef.role = "parent";  // ❌ AdminMember.role est figé à "admin"
 ```
 
-### Analogie — La prise electrique
+**Ce que le typage garantit ici :**
+- `role` ne peut pas être `"amdin"` — le compilateur n'accepte que les 3 littéraux.
+- `id`/`familyId` immuables : aucune ré-affectation accidentelle.
+- `AdminMember` a **forcément** `canInvite`/`canRemoveMembers` — un admin mal construit ne compile pas.
 
-La compatibilite de types, c'est comme les **prises electriques** :
+### Exemple 2 — `Post` avec `Record`, optionnel, et excess check (fading)
 
-- Une prise avec 2 trous (Type Petit) accepte une fiche avec 2 broches
-- Une fiche avec 3 broches (Type Grand) **ne rentre pas** dans une prise a 2 trous
-- Mais une fiche avec 2 broches **rentre** dans une prise a 3 trous (avec une broche terre non utilisee)
+```typescript
+interface Post {
+  readonly id: string;
+  readonly authorId: string;
+  readonly createdAt: Date;
+  body: string;
+  editedAt?: Date;                    // présent seulement si édité
+  reactions: Record<string, number>;  // clés dynamiques (emoji) → compteur
+}
+
+const p: Post = {
+  id: "p1",
+  authorId: "m2",
+  createdAt: new Date(),
+  body: "Rendez-vous dimanche 🎉",
+  reactions: { "👍": 2, "🎉": 5 },
+};
+
+// Édition : on remplit editedAt (optionnel)
+const edited: Post = { ...p, body: "Rendez-vous samedi", editedAt: new Date() };
+
+// Ajout d'une réaction — index signature permet une clé inconnue à l'écriture
+edited.reactions["❤️"] = 1;
+
+// ❌ Excess property check sur objet littéral direct :
+// const bad: Post = { ...p, likes: 3 };
+//   'likes' does not exist in type 'Post' — probablement un champ oublié/mal nommé
+```
+
+**Décisions de modélisation :**
+- `editedAt?` plutôt que `editedAt: Date | null` : « absent » = jamais édité, plus simple à tester (`if (post.editedAt)`).
+- `reactions: Record<string, number>` : on ne connaît pas les emojis à l'avance → clés ouvertes.
+- Tous les champs d'identité en `readonly` : un post ne change ni d'id, ni d'auteur, ni de date de création.
 
 ---
 
-## Pratique
+## 4. Pièges & misconceptions
 
-### Exercice 1 — Modeliser un blog
-
-Cree les interfaces pour un système de blog avec :
-- `Auteur` (id, nom, email, bio optionnelle)
-- `Article` (id, titre, contenu, auteur, datePublication, tags, commentaires)
-- `Commentaire` (id, auteur, contenu, date, likes)
-
-<details>
-<summary>Solution</summary>
+### PIÈGE #1 — Utiliser `type` puis vouloir le rouvrir (declaration merging)
 
 ```typescript
-interface Auteur {
-  id: number;
-  nom: string;
-  email: string;
-  bio?: string;
-}
+// ❌ On croit pouvoir « compléter » un type plus loin
+type User = { id: string };
+// type User = { name: string }; // Erreur : Duplicate identifier 'User'
 
-interface Commentaire {
-  id: number;
-  auteur: Auteur;
-  contenu: string;
-  date: Date;
-  likes: number;
-}
-
-interface Article {
-  id: number;
-  titre: string;
-  contenu: string;
-  auteur: Auteur;
-  datePublication: Date;
-  tags: string[];
-  commentaires: Commentaire[];
-}
-
-// Utilisation
-const alice: Auteur = {
-  id: 1,
-  nom: "Alice",
-  email: "alice@blog.com",
-  bio: "Developpeuse passionnee",
-};
-
-const article: Article = {
-  id: 1,
-  titre: "Introduction a TypeScript",
-  contenu: "TypeScript est un sur-ensemble type de JavaScript...",
-  auteur: alice,
-  datePublication: new Date("2024-06-15"),
-  tags: ["typescript", "javascript", "tutorial"],
-  commentaires: [
-    {
-      id: 1,
-      auteur: { id: 2, nom: "Bob", email: "bob@blog.com" },
-      contenu: "Super article !",
-      date: new Date("2024-06-16"),
-      likes: 5,
-    },
-  ],
-};
+// ✅ Si le besoin est d'augmenter à distance (lib, global) → interface
+interface UserI { id: string; }
+interface UserI { name: string; } // fusion OK
 ```
+**Règle :** besoin de fusion/augmentation → `interface`. Sinon, `type` reste parfait.
 
-</details>
-
-### Exercice 2 — Structural typing
-
-Sans exécuter le code, déterminé si chaque assignation est valide ou provoque une erreur :
+### PIÈGE #2 — Croire que `readonly` gèle le contenu
 
 ```typescript
-interface Vehicule {
-  marque: string;
-  vitesseMax: number;
-}
-
-interface Voiture {
-  marque: string;
-  vitesseMax: number;
-  nombrePortes: number;
-}
-
-const tesla: Voiture = { marque: "Tesla", vitesseMax: 250, nombrePortes: 4 };
-const vehicule: Vehicule = tesla;                    // 1. Valide ?
-// const voiture: Voiture = vehicule;                // 2. Valide ?
-const obj = { marque: "BMW", vitesseMax: 230 };
-// const bmw: Voiture = obj;                         // 3. Valide ?
-const obj2 = { marque: "Audi", vitesseMax: 260, nombrePortes: 5, couleur: "noir" };
-const audi: Voiture = obj2;                          // 4. Valide ?
+interface F { readonly tags: string[]; }
+const f: F = { tags: ["a"] };
+f.tags.push("b"); // ✅ !! readonly ne protège QUE la référence, pas le tableau
 ```
+**Correct :** `readonly tags: readonly string[]` pour interdire aussi `push`/`pop`.
 
-<details>
-<summary>Solution</summary>
+### PIÈGE #3 — S'étonner que l'excess property check « disparaisse »
 
 ```typescript
-// 1. VALIDE — Voiture a toutes les proprietes de Vehicule (+ nombrePortes)
-const vehicule: Vehicule = tesla; // OK
-
-// 2. ERREUR — Vehicule n'a pas la propriete 'nombrePortes'
-// const voiture: Voiture = vehicule;
-// Property 'nombrePortes' is missing in type 'Vehicule'
-
-// 3. ERREUR — obj n'a pas la propriete 'nombrePortes'
-// const bmw: Voiture = obj;
-// Property 'nombrePortes' is missing
-
-// 4. VALIDE — obj2 a toutes les proprietes de Voiture (+ couleur en bonus)
-// Pas d'excess property checking car c'est via une variable (pas un literal)
-const audi: Voiture = obj2; // OK
+interface Opt { a: number; }
+// const x: Opt = { a: 1, b: 2 };     // ❌ littéral direct → refusé
+const raw = { a: 1, b: 2 };
+const x: Opt = raw;                    // ✅ via variable → accepté (structural typing)
 ```
+Ce n'est pas un bug : le check ne s'applique **qu'aux objets littéraux assignés directement**. La propriété `b` existe toujours au runtime — elle est juste invisible via le type `Opt`.
 
-</details>
-
-### Exercice 3 — Interface vs Type
-
-Refactorise le code suivant en utilisant le bon outil (interface ou type) pour chaque cas :
+### PIÈGE #4 — Attendre un typage nominal
 
 ```typescript
-// A transformer
-const statut = "actif" | "inactif" | "suspendu"; // wrong syntax!
-const coordonnees = [number, number];              // wrong syntax!
-// Un service avec des methodes...
-// Un objet de configuration...
-// Un resultat qui peut etre succes ou erreur...
+interface Euros { amount: number; }
+interface Dollars { amount: number; }
+const prix: Euros = { amount: 10 };
+const facture: Dollars = prix; // ✅ compile ! Même structure → interchangeables
 ```
+TypeScript ne distingue **pas** deux formes identiques par leur nom. Pour créer des types réellement distincts (empêcher de mélanger euros et dollars), il faut un **branded type** (module 18) : `type Euros = number & { readonly __brand: "EUR" }`.
 
-<details>
-<summary>Solution</summary>
+### PIÈGE #5 — Index signature trop permissive qui masque des erreurs
 
 ```typescript
-// Union → TYPE (impossible avec interface)
-type Statut = "actif" | "inactif" | "suspendu";
-
-// Tuple → TYPE (impossible avec interface)
-type Coordonnees = [number, number];
-
-// Service avec methodes → INTERFACE (contrat public)
-interface UtilisateurService {
-  trouverParId(id: number): Promise<Utilisateur | null>;
-  lister(): Promise<Utilisateur[]>;
-  creer(donnees: CreerUtilisateur): Promise<Utilisateur>;
-  supprimer(id: number): Promise<boolean>;
-}
-
-// Objet de configuration → INTERFACE (extensible)
-interface ConfigApp {
-  port: number;
-  host: string;
-  debug: boolean;
-  logLevel: "debug" | "info" | "warn" | "error";
-}
-
-// Resultat succes/erreur → TYPE (union discriminee)
-type Resultat<T> =
-  | { success: true; data: T }
-  | { success: false; erreur: string };
-
-// Types utilitaires → TYPE
-interface Utilisateur {
-  id: number;
-  nom: string;
-  email: string;
-  statut: Statut;
-}
-
-type CreerUtilisateur = Omit<Utilisateur, "id">;
+interface Loose { name: string; [k: string]: unknown; }
+const u: Loose = { name: "x", tpyo: 1 }; // ✅ compile — la typo passe !
 ```
-
-</details>
-
-### Exercice 4 — Composition avec intersections
-
-Cree un système de types pour des entites de base de donnees en utilisant la composition :
-
-1. Un type `Timestamps` avec `createdAt` et `updatedAt`
-2. Un type `SoftDeletable` avec `deletedAt` optionnel et `isDeleted`
-3. Un type `Versionnable` avec `version` (number)
-4. Compose ces types pour créer `Article` et `Commentaire`
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-// Types de base composables
-type Timestamps = {
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type SoftDeletable = {
-  deletedAt?: Date;
-  isDeleted: boolean;
-};
-
-type Versionnable = {
-  version: number;
-};
-
-type WithId = {
-  id: string;
-};
-
-// Composition pour Article — toutes les fonctionnalites
-type Article = WithId & Timestamps & SoftDeletable & Versionnable & {
-  titre: string;
-  contenu: string;
-  auteurId: string;
-  tags: string[];
-  publie: boolean;
-};
-
-// Composition pour Commentaire — pas versionnable
-type Commentaire = WithId & Timestamps & SoftDeletable & {
-  articleId: string;
-  auteurId: string;
-  contenu: string;
-  likes: number;
-};
-
-// Utilisation
-const article: Article = {
-  id: "art-001",
-  titre: "Apprendre TypeScript",
-  contenu: "TypeScript est genial...",
-  auteurId: "user-001",
-  tags: ["typescript", "cours"],
-  publie: true,
-  version: 3,
-  createdAt: new Date("2024-01-15"),
-  updatedAt: new Date("2024-06-20"),
-  isDeleted: false,
-};
-
-const commentaire: Commentaire = {
-  id: "com-001",
-  articleId: "art-001",
-  auteurId: "user-002",
-  contenu: "Tres instructif !",
-  likes: 12,
-  createdAt: new Date("2024-06-21"),
-  updatedAt: new Date("2024-06-21"),
-  isDeleted: false,
-};
-
-console.log(article.titre);
-console.log(commentaire.contenu);
-```
-
-</details>
-
-### Exercice 5 — Index signatures et readonly
-
-Cree un type `Dictionnaire` pour un dictionnaire français-anglais :
-- Les clés sont des mots français (string)
-- Les valeurs sont des objets avec la traduction anglaise et une phrase d'exemple optionnelle
-- Le dictionnaire est readonly (on ne peut pas modifier les entrees existantes)
-- Cree une fonction `chercher` qui retourne la traduction ou "Mot inconnu"
-
-<details>
-<summary>Solution</summary>
-
-```typescript
-interface EntreeDictionnaire {
-  readonly traduction: string;
-  readonly exemple?: string;
-}
-
-interface Dictionnaire {
-  readonly [motFrancais: string]: EntreeDictionnaire;
-}
-
-const dictionnaire: Dictionnaire = {
-  bonjour: {
-    traduction: "hello",
-    exemple: "Hello, how are you?",
-  },
-  maison: {
-    traduction: "house",
-    exemple: "This is my house.",
-  },
-  chat: {
-    traduction: "cat",
-  },
-  programmer: {
-    traduction: "to code",
-    exemple: "I love to code in TypeScript.",
-  },
-};
-
-function chercher(
-  dictionnaire: Dictionnaire,
-  mot: string
-): string {
-  const entree = dictionnaire[mot];
-  if (!entree) {
-    return "Mot inconnu";
-  }
-
-  let resultat = `${mot} → ${entree.traduction}`;
-  if (entree.exemple) {
-    resultat += ` (ex: "${entree.exemple}")`;
-  }
-  return resultat;
-}
-
-console.log(chercher(dictionnaire, "bonjour"));
-// "bonjour → hello (ex: "Hello, how are you?")"
-
-console.log(chercher(dictionnaire, "chat"));
-// "chat → cat"
-
-console.log(chercher(dictionnaire, "ordinateur"));
-// "Mot inconnu"
-
-// Impossible de modifier :
-// dictionnaire["bonjour"] = { traduction: "hi" }; // Erreur : readonly
-// dictionnaire.bonjour.traduction = "hi";          // Erreur : readonly
-```
-
-</details>
+Une index signature ouverte **désactive** l'excess property check. Ne l'ajoute que si les clés dynamiques sont réellement voulues (ex. `reactions`), pas « pour avoir la paix ».
 
 ---
 
-## Récapitulatif
+## 5. Ancrage TribuZen
+
+Ce module produit le fichier fondateur du domaine : **`tribuzen/types/index.ts`**, source unique de vérité importée partout (front, API mock, tests). Toutes les entités y sont modélisées avec les notions du module.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                   CE QUE TU AS APPRIS                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│  1. Types d'objets inline : pour les cas simples             │
-│                                                              │
-│  2. Interfaces :                                             │
-│     - Contrats pour les objets                               │
-│     - Extension avec extends                                 │
-│     - Declaration merging (fusion)                           │
-│     - Proprietes readonly et optionnelles                    │
-│                                                              │
-│  3. Type aliases :                                           │
-│     - Plus flexibles (unions, tuples, mapped types)          │
-│     - Composition avec & (intersection)                      │
-│     - Pas de declaration merging                             │
-│                                                              │
-│  4. Structural typing :                                      │
-│     - La compatibilite est basee sur la STRUCTURE            │
-│     - Pas besoin que les noms correspondent                  │
-│     - Un objet avec plus de proprietes est compatible        │
-│                                                              │
-│  5. Excess property checking :                               │
-│     - Actif uniquement sur les objets literals               │
-│     - Protege contre les fautes de frappe                    │
-│                                                              │
-│  6. Index signatures :                                       │
-│     - [cle: string]: Type pour les cles dynamiques           │
-│                                                              │
-│  7. Intersections (&) :                                      │
-│     - Combinent plusieurs types en un seul                   │
-│     - Parfaites pour la composition                          │
-│                                                              │
-└──────────────────────────────────────────────────────────────┘
+tribuzen/
+  types/
+    index.ts   ← Family, Member (MemberBase → AdminMember), Post, Invitation
+```
+
+**Décisions de modélisation appliquées :**
+
+- **`Family`** — `readonly id` + `readonly createdAt` (identité figée), `motto?`/`coverUrl?` optionnels (l'utilisateur peut ne pas les renseigner), `memberIds: string[]`.
+- **`Member`** — `interface MemberBase` (base commune) étendue par `interface AdminMember extends MemberBase` (capacités de gestion). Le `role` est un `type MemberRole` (union fermée) — impossible de saisir un rôle hors nomenclature. `Member` est l'union `MemberBase | AdminMember`, que le module 04 exploitera pour le narrowing.
+- **`Post`** — champs d'identité `readonly`, `editedAt?` optionnel, `reactions: Record<string, number>` (index signature pour les emojis dynamiques).
+- **`Invitation`** — `readonly token`, `status: InvitationStatus` (union `"pending" | "accepted" | "expired" | "revoked"`), `acceptedByMemberId?` rempli seulement à l'acceptation.
+
+Pourquoi **interface** pour les entités et **type** pour les unions : les entités sont des objets susceptibles d'être étendus (`extends`) et augmentés (declaration merging côté API), tandis que rôles et statuts sont des ensembles fermés de valeurs — le terrain naturel de `type`.
+
+Fichier cible dans `smaurier/tribuzen` : `src/types/index.ts` (mêmes définitions, importées par les composants du cours React et l'API du cours NestJS).
+
+---
+
+## 6. Points clés
+
+1. Un type d'objet décrit sa **forme** ; on la nomme dès qu'elle est réutilisée (`interface` ou `type`).
+2. `interface` et `type` sont **interchangeables pour un objet** ; convention : `interface` pour les entités, `type` pour unions/tuples/alias.
+3. Seul `type` fait unions, tuples, alias de primitif/fonction, mapped/conditional types.
+4. Seul `interface` fait le **declaration merging** (fusion de déclarations homonymes) — utile pour augmenter des types de libs.
+5. `readonly` fige une propriété mais reste **superficiel** : le contenu d'un tableau/objet pointé reste mutable (utiliser `readonly T[]` pour le verrouiller).
+6. `?` rend une propriété optionnelle (`T | undefined`) ; y accéder impose de gérer `undefined`.
+7. Index signature `[k: string]: V` et `Record<K, V>` décrivent des clés dynamiques ; `Record<"a" | "b", V>` **ferme** l'ensemble des clés.
+8. `extends` (interface) et `&` (type) composent des formes ; `extends` vérifie la compatibilité à la déclaration, `&` peut produire `never` en cas de conflit.
+9. TypeScript est **structurel** : compatibilité par forme, pas par nom ; un objet avec plus de propriétés est assignable à un type qui en demande moins.
+10. L'**excess property check** ne s'applique qu'aux objets littéraux assignés directement — pas via une variable intermédiaire.
+
+---
+
+## 7. Seeds Anki
+
+```
+Quand choisir `interface` plutôt que `type` en TypeScript ?|Pour la forme d'un objet ou d'un contrat, surtout s'il doit être étendu (extends) ou augmenté (declaration merging). `type` pour unions, tuples, alias de primitif/fonction, mapped/conditional types. Convention du cours : interface pour les entités, type pour le reste.
+Qu'est-ce que le structural typing (duck typing) en TypeScript ?|Deux types sont compatibles si leurs structures le sont, peu importe leur nom. « name: string + legs: number » est assignable partout où cette forme est attendue, même si les interfaces s'appellent Cat et Dog.
+Règle de compatibilité structurelle entre deux formes ?|La cible doit être un sous-ensemble de la source : un objet avec PLUS de propriétés est assignable à un type qui en demande MOINS. Point3D {x,y,z} est assignable à Point2D {x,y}, pas l'inverse.
+Que protège exactement `readonly` sur une propriété tableau ?|Seulement la référence : on ne peut pas réassigner la propriété, mais on peut muter le contenu (push/pop). Pour verrouiller le contenu il faut `readonly T[]` (ReadonlyArray<T>).
+Qu'est-ce que l'excess property check et quand s'applique-t-il ?|Le refus des propriétés en trop lors de l'assignation d'un objet LITTÉRAL directement à un type. Il ne s'applique pas si on passe par une variable intermédiaire (structural typing normal) ni avec une assertion `as`.
+Différence entre `interface extends` et l'intersection `&` ?|Les deux composent des formes. `extends` vérifie la compatibilité dès la déclaration et donne des erreurs claires ; `&` fusionne et peut produire `never` en cas de conflit de propriété. Seul `extends` sert aussi à l'héritage multiple explicite d'interfaces.
+Quelle fonctionnalité les interfaces ont et pas les type aliases ?|Le declaration merging : deux `interface Foo {}` du même nom fusionnent automatiquement. Deux `type Foo` du même nom lèvent « Duplicate identifier ». Utile pour augmenter Window, process.env, les types d'une lib.
+Index signature vs Record<K, V> ?|`{ [k: string]: number }` et `Record<string, number>` sont équivalents pour des clés ouvertes. `Record<"admin" | "parent", boolean>` FERME l'ensemble des clés : toutes doivent être présentes, aucune en trop.
 ```
 
 ---
 
-## Pour aller plus loin
+## Pont vers le lab
 
-Dans le prochain module, **04 — Union, Intersection & Narrowing**, nous allons approfondir :
-
-- Les **union types** et les **discriminated unions** (unions discriminees)
-- Le **type narrowing** avec `typeof`, `instanceof`, `in`, et les comparaisons
-- Les **type guards custom** (predicates `is`)
-- La vérification **exhaustive** avec `never`
-- L'analyse du **control flow** par TypeScript
-
-> **Conseil** : Entraine-toi a créer des interfaces et des type aliases pour des structures de donnees reelles (API, bases de donnees, formulaires). La modelisation des types est une compétence clé en TypeScript.
-
----
-
-<!-- parcours-recommande -->
-
-::: tip Parcours recommandé
-1. **Screencast** : [screencast 03 objets interfaces](../screencasts/screencast-03-objets-interfaces.md)
-2. **Lab** : [lab-03-objets-interfaces](../labs/lab-03-objets-interfaces/README)
-3. **Quiz** : [quiz 03 objets interfaces](../quizzes/quiz-03-objets-interfaces.html)
-:::
+> Lab associé : `00-typescript/labs/lab-03-objets-interfaces/README.md`. Modéliser de zéro le fichier `tribuzen/types/index.ts` (`Family`, `Member` base+admin, `Post`, `Invitation`) en appliquant `readonly`, propriétés optionnelles, `extends` et `Record`, puis vérifier au compilateur (`tsc --noEmit`) que les objets mal formés sont refusés.

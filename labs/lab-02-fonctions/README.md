@@ -1,12 +1,25 @@
 # Lab 02 — Typer les fonctions
 
 > **Outcome :** à la fin, tu sais typer un service métier de A à Z — signatures, optionnels/défaut, rest, callbacks, un type guard `x is T` et une assertion function `asserts x is T` — avec le compilateur `tsc` comme seul juge.
-> **Vrai outil :** `typescript` (`tsc --noEmit` en `strict`). Pas de test-runner auto-correcteur, pas de gap-fill.
-> **Feedback :** le coach valide en session. Le vrai signal de réussite : `npx tsc --noEmit` passe **sans erreur** ET les lignes marquées `// @ts-expect-error` compilent bien en erreur.
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:02` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:02` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
 
 ---
 
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`02-fonctions.md`](../../modules/02-fonctions.md), **une fois**, puis on ferme :
+- §2.1 paramètres et retour · §2.2 optionnels `?` · §2.3 défaut `=` · §2.5 function types
+- §2.8 contextual typing · §2.9 `void` dans les callbacks · §2.10 type guards `x is T` · §2.11 assertion functions
+- §4 pièges #1 (`?` vs `= valeur`), #3 (callback `=> void` et async), #4 (type guard qui ment)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemples 1 et 2 = ce lab).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
+
 ## Énoncé
+
+> **Depuis le 21/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Tu construis la couche `members` de l'admin TribuZen dans un seul fichier `members.ts`. Objectif : partir d'un squelette non typé et le rendre entièrement sûr.
 
@@ -57,91 +70,31 @@ inviteMember("b@tribuzen.app", "root");
 inviteMember(42);
 ```
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// members.ts — CORRIGÉ
-
-// 1. Domaine ───────────────────────────────────────────────────────
-export type Role = "owner" | "admin" | "member" | "guest";
-
-export interface Invitation {
-  email: string;
-  role: Role;
-  token: string;
-  status: "pending"; // literal : une invitation naît toujours pending
-}
-
-export interface Member {
-  id: string;
-  email: string;
-  role: Role;
-  status: "pending" | "active" | "suspended";
-  lastSeenAt?: string; // optionnel : absent tant que jamais connecté
-}
-
-// Sous-type prouvé : ces deux champs sont GARANTIS non optionnels
-export interface ActiveMember extends Member {
-  status: "active";
-  lastSeenAt: string;
-}
-
-// 2. inviteMember : optionnel AVEC défaut → role est Role dans le corps
-export function inviteMember(email: string, role: Role = "member"): Invitation {
-  return {
-    email,
-    role,
-    token: crypto.randomUUID(),
-    status: "pending", // inféré comme le literal "pending"
-  };
-}
-
-// 3. Type guard : le corps couvre TOUTES les garanties d'ActiveMember
-//    (sinon on obtiendrait un ActiveMember mensonger → crash runtime)
-export function isActiveMember(m: Member): m is ActiveMember {
-  return m.status === "active" && m.lastSeenAt !== undefined;
-}
-
-// 4. Callbacks typés ───────────────────────────────────────────────
-// Notifier renvoie void : le corps peut renvoyer une valeur, elle est ignorée
-type Notifier = (m: ActiveMember) => void;
-
-export function notifyActive(members: Member[], send: Notifier): void {
-  // filter(isActiveMember) rétrécit Member[] → ActiveMember[]
-  members.filter(isActiveMember).forEach((m) => send(m));
-  //                                          ^ m: ActiveMember, lastSeenAt: string
-}
-
-export function activeEmails(members: Member[]): string[] {
-  // contextual typing : le param du map est inféré ActiveMember, aucune annotation
-  return members.filter(isActiveMember).map((m) => m.email);
-}
-
-// 5. Assertion function : rétrécit tout le code qui suit l'appel
-export function assertDefined<T>(
-  v: T | null | undefined,
-  name: string
-): asserts v is T {
-  if (v === null || v === undefined) {
-    throw new Error(`${name} est requis mais absent`);
-  }
-}
-
-export function firstActive(members: Member[]): ActiveMember {
-  const found = members.find(isActiveMember); // ActiveMember | undefined
-  assertDefined(found, "membre actif");        // après : found est ActiveMember
-  return found;                                 // ✅ plus de | undefined
-}
-
-// 6. Contrôles de typage ───────────────────────────────────────────
-inviteMember("a@tribuzen.app");             // role par défaut = "member"
-// @ts-expect-error rôle inexistant
-inviteMember("b@tribuzen.app", "root");
-// @ts-expect-error email doit être string
-inviteMember(42);
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:02         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:02       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-Vérification finale : `npx tsc --noEmit` doit afficher **zéro erreur**. Si une ligne `@ts-expect-error` provoque « Unused '@ts-expect-error' directive », c'est que ton typage est trop permissif à cet endroit — corrige la signature, pas le contrôle.
+**Contrat attendu par l'oracle**
+
+Fichier : `src/members.ts`. Exports attendus :
+- `type Role` · `interface Invitation` · `interface Member` · `interface ActiveMember extends Member` · `type Notifier`
+- `inviteMember(email: string, role?: Role): Invitation`
+- `isActiveMember(m: Member): m is ActiveMember`
+- `notifyActive(members: Member[], send: Notifier): void` · `activeEmails(members: Member[]): string[]`
+- `assertDefined<T>(v: T | null | undefined, name: string): asserts v is T`
+- `firstActive(members: Member[]): ActiveMember`
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `Role` = quatre littéraux exacts ; `Invitation.status` est le literal `"pending"` ; `Member.lastSeenAt` optionnel mais `ActiveMember.lastSeenAt: string` et `status: "active"` ; signatures exactes de `inviteMember`, `isActiveMember` (guard), `notifyActive` (`void`), `activeEmails` ; `assertDefined` rétrécit la variable après l'appel ; `inviteMember("x", "root")` et `inviteMember(42)` refusés.
+- **Runtime** : invitation pending avec rôle `member` par défaut et token unique ; le guard est vrai seulement si `active` **et** `lastSeenAt` présent ; `send` n'est appelé que pour les actifs ; `assertDefined` lève avec le nom sur `null`/`undefined`, pas sur `0` ni `""` ; `firstActive` renvoie le premier actif ou lève.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

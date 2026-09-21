@@ -1,10 +1,23 @@
 # Lab 01 — Premiers types
 
 > **Outcome :** à la fin, tu sais typer un `Member` TribuZen avec les bons primitifs, remplacer `any` par `unknown` + narrowing sur des données d'API, et valider une config avec `satisfies`.
-> **Vrai outil :** le compilateur TypeScript (`tsc --noEmit`) en mode `strict`. Pas de harnais simulé.
-> **Feedback :** le coach valide en session (pas de test-runner auto-correcteur).
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:01` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:01` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
+
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`01-types-primitifs-et-inference.md`](../../modules/01-types-primitifs-et-inference.md), **une fois**, puis on ferme :
+- §2.1 les sept primitifs · §2.2-2.4 inférence, `let`/`const`, quand annoter
+- §2.5 literal types · §2.6 `any` · §2.7 `unknown` · §2.9 `as`, `!` et `satisfies`
+- §4 pièges #1 (`any` « pour avancer »), #2 (`as` ne vérifie rien), #3 (annotation vs `satisfies`), #5 (`NaN` est un `number`)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** : l'exemple 1 est ce lab, résolu. L'ouvrir avant, c'est du gap-fill.
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
 
 ## Énoncé
+
+> **Depuis le 21/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Tu construis la couche de typage de l'admin TribuZen. Crée un dossier de travail et un seul fichier `membres.ts`.
 
@@ -40,93 +53,29 @@ npx tsc --noEmit membres.ts
 4. Type la config avec `satisfies AppConfig` (définis `AppConfig` avec `env: "development" | "staging" | "production"`). Vérifie ensuite que `rawConfig.env` reste le literal `"development"` (essaie `rawConfig.env.toUpperCase()` — ça doit compiler).
 5. Prouve que le typage marche : ajoute une ligne `const x = membres[0].naem;` et vérifie que `tsc` la refuse. Puis supprime-la.
 
-## Corrigé complet commenté
+## Vérifier
 
-```typescript
-// membres.ts — CORRIGÉ
-
-// ── 1. Le contrat de données ────────────────────────────────
-interface Member {
-  id: string;        // identifiant : string, jamais un number
-  name: string;
-  email: string;
-  age: number;
-  isActive: boolean;
-}
-
-// ── 4. Type de la config (literal union pour env) ───────────
-type Environnement = "development" | "staging" | "production";
-
-interface AppConfig {
-  env: Environnement;
-  apiUrl: string;
-  port: number;
-  ssl: boolean;
-}
-
-// satisfies : valide la forme SANS écraser l'inférence.
-// rawConfig.env reste le literal "development" (pas Environnement).
-const rawConfig = {
-  env: "development",
-  apiUrl: "http://localhost:3000",
-  port: 3000,
-  ssl: false,
-} satisfies AppConfig;
-
-// Preuve que le literal est conservé : .toUpperCase() n'existe
-// que sur string — donc TS sait que env EST un string précis.
-rawConfig.env.toUpperCase(); // OK, compile
-
-// ── 2. Type guard : valide la forme BRUTE renvoyée par l'API ──
-// L'API expose `active` (pas `isActive`) : le guard décrit donc la
-// forme RÉSEAU, pas encore le Member interne. Le remap vient à l'étape 3.
-type RawMember = {
-  id: string;
-  name: string;
-  email: string;
-  age: number;
-  active: boolean;
-};
-
-function isRawMember(x: unknown): x is RawMember {
-  if (typeof x !== "object" || x === null) return false; // écarte null et primitifs
-  const o = x as Record<string, unknown>;                 // vue indexable pour lire les champs
-  return (
-    typeof o.id === "string" &&
-    typeof o.name === "string" &&
-    typeof o.email === "string" &&
-    typeof o.age === "number" &&      // rejette age: "30" (string) venant d'une API laxiste
-    typeof o.active === "boolean"     // l'API expose `active`, pas `isActive`
-  );
-}
-
-// ── 3. Chargement typé : unknown + narrowing ────────────────
-async function chargerMembres(): Promise<Member[]> {
-  const reponse = await fetch(rawConfig.apiUrl + "/members");
-  const data: unknown = await reponse.json(); // unknown, PAS any → force la vérification
-
-  if (!Array.isArray(data)) {
-    throw new Error("Réponse API invalide : tableau attendu");
-  }
-
-  return data
-    .filter(isRawMember)            // ne garde que la forme brute conforme → RawMember[]
-    .map((m) => ({                  // m : RawMember (typé) → aucun `as` nécessaire
-      id: m.id,
-      name: m.name,
-      email: m.email,
-      age: m.age,
-      isActive: m.active,           // remap explicite active (API) → isActive (interne)
-    }));
-}
-
-// ── 5. Preuve que le typage attrape les fautes ──────────────
-// const membres = await chargerMembres();
-// const x = membres[0].naem;
-//                      ~~~~ Erreur : Property 'naem' does not exist on type 'Member'
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:01         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:01       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-> Note sur l'étape 3 : le guard valide la forme **brute** (`RawMember`, avec `active`), donc après `filter(isRawMember)` le tableau est `RawMember[]`. Le `.map` construit alors le `Member` interne en renommant `active` → `isActive`. **Aucun `as` n'est nécessaire** : `m` est déjà typé `RawMember` et l'objet produit correspond exactement à `Member`. Au passage, ça évite le piège inverse : un guard `x is Member` qui ne vérifie que `active` serait **mensonger** (il annoncerait un `isActive` jamais contrôlé), et `(m as { active: boolean }).active` sur un `Member` échouerait même à compiler (`TS2352`, les formes ne se recouvrent pas).
+**Contrat attendu par l'oracle**
+
+Fichier : `src/membres.ts`. Exports attendus (noms exacts) :
+- `interface Member` · `type RawMember` · `interface AppConfig`
+- `rawConfig` (la config, validée par `satisfies AppConfig`)
+- `isRawMember(x: unknown): x is RawMember`
+- `chargerMembres(): Promise<Member[]>`
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : les cinq champs de `Member` avec les bons primitifs ; `RawMember` expose `active` et pas `isActive` ; `isRawMember` prend `unknown` (jamais `any`) ; `chargerMembres` renvoie `Promise<Member[]>` ; `AppConfig["env"]` est l'union fermée ; `rawConfig.env` reste le literal `"development"` ; `membres[0].naem` est refusé.
+- **Runtime** : le guard accepte un membre brut complet, rejette `null`, les primitifs, un `age` en string, un objet sans `active`, un objet avec `isActive` à la place d'`active` ; `chargerMembres` ne garde que les formes conformes, remappe `active → isActive`, rejette une réponse non-tableau, appelle `http://localhost:3000/members` (`fetch` est stubbé par le test).
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

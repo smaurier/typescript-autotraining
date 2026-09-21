@@ -1,12 +1,24 @@
 # Lab 04 — Narrowing
 
 > **Outcome :** à la fin, tu sais modéliser l'état d'une `Invitation` TribuZen en union discriminée, narrower chaque variante avec la technique adaptée, et garantir l'exhaustivité d'un `switch` avec `never`.
-> **Vrai outil :** compilateur TypeScript (`tsc --noEmit`) + exécution `npx tsx invitation.ts`. Aucun harnais de test simulé.
-> **Feedback :** le coach valide en session — la vérité, c'est ce que dit le compilateur (`tsc`), pas un runner auto-correcteur.
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:04` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:04` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
 
 ---
 
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`04-unions-intersections-narrowing.md`](../../modules/04-unions-intersections-narrowing.md), **une fois**, puis on ferme :
+- §2.1 unions · §2.3 narrowing, le principe · §2.4 discriminated unions · §2.5 exhaustiveness avec `never` · §2.6 type guards (rappel)
+- §4 pièges #1 (discriminant non littéral), #3 (oublier le `default` avec `never`)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemples 1 et 2 = ce lab).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
+
 ## Énoncé
+
+> **Depuis le 21/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Le back-office TribuZen gère les invitations à rejoindre une tribu. Une invitation est **dans exactement un état** parmi :
 
@@ -69,103 +81,31 @@ Le lab est réussi quand `tsc` ne signale **aucune** erreur ET que retirer un `c
 
 ---
 
-## Corrigé complet commenté
+## Vérifier
 
-```typescript
-// ═══════════════════════════════════════════════════════════════
-//  invitation.ts — corrigé lab 04
-// ═══════════════════════════════════════════════════════════════
-
-// ─── TODO 1 — Union discriminée ─────────────────────────────────
-// Le tag `status` est un type LITTÉRAL distinct par variante.
-// Chaque variante porte EXACTEMENT les champs qui la concernent :
-// memberId n'existe que sur "accepted", expiredAt que sur "expired".
-export type Invitation =
-  | { status: "pending"; sentAt: Date }
-  | { status: "accepted"; memberId: string; acceptedAt: Date }
-  | { status: "expired"; expiredAt: Date };
-
-// ─── TODO 2 — Util d'exhaustivité ───────────────────────────────
-// Reçoit `never` : n'est atteignable QUE si tous les cas sont gérés.
-// Si une variante n'est pas traitée, l'appelant passe autre chose que
-// never → erreur de compilation. C'est le filet de sécurité.
-export function assertNever(x: never): never {
-  throw new Error(`Cas non géré : ${JSON.stringify(x)}`);
-}
-
-// ─── TODO 3 — Résumé exhaustif ──────────────────────────────────
-export function resumer(inv: Invitation): string {
-  switch (inv.status) {
-    case "pending":
-      // inv narrowé en { status: "pending"; sentAt: Date }
-      return `En attente depuis le ${inv.sentAt.toLocaleDateString("fr")}`;
-    case "accepted":
-      // inv narrowé → memberId GARANTI, pas de `?`, pas de crash
-      return `Acceptée par ${inv.memberId}`;
-    case "expired":
-      return `Expirée le ${inv.expiredAt.toLocaleDateString("fr")}`;
-    default:
-      // Ici inv est `never`. Retire un case ci-dessus → cette ligne
-      // ne compile plus. C'est la preuve de l'exhaustivité.
-      return assertNever(inv);
-  }
-}
-
-// ─── TODO 4 — Notification (union sur `kind`) ───────────────────
-export type Notification =
-  | { kind: "email"; to: string; subject: string; body: string }
-  | { kind: "sms"; phone: string; message: string }
-  | { kind: "push"; deviceId: string; title: string; body: string };
-
-export function envoyer(n: Notification): string {
-  switch (n.kind) {
-    case "email":
-      return `Email à ${n.to} — « ${n.subject} »`;
-    case "sms":
-      return `SMS au ${n.phone} — ${n.message}`;
-    case "push":
-      return `Push vers ${n.deviceId} — ${n.title}`;
-    default:
-      return assertNever(n);
-  }
-}
-
-// ─── TODO 5 — Type guard avec predicate `is` ────────────────────
-// Extract<Invitation, { status: "accepted" }> = la variante acceptée.
-// Le predicate permet à .filter() de narrower le type du tableau.
-export function estAccepted(
-  inv: Invitation,
-): inv is Extract<Invitation, { status: "accepted" }> {
-  return inv.status === "accepted";
-}
-
-// ─── Démonstration ──────────────────────────────────────────────
-const invitations: Invitation[] = [
-  { status: "pending", sentAt: new Date("2026-07-01") },
-  { status: "accepted", memberId: "usr-42", acceptedAt: new Date() },
-  { status: "expired", expiredAt: new Date("2026-06-20") },
-];
-
-for (const inv of invitations) {
-  console.log(resumer(inv));
-}
-
-// Grâce au predicate, `acceptees` est typé { status: "accepted"; ... }[]
-const acceptees = invitations.filter(estAccepted);
-console.log(acceptees.map((i) => i.memberId)); // ["usr-42"] — memberId lisible sans cast
-
-console.log(
-  envoyer({ kind: "push", deviceId: "dev-1", title: "Nouveau membre", body: "..." }),
-);
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:04         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:04       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-**Pourquoi ce corrigé est correct :**
-- Le tag `status` littéral relie chaque statut à ses champs — impossible de lire `memberId` sur une invitation `pending`.
-- `default: return assertNever(inv)` garantit qu'ajouter un statut (ex. `"revoked"`) sans le gérer casse la compilation dans `resumer` **et** partout ailleurs.
-- Le predicate `is` d'`estAccepted` fait que `.filter()` renvoie un tableau de la variante acceptée, donc `.map((i) => i.memberId)` compile sans `as` ni `!`.
-- `Notification` applique exactement le même pattern sur un autre tag (`kind`) : le pattern est réutilisable, pas propre à un cas.
+**Contrat attendu par l'oracle**
 
----
+Fichier : `src/invitation.ts` (le squelette TODO 1-5 est déjà dedans). Exports attendus :
+- `type Invitation` = union de **trois** variantes taguées par `status` : `pending { sentAt: Date }`, `accepted { memberId: string; acceptedAt: Date }`, `expired { expiredAt: Date }`
+- `assertNever(x: never): never` (fourni)
+- `resumer(inv: Invitation): string`
+- `type Notification` = union taguée par `kind` : `email { to, subject, body }`, `sms { phone, message }`, `push { deviceId, title, body }` (tous `string`)
+- `envoyer(n: Notification): string`
+- `estAccepted(inv: Invitation): inv is Extract<Invitation, { status: "accepted" }>`
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `Invitation` et `Notification` sont exactement ces unions ; après `inv.status === "accepted"`, `memberId` est `string` ; sur `pending`, lire `memberId` est refusé ; après les trois `case`, `inv` est `never` ; `assertNever` ne prend que `never` ; `filter(estAccepted)` renvoie la variante acceptée.
+- **Runtime** : le résumé d'une `pending` contient sa date d'envoi (`toLocaleDateString("fr")`), celui d'une `accepted` contient le `memberId`, celui d'une `expired` sa date ; les trois sont distincts et non vides ; `assertNever` lève en sérialisant le cas ; `envoyer` restitue destinataire+sujet, numéro+message, device+titre ; `estAccepted` filtre correctement.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

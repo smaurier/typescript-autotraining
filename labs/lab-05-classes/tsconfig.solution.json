@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": { "@lab/*": ["./solution/*"] }
+  },
+  "include": ["solution", "test"]
+}

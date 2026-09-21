@@ -1,10 +1,23 @@
 # Lab 05 — Classes et héritage
 
 > **Outcome :** à la fin, tu sais construire une hiérarchie d'entités typée — classe abstraite `BaseEntity`, sous-classes `Member`/`Family`, contrat `Serializable`, et un champ `#private` réellement confidentiel — vérifiée par le vrai compilateur TypeScript.
-> **Vrai outil :** TypeScript (`tsc` en `strict`) + exécution via `tsx`. Aucun harnais de test simulé.
-> **Feedback :** le coach valide en session (pas de test-runner auto-correcteur).
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:05` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:05` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
+
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`05-classes-et-heritage.md`](../../modules/05-classes-et-heritage.md), **une fois**, puis on ferme :
+- §2.2 visibilité TS · §2.3 `readonly` · §2.4 `#private` vs `private` · §2.5 paramètres de propriété · §2.7 `static`
+- §2.8 `extends` et `super` · §2.9 classes abstraites · §2.10 `implements` · §2.11 le type `this`
+- §4 pièges #1 (`private` ne protège pas à l'exécution), #2 (`super()` oublié ou tardif), #5 (instancier une abstraite), #6 (retourner la base au lieu de `this`)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemple 1 = ce lab).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
 
 ## Énoncé
+
+> **Depuis le 21/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Tu modélises le domaine de l'admin TribuZen. Pars d'un dossier vide et écris toi-même toute la hiérarchie. Contrainte : `tsc --strict --noImplicitOverride` doit passer **sans erreur ni `any`**, et un secret de session ne doit **jamais** fuiter dans un `JSON.stringify`.
 
@@ -40,139 +53,29 @@ Exécution : `npx tsx src/main.ts`. Type-check strict : `npx tsc --noEmit`.
 
 Contraintes à tenir : aucun `any` (sauf le `as any` de la preuve #6), `tsc --noEmit` vert, `super()` avant tout `this`.
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// ─── src/serializable.ts ─────────────────────────────────────────
-// Contrat commun : toute entité sait produire un objet JSON-safe.
-export interface Serializable {
-  toJSON(): Record<string, unknown>;
-}
-
-// ─── src/base-entity.ts ──────────────────────────────────────────
-import type { Serializable } from "./serializable";
-
-// abstract : non instanciable, sert de plan aux entités concrètes.
-export abstract class BaseEntity implements Serializable {
-  // Paramètres de propriété : déclarent + initialisent id/createdAt
-  // en readonly (une seule affectation, à la construction).
-  constructor(
-    public readonly id: string,
-    public readonly createdAt: Date,
-  ) {}
-
-  // Méthode concrète partagée par toutes les sous-classes.
-  ageMs(): number {
-    return Date.now() - this.createdAt.getTime();
-  }
-
-  // Méthode abstraite : chaque sous-classe DOIT la fournir.
-  abstract label(): string;
-
-  // toJSON partielle : les sous-classes complètent via super.toJSON().
-  toJSON(): Record<string, unknown> {
-    return { id: this.id, createdAt: this.createdAt.toISOString() };
-  }
-}
-
-// ─── src/member.ts ───────────────────────────────────────────────
-import { BaseEntity } from "./base-entity";
-
-export class Member extends BaseEntity {
-  // #private JS : confidentialité RÉELLE (jamais dans JSON, ni via as any).
-  #sessionToken: string;
-
-  constructor(
-    id: string,
-    createdAt: Date,
-    public name: string,
-    private email: string,      // private TS : encapsulation de confort
-    sessionToken: string,
-  ) {
-    super(id, createdAt);       // OBLIGATOIRE avant tout accès à this
-    this.#sessionToken = sessionToken;
-  }
-
-  // Fabrique statique : id + date cohérents à chaque création.
-  static create(name: string, email: string, token: string): Member {
-    return new Member(crypto.randomUUID(), new Date(), name, email, token);
-  }
-
-  // override (noImplicitOverride) : attrape les fautes de frappe.
-  override label(): string {
-    return this.name;
-  }
-
-  // Le #sessionToken n'est PAS ajouté → il ne fuite pas.
-  override toJSON(): Record<string, unknown> {
-    return { ...super.toJSON(), name: this.name, email: this.email };
-  }
-
-  // Seul endroit où l'on peut lire le champ #private.
-  hasValidSession(token: string): boolean {
-    return this.#sessionToken === token;
-  }
-}
-
-// ─── src/family.ts ───────────────────────────────────────────────
-import { BaseEntity } from "./base-entity";
-import type { Member } from "./member";
-
-export class Family extends BaseEntity {
-  constructor(
-    id: string,
-    createdAt: Date,
-    public labelText: string,
-    private memberIds: string[] = [],
-  ) {
-    super(id, createdAt);
-  }
-
-  override label(): string {
-    return this.labelText;
-  }
-
-  // Retourne `this` → chaînage typé même si on sous-classe Family plus tard.
-  addMember(m: Member): this {
-    this.memberIds.push(m.id);
-    return this;
-  }
-
-  override toJSON(): Record<string, unknown> {
-    return { ...super.toJSON(), label: this.labelText, memberIds: this.memberIds };
-  }
-}
-
-// ─── src/main.ts ─────────────────────────────────────────────────
-import { BaseEntity } from "./base-entity";
-import { Member } from "./member";
-import { Family } from "./family";
-
-const alice = Member.create("Alice", "alice@tribuzen.app", "tok-123");
-const smiths = new Family(crypto.randomUUID(), new Date(), "Famille Smith")
-  .addMember(alice); // chaînage grâce au retour `this`
-
-// Polymorphisme : traite toute entité via son contrat commun.
-function persist(entities: BaseEntity[]): void {
-  for (const e of entities) {
-    // label() = abstrait (résolu par le type concret), toJSON() = contrat.
-    console.log(e.label(), JSON.stringify(e));
-  }
-}
-
-persist([alice, smiths]);
-
-// Preuve de confidentialité : le token ne fuit nulle part.
-console.log(JSON.stringify(alice));         // ni "sessionToken" ni "tok-123"
-console.log((alice as any).sessionToken);   // undefined — # inaccessible
-console.log(alice.hasValidSession("tok-123")); // true
-
-// const e = new BaseEntity("x", new Date()); // ❌ abstraite : refusé par tsc
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:05         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:05       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-Attendu :
-- `npx tsc --noEmit` → aucune erreur.
-- `npx tsx src/main.ts` → les `JSON.stringify` n'affichent jamais `tok-123` ; `(alice as any).sessionToken` vaut `undefined` ; `hasValidSession("tok-123")` vaut `true`.
+**Contrat attendu par l'oracle**
+
+Quatre fichiers dans `src/` (créés vides, à toi de les remplir) : `serializable.ts`, `base-entity.ts`, `member.ts`, `family.ts`. `tsconfig` en `strict` + `noImplicitOverride`. Exports attendus :
+- `interface Serializable { toJSON(): Record<string, unknown> }`
+- `abstract class BaseEntity implements Serializable` : `readonly id: string`, `readonly createdAt: Date` (paramètres de propriété), `ageMs(): number`, `abstract label(): string`, `toJSON()` partielle
+- `class Member extends BaseEntity` : `public name`, `private email`, `#sessionToken` ; `static create(name: string, email: string, token: string): Member` ; `override label()` ; `override toJSON()` sans le token ; `hasValidSession(token: string): boolean`
+- `class Family extends BaseEntity` : `new Family(id: string, createdAt: Date, label: string)` ; `addMember(m: Member): this` ; `override label()` ; `override toJSON()` avec `label` et `memberIds`
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `Serializable` a exactement ce contrat ; `new BaseEntity(...)` est refusé (abstraite) ; `Member` et `Family` sont des `BaseEntity` et des `Serializable` ; `id`/`createdAt` refusent l'affectation ; `member.email` et `member.sessionToken` sont refusés ; `addMember` renvoie `this` (une sous-classe `VipFamily` récupère `VipFamily`, pas `Family`).
+- **Runtime** : `Member.create` donne un id string unique, une `Date`, `label() === name` ; `toJSON()` = `{ id, createdAt ISO, name, email }` exactement ; `JSON.stringify(member)` ne contient ni le token ni le mot « token » ; `(member as any).sessionToken` est `undefined` ; `hasValidSession` vrai/faux ; `ageMs() >= 0` ; `addMember` renvoie la même instance et chaîne ; `Family.toJSON()` = `{ id, createdAt ISO, label, memberIds }` ; un `BaseEntity[]` mêlant les deux classes résout `label()` par le type concret.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

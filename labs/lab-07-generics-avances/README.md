@@ -1,21 +1,23 @@
 # Lab 07 — Generics avancés
 
 > **Outcome :** à la fin, tu sais écrire `pick<T, K>` maison, un `QueryBuilder<T>` générique verrouillé par `NoInfer`, et repérer/retirer un generic superflu — en TypeScript strict, avec le vrai compilateur.
-> **Vrai outil :** `tsc` (TypeScript ^5.4, mode `strict`) + `tsx` pour exécuter. Aucun harnais de test simulé.
-> **Feedback :** le coach valide en session. Le juge de vérité, c'est `tsc --noEmit` : les erreurs de type attendues DOIVENT apparaître, les usages corrects DOIVENT compiler.
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:07` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:07` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
 
-## Prérequis outil
+## Lire avant (une lecture bornée, pas le module entier)
 
-```bash
-# depuis un dossier vide de travail (hors repo de cours, ou dans un scratch)
-npm init -y
-npm i -D typescript@^5.4 tsx
-npx tsc --init --strict
-```
+Module [`07-generics-avances.md`](../../modules/07-generics-avances.md), **une fois**, puis on ferme :
+- §2.3 generics multiples liés · §2.4-2.5 `keyof`, accès indexé, `extends keyof` (le cœur de `pick`)
+- §2.6 factories et builders · §2.8 `NoInfer` · §2.10 quand un generic est de trop
+- §4 pièges #2 (`K extends keyof T` vs `string[]`), #3 (generic fantôme), #4 (generic qui ne lie rien), #5 (`NoInfer` oublié)
 
-> `NoInfer` exige **TypeScript ≥ 5.4**. Vérifie : `npx tsc --version`.
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemples 1 et 2 = ce lab, résolu).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
 
 ## Énoncé
+
+> **Depuis le 22/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Tu construis la couche « accès aux données typé » de l'admin TribuZen dans un seul fichier `generics.ts`. Trois tâches, du plus guidé au plus autonome. Tu écris tout toi-même — pas de trous à remplir.
 
@@ -53,101 +55,30 @@ function b<T>(x: T): T { return x; }                       // ?
 function c<T>(json: string): T { return JSON.parse(json); } // ?
 ```
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// generics.ts — lancer avec : npx tsx generics.ts   (et vérifier : npx tsc --noEmit)
-
-export interface Family {
-  id: string;
-  nom: string;
-  ville: string;
-  membreCount: number;
-  createdAt: string;
-}
-
-const familles: Family[] = [
-  { id: 'f1', nom: 'Durand', ville: 'Lyon', membreCount: 4, createdAt: '2026-01-01' },
-  { id: 'f2', nom: 'Martin', ville: 'Paris', membreCount: 2, createdAt: '2026-02-01' },
-  { id: 'f3', nom: 'Bernard', ville: 'Lyon', membreCount: 5, createdAt: '2026-03-01' },
-];
-
-// ─── Étape 1 : pick maison ───────────────────────────────────────
-// T = objet source ; K = clés voulues, bornées par keyof T (sinon on pourrait
-// demander une clé qui n'existe pas). Retour Pick<T, K> = objet réduit à K.
-function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
-  const out = {} as Pick<T, K>;   // objet vide qu'on remplit ; assertion vers le type final
-  for (const k of keys) {
-    out[k] = obj[k];              // obj[k]: T[K], out[k] attend T[K] -> OK
-  }
-  return out;
-}
-
-const carte = pick(familles[0], ['nom', 'ville']);
-// K inféré = "nom" | "ville" -> type: { nom: string; ville: string }
-console.log(carte.nom, carte.ville);
-// @ts-expect-error "createdAt" absent du type réduit
-console.log(carte.createdAt);
-// @ts-expect-error "zzz" n'est pas une clé de Family
-pick(familles[0], ['zzz']);
-
-// ─── Étapes 2 & 3 : QueryBuilder + NoInfer ───────────────────────
-class QueryBuilder<T> {
-  private predicats: Array<(x: T) => boolean> = [];
-
-  // K borné par keyof T ; valeur = NoInfer<T[K]> : la valeur ne peut plus servir
-  // de source d'inférence, T[K] est décidé par la clé seule. Comparaison type-safe.
-  where<K extends keyof T>(cle: K, valeur: NoInfer<T[K]>): this {
-    this.predicats.push((x) => x[cle] === valeur);
-    return this;                 // `this` typé -> chaînage fluide
-  }
-
-  filter(fn: (x: T) => boolean): this {
-    this.predicats.push(fn);
-    return this;
-  }
-
-  run(source: readonly T[]): T[] {
-    return source.filter((x) => this.predicats.every((p) => p(x)));
-  }
-}
-
-const grandesLyonnaises = new QueryBuilder<Family>()
-  .where('ville', 'Lyon')          // valeur: string (= Family['ville'])
-  .filter((f) => f.membreCount >= 4)
-  .run(familles);
-console.log(grandesLyonnaises.map((f) => f.nom)); // ["Durand", "Bernard"]
-
-// @ts-expect-error 'quatre' n'est pas assignable à number
-new QueryBuilder<Family>().where('membreCount', 'quatre');
-
-// Démonstration NoInfer sur une valeur par défaut.
-// `options: readonly T[]` + `as const` sur l'appel : sans le `as const`, les
-// littéraux d'un tableau nu s'élargissent en `string`, T = string, et 'auto'
-// passerait (le @ts-expect-error deviendrait inutilisé → TS2578).
-function withDefault<T>(options: readonly T[], defaut: NoInfer<T>): T {
-  return options.includes(defaut) ? defaut : options[0];
-}
-const theme = withDefault(['sombre', 'clair'] as const, 'sombre'); // OK
-console.log(theme);
-// @ts-expect-error 'auto' ∉ "sombre" | "clair" grâce à NoInfer + as const
-withDefault(['sombre', 'clair'] as const, 'auto');
-
-// ─── Étape 4 : chasse au generic de trop ─────────────────────────
-// a) generic INUTILE : T n'apparaît qu'une fois, le retour ne dépend pas de T.
-function longueur(x: unknown[]): number { return x.length; }
-
-// b) generic UTILE : T lie l'entrée et le retour (identity). On le garde.
-function identity<T>(x: T): T { return x; }
-
-// c) generic FANTÔME : T n'est déduit d'aucun argument, c'est un any déguisé.
-//    Version honnête : renvoyer unknown et laisser l'appelant valider.
-function parseJson(json: string): unknown { return JSON.parse(json); }
-
-console.log(longueur([1, 2, 3]), identity('ok'), parseJson('{"a":1}'));
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:07         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:07       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-> **Note sur `@ts-expect-error` :** ce n'est PAS un test-runner. C'est une directive du compilateur : si la ligne suivante ne produit PAS l'erreur attendue, `tsc` échoue. C'est exactement le feedback qu'on veut — le type checker devient le juge. Lance `npx tsc --noEmit` : zéro sortie = tout est conforme.
+**Contrat attendu par l'oracle**
+
+Fichier : `src/generics.ts` (`Family` et `familles` fournis). Exports attendus :
+- `pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K>`
+- `class QueryBuilder<T>` : `where<K extends keyof T>(cle: K, valeur: NoInfer<T[K]>): this` · `filter(fn: (x: T) => boolean): this` · `run(source: readonly T[]): T[]` (prédicats combinés en ET)
+- `withDefault<T>(options: readonly T[], defaut: NoInfer<T>): T` (le défaut s'il est dans les options, sinon la première)
+- Étape 4, sous ces noms : `longueur(x: unknown[]): number` (sans generic) · `identity<T>(x: T): T` (generic gardé) · `parseJson(json: string): unknown` (sans generic fantôme)
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `pick(familles[0], ["nom", "ville"])` est exactement `{ nom: string; ville: string }`, `createdAt` et une clé inconnue sont refusés ; `where("membreCount", "quatre")` et `where("pays", …)` sont refusés ; `where`/`filter` renvoient `QueryBuilder<Family>` (chaînage `this`) ; `withDefault(["sombre", "clair"] as const, "sombre")` est `"sombre" | "clair"` et `"auto"` est refusé (c'est `NoInfer` qui l'empêche) ; `parseJson` renvoie `unknown`.
+- **Runtime** : `pick` ne garde que les clés demandées et ne mute pas ; le builder `where("ville","Lyon").filter(≥ 4)` renvoie Durand et Bernard ; sans prédicat il renvoie tout ; `withDefault` ; `longueur`/`identity`/`parseJson`.
+- **Lecture (correcteur)** : aucun paramètre de type ne subsiste sur `longueur` ni `parseJson`, et chaque choix de l'étape 4 est justifié en une phrase de commentaire.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

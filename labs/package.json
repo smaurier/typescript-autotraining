@@ -7,19 +7,28 @@
   "scripts": {
     "lab:01": "vitest run --typecheck --root lab-01-premiers-types",
     "solution:01": "vitest run --typecheck --root lab-01-premiers-types --config vitest.solution.config.ts",
+    "check:01": "tsc --noEmit -p lab-01-premiers-types",
     "lab:02": "vitest run --typecheck --root lab-02-fonctions",
     "solution:02": "vitest run --typecheck --root lab-02-fonctions --config vitest.solution.config.ts",
+    "check:02": "tsc --noEmit -p lab-02-fonctions",
     "lab:03": "vitest run --typecheck --root lab-03-objets-interfaces",
     "solution:03": "vitest run --typecheck --root lab-03-objets-interfaces --config vitest.solution.config.ts",
+    "check:03": "tsc --noEmit -p lab-03-objets-interfaces",
     "lab:04": "vitest run --typecheck --root lab-04-narrowing",
     "solution:04": "vitest run --typecheck --root lab-04-narrowing --config vitest.solution.config.ts",
+    "check:04": "tsc --noEmit -p lab-04-narrowing",
     "lab:05": "vitest run --typecheck --root lab-05-classes",
     "solution:05": "vitest run --typecheck --root lab-05-classes --config vitest.solution.config.ts",
-    "check:01": "tsc --noEmit -p lab-01-premiers-types",
-    "check:02": "tsc --noEmit -p lab-02-fonctions",
-    "check:03": "tsc --noEmit -p lab-03-objets-interfaces",
-    "check:04": "tsc --noEmit -p lab-04-narrowing",
-    "check:05": "tsc --noEmit -p lab-05-classes"
+    "check:05": "tsc --noEmit -p lab-05-classes",
+    "lab:06": "vitest run --typecheck --root lab-06-generics-base",
+    "solution:06": "vitest run --typecheck --root lab-06-generics-base --config vitest.solution.config.ts",
+    "check:06": "tsc --noEmit -p lab-06-generics-base",
+    "lab:07": "vitest run --typecheck --root lab-07-generics-avances",
+    "solution:07": "vitest run --typecheck --root lab-07-generics-avances --config vitest.solution.config.ts",
+    "check:07": "tsc --noEmit -p lab-07-generics-avances",
+    "lab:08": "vitest run --typecheck --root lab-08-enums-tuples",
+    "solution:08": "vitest run --typecheck --root lab-08-enums-tuples --config vitest.solution.config.ts",
+    "check:08": "tsc --noEmit -p lab-08-enums-tuples"
   },
   "engines": {
     "node": ">=22.12.0"

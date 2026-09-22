@@ -1,10 +1,23 @@
 # Lab 08 — Enums, tuples & types spéciaux
 
 > **Outcome :** à la fin, tu sais convertir un `enum` en `as const` + union de littéraux, typer une position en `readonly` labeled tuple, et écrire un helper variadic — dans la vraie source de vérité TribuZen.
-> **Vrai outil :** le compilateur TypeScript (`tsc --noEmit`) sur `tribuzen/types/index.ts` et `tribuzen/lib/geo.ts`. Pas de harnais de test simulé.
-> **Feedback :** le coach valide en session (pas de test-runner auto-correcteur).
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:08` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:08` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
+
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`08-enums-tuples-types-speciaux.md`](../../modules/08-enums-tuples-types-speciaux.md), **une fois**, puis on ferme :
+- §2.2 enums string · §2.4 les pièges des enums · §2.5 `as const` + union de littéraux
+- §2.6 tuples · §2.7 variadic tuples · §2.8 `readonly` tuples
+- §4 pièges #1 (« enum = plus propre »), #2 (`const enum` sous Vite/esbuild), #5 (perdre l'arité avec un rest non générique)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemples 1 et 2 = ce lab, résolu).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
 
 ## Énoncé
+
+> **Depuis le 22/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Un collègue a poussé un commit qui remplace l'union `MemberRole` par un `enum` string, et a ajouté un fichier `geo.ts` où les positions sont typées `number[]` (pas de garantie sur lat/lng). Ta mission : revenir à un typage sain, sans perdre la capacité d'itérer sur les rôles.
 
@@ -41,99 +54,27 @@ Contraintes :
 5. Prouve à toi-même l'exhaustivité : écris `labelRole` avec un `switch` et un `const _: never = role` dans le `default`. Ajoute mentalement un 4e rôle et vérifie que TS proteste.
 6. Lance `npx tsc --noEmit` : zéro erreur, zéro enum restant.
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// ═══════════════════════════════════════════════════════════════
-// tribuzen/types/index.ts
-// ═══════════════════════════════════════════════════════════════
-
-// Objet figé : `as const` fige les valeurs en littéraux + readonly.
-// On le garde comme VALEUR pour pouvoir itérer au runtime (select, seed).
-export const MEMBER_ROLE = {
-  Admin: "admin",
-  Parent: "parent",
-  Enfant: "enfant",
-} as const;
-
-// Type union DÉRIVÉ de l'objet — une seule source, pas de duplication.
-// keyof typeof MEMBER_ROLE => "Admin" | "Parent" | "Enfant"
-// l'accès indexé [...]      => "admin" | "parent" | "enfant"
-export type MemberRole = typeof MEMBER_ROLE[keyof typeof MEMBER_ROLE];
-
-// Pourquoi PAS un enum ici :
-// - enum génère un objet runtime (coût bundle) ;
-// - enum est INTERDIT sous erasableSyntaxOnly (TS 5.8) ;
-// - une chaîne "admin" venue de l'API est directement un MemberRole,
-//   pas besoin de MemberRole.Admin.
-
-// Valide une chaîne externe (API, formulaire) et la restreint au type.
-export function roleFromApi(raw: string): MemberRole | null {
-  const valeurs = Object.values(MEMBER_ROLE) as readonly string[];
-  return valeurs.includes(raw) ? (raw as MemberRole) : null;
-}
-
-// Exhaustivité prouvée par le compilateur : si on ajoute un rôle
-// sans traiter son case, `role` n'est plus `never` et TS refuse.
-export function labelRole(role: MemberRole): string {
-  switch (role) {
-    case "admin":
-      return "Administrateur";
-    case "parent":
-      return "Parent";
-    case "enfant":
-      return "Enfant";
-    default: {
-      const _exhaustif: never = role; // garde-fou d'exhaustivité
-      return _exhaustif;
-    }
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// tribuzen/lib/geo.ts
-// ═══════════════════════════════════════════════════════════════
-
-// readonly labeled tuple :
-// - [lat, lng] : arité fixée à 2, ordre garanti ;
-// - labels lat/lng : visibles dans l'IDE et les messages d'erreur ;
-// - readonly : une coordonnée enregistrée ne se mute pas.
-export type LatLng = readonly [lat: number, lng: number];
-
-export function distanceKm(a: LatLng, b: LatLng): number {
-  const [latA, lngA] = a; // destructuring typé (number, number)
-  const [latB, lngB] = b;
-  const R = 6371; // rayon terrestre (km)
-  const dLat = ((latB - latA) * Math.PI) / 180;
-  const dLng = ((lngB - lngA) * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((latA * Math.PI) / 180) *
-      Math.cos((latB * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-// Helper VARIADIC : le rest générique ...etapes: T préserve l'arité.
-// Le retour [origine: LatLng, ...T] connaît le nombre EXACT d'étapes,
-// contrairement à LatLng[] qui aurait effacé cette information.
-export function itineraire<T extends readonly LatLng[]>(
-  origine: LatLng,
-  ...etapes: T
-): [origine: LatLng, ...T] {
-  return [origine, ...etapes];
-}
-
-// ── Vérification manuelle (à commenter/supprimer après) ──────────
-const maison: LatLng = [45.7640, 4.8357]; // Lyon
-const trajet = itineraire(maison, [45.75, 4.85], [45.76, 4.84]);
-// type de `trajet` : [origine: LatLng, LatLng, LatLng] — arité = 3
-console.log(distanceKm(maison, trajet[1]).toFixed(2), "km");
-console.log(Object.values(MEMBER_ROLE)); // ["admin","parent","enfant"]
-console.log(roleFromApi("admin"), roleFromApi("root")); // "admin"  null
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:08         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:08       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-Attendu : `npx tsc --noEmit` passe sans erreur, et un `grep -R "enum" tribuzen/` ne retourne plus rien.
+**Contrat attendu par l'oracle**
+
+Deux fichiers dans `src/` (l'état fautif est déjà dedans) : `types.ts` et `geo.ts`. Le `tsconfig` du lab impose `isolatedModules` + `erasableSyntaxOnly` : **tout `enum` restant est une erreur de compilation**, c'est l'oracle de la contrainte 1. Exports attendus :
+- `types.ts` : `MEMBER_ROLE` (objet `as const` avec les clés `Admin`/`Parent`/`Enfant` et les valeurs `"admin"`/`"parent"`/`"enfant"`) · `type MemberRole` dérivé de l'objet · `roleFromApi(raw: string): MemberRole | null` · `labelRole(role: MemberRole): string` (exhaustif, `never` dans le `default`)
+- `geo.ts` : `type LatLng = readonly [lat: number, lng: number]` · `distanceKm(a: LatLng, b: LatLng): number` (haversine, km) · `itineraire<T extends readonly LatLng[]>(origine: LatLng, ...etapes: T): [origine: LatLng, ...T]`
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `MEMBER_ROLE.Admin` est le literal `"admin"` et l'objet refuse la mutation ; `MemberRole` est l'union des trois valeurs ; une chaîne `"admin"` est directement un `MemberRole` ; `labelRole("root")` refusé ; `LatLng` est exactement `readonly [lat: number, lng: number]`, refuse `p[0] = 0`, trois nombres et un `number[]` ; `itineraire(maison, a, b)` est `[origine: LatLng, LatLng, LatLng]` avec `length: 3`, `itineraire(maison)` est `[origine: LatLng]`, une étape `[1, 2, 3]` est refusée.
+- **Runtime** : `Object.values(MEMBER_ROLE)` = `["admin", "parent", "enfant"]` ; `roleFromApi` accepte `"admin"`/`"enfant"`, rejette `"root"` et `"Admin"` ; trois libellés distincts ; Lyon → Paris entre 385 et 400 km, symétrique, 0 sur soi-même ; `itineraire` renvoie `[origine, ...etapes]`.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

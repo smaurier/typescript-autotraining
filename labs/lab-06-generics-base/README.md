@@ -1,10 +1,23 @@
 # Lab 06 — Generics fondamentaux
 
 > **Outcome :** à la fin, tu sais rendre génériques les trois briques de la couche data TribuZen — `ApiResponse<T>`, `getById<T extends BaseEntity>` et `Repository<T>` — avec inférence, contrainte `extends` et accès `keyof`/`T[K]`.
-> **Vrai outil :** TypeScript (`tsc --noEmit` pour le type-check, `tsx` pour l'exécution). Aucun harnais de test simulé.
-> **Feedback :** le coach valide en session — pas de test-runner auto-correcteur.
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict`) + vitest 5 en mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:06` depuis `00-typescript/labs` — RED tant que `src/` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche (GO/FIX/STOP). Personne ne « valide en session ». La solution de référence vit dans `solution/` : `npm run solution:06` prouve que l'oracle est juste, et tu ne l'ouvres pas avant ton GREEN.
+
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`06-generics-fondamentaux.md`](../../modules/06-generics-fondamentaux.md), **une fois**, puis on ferme :
+- §2.1 le problème que les generics résolvent · §2.2 fonctions génériques et inférence · §2.3 contraintes `extends`
+- §2.5 generics sur interfaces et classes · §2.6 `keyof` et accès indexé `T[K]`
+- §4 pièges #1 (`any` à la place d'un generic), #2 (`extends` héritage vs contrainte), #3 (contrainte manquante), #5 (type explicite que l'inférence donnait déjà)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (exemples 1 et 2 = ce lab, résolu).
+
+Ensuite : page blanche. Le module ne se rouvre qu'en dépannage ciblé, sur la section que le test qui échoue désigne.
 
 ## Énoncé
+
+> **Depuis le 22/09/2026, le dossier du lab existe déjà** (`src/`, `test/`, `tsconfig.json`). Tu écris dans `src/`, tu ne fais pas de `npm init` : les commandes de création de dossier ci-dessous décrivent l'ancien format et ne sont plus à exécuter. Le contrat exact attendu par l'oracle est dans **§ Vérifier**.
 
 Tu pars d'un fichier `data.ts` qui contient la duplication du cas concret du module : un type de réponse par entité, un helper `getById` par entité. Objectif : tout **dégénériciser** en trois briques réutilisables, sans perdre une once de typage.
 
@@ -58,101 +71,30 @@ npx tsc --init --strict
 5. **`keyof` bonus** — Ajoute `getProp<K extends keyof T>(id: string, key: K): T[K] | undefined` au repository : récupère l'entité puis retourne `entity[key]`.
 6. **Vérifie** — `npx tsc --noEmit` doit passer sans erreur. Exécute un petit scénario avec `npx tsx data.ts` (crée un membre, mets-le à jour, relis-le).
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// data.ts — CORRIGÉ
-// ── Contrat minimal partagé par toutes les entités ────────────────
-interface BaseEntity {
-  id: string; // la seule chose que getById / Repository exigent
-}
-
-interface Member extends BaseEntity {
-  name: string;
-  role: "admin" | "mod" | "member";
-}
-interface Family extends BaseEntity {
-  label: string;
-}
-
-// ── Étape 2 : enveloppe API générique (remplace *Response) ─────────
-// Un seul type. data varie par T, error est commun.
-interface ApiResponse<T> {
-  data: T | null;
-  error: string | null;
-}
-
-// Constructeurs typés : T est inféré depuis l'argument de ok()
-function ok<T>(data: T): ApiResponse<T> {
-  return { data, error: null };
-}
-// fail n'a pas d'argument de type T à inférer → on le précise à l'appel
-function fail<T>(message: string): ApiResponse<T> {
-  return { data: null, error: message };
-}
-
-// ── Étape 3 : accès générique contraint (remplace get*ById) ───────
-// <T extends BaseEntity> garantit item.id ; le retour reste T précis.
-function getById<T extends BaseEntity>(items: T[], id: string): T | undefined {
-  return items.find((item) => item.id === id);
-}
-
-// ── Étape 4 + 5 : dépôt CRUD générique ────────────────────────────
-class Repository<T extends BaseEntity> {
-  private store = new Map<string, T>();
-
-  findAll(): T[] {
-    return [...this.store.values()];
-  }
-
-  findById(id: string): T | undefined {
-    return this.store.get(id);
-  }
-
-  // Omit<T, "id"> : on ne fournit PAS l'id, il est généré ici
-  create(input: Omit<T, "id">): T {
-    const entity = { ...input, id: crypto.randomUUID() } as T;
-    this.store.set(entity.id, entity);
-    return entity;
-  }
-
-  // Partial<T> : on ne modifie que certains champs ; id reste stable
-  update(id: string, patch: Partial<T>): T | undefined {
-    const existing = this.store.get(id);
-    if (!existing) return undefined;
-    const updated = { ...existing, ...patch, id };
-    this.store.set(id, updated);
-    return updated;
-  }
-
-  remove(id: string): boolean {
-    return this.store.delete(id);
-  }
-
-  // Étape 5 : keyof + accès indexé → lecture d'une propriété type-safe
-  // K est une clé valide de T ; le retour T[K] s'adapte à la clé.
-  getProp<K extends keyof T>(id: string, key: K): T[K] | undefined {
-    return this.store.get(id)?.[key];
-  }
-}
-
-// ── Scénario de démonstration (npx tsx data.ts) ───────────────────
-const memberRepo = new Repository<Member>();
-const created = memberRepo.create({ name: "Cléo", role: "mod" });
-// create attend Omit<Member, "id"> = { name, role } — pas d'id à donner
-
-memberRepo.update(created.id, { role: "admin" }); // Partial<Member> : role seul
-
-const found = getById(memberRepo.findAll(), created.id); // found : Member | undefined
-const res: ApiResponse<Member> = found ? ok(found) : fail("Membre introuvable");
-
-if (res.data) {
-  console.log(res.data.name);                 // "Cléo"
-  console.log(memberRepo.getProp(created.id, "role")); // "admin" — typé string-union
-}
+```bash
+cd 00-typescript/labs
+npm install            # une fois (vitest 5, TypeScript 7, vite)
+npm run lab:06         # oracle sur TON code : RED → tu continues, GREEN → correcteur-labs
+npm run check:06       # tsc strict seul, si tu veux isoler une erreur de compilation
 ```
 
-Points de contrôle : `npx tsc --noEmit` passe ; retirer `extends BaseEntity` de `getById` fait échouer `item.id` ; passer une clé inexistante à `getProp` (`"email"`) est refusé à la compilation.
+**Contrat attendu par l'oracle**
+
+Fichier : `src/data.ts` (le point de départ dupliqué est déjà dedans, à refactorer). Exports attendus :
+- `interface BaseEntity { id: string }` · `Member extends BaseEntity` · `Family extends BaseEntity`
+- `interface ApiResponse<T> { data: T | null; error: string | null }` · `ok<T>(data: T): ApiResponse<T>` · `fail<T>(message: string): ApiResponse<T>`
+- `getById<T extends BaseEntity>(items: T[], id: string): T | undefined`
+- `class Repository<T extends BaseEntity>` : `findAll(): T[]` · `findById(id): T | undefined` · `create(input: Omit<T, "id">): T` (id généré) · `update(id, patch: Partial<T>): T | undefined` · `remove(id): boolean` · `getProp<K extends keyof T>(id, key: K): T[K] | undefined`
+- `MemberResponse`, `FamilyResponse`, `getMemberById`, `getFamilyById` doivent **disparaître**.
+
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
+
+- **Types** : `ApiResponse<Member>` et `ApiResponse<Family>` ont exactement la forme attendue ; `ok(m)` infère `ApiResponse<Member>` ; `getById` renvoie `T | undefined` précis et refuse un objet sans `id` ; `create` refuse un `id` fourni ; `getProp(id, "role")` renvoie `Member["role"] | undefined` et `"email"` est refusé ; `Repository<{ name: string }>` est refusé.
+- **Runtime** : `ok`/`fail` produisent l'enveloppe ; `getById` retrouve membres et familles avec la même fonction ; `create` génère un id string unique ; `update` fusionne et conserve l'id, renvoie `undefined` sur inconnu ; `remove` true puis false ; `getProp` lit la bonne propriété.
+
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un échec : ton typage est trop permissif à cet endroit. Corrige la signature, pas le test.
 
 ## Variante J+30 (fading)
 

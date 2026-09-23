@@ -9,7 +9,7 @@ Formation complete TypeScript couvrant les types primitifs, generics, conditiona
 <!-- labs-gestes:start -->
 ## Labs — refonte du 22/09/2026 : un lab = un geste métier complet
 
-> Règle qualité 5 du parcours : chaque lab est **un geste métier complet**, sous deux formes — **Zéro** (construire de zéro un artefact réel et entier) ou **Intervention** (modifier de l'existant avec consommateurs, findings avant code, non-régression). Un lab n'entre en file qu'avec un **oracle exécutable** (`src/` starter · `test/` · `solution/` séparée). Les labs historiques de ce cours (un concept par lab, sans oracle) restent dans `labs/` jusqu'à remplacement et **ne sont plus la file**. Cible détaillée : [`docs/gestes-complets.md`](../docs/gestes-complets.md). État : **12/13 avec oracle**.
+> Règle qualité 5 du parcours : chaque lab est **un geste métier complet**, sous deux formes — **Zéro** (construire de zéro un artefact réel et entier) ou **Intervention** (modifier de l'existant avec consommateurs, findings avant code, non-régression). Un lab n'entre en file qu'avec un **oracle exécutable** (`src/` starter · `test/` · `solution/` séparée). Les labs historiques de ce cours (un concept par lab, sans oracle) restent dans `labs/` jusqu'à remplacement et **ne sont plus la file**. Cible détaillée : [`docs/gestes-complets.md`](../docs/gestes-complets.md). État : **13/13 avec oracle**.
 
 | # | Lab | Forme | Geste | Oracle |
 |---|-----|-------|-------|--------|
@@ -25,7 +25,7 @@ Formation complete TypeScript couvrant les types primitifs, generics, conditiona
 | 10 | [`lab-10-utility-types`](labs/lab-10-utility-types/README.md) | Zéro | DTO dérivés du domaine avec Partial/Pick/Omit/ReturnType | ✅ vérifié |
 | 11 | [`lab-11-durcir-une-base-any`](labs/lab-11-durcir-une-base-any/README.md) | Intervention | une base héritée en any à durcir sans casser ses appels (fusion 11-13) | ✅ vérifié |
 | 12 | [`lab-14-decorateurs`](labs/lab-14-decorateurs/README.md) | Zéro | checkpoint juste avant NestJS — décorateur standard + mini-DI legacy (reflect-metadata) | ✅ vérifié |
-| 13 | `lab-19-paquet-domaine` | Zéro | publier @tribuzen/domain consommé par le front et l'API | · à écrire |
+| 13 | [`lab-19-projet-final`](labs/lab-19-projet-final/README.md) | Zéro | publier @tribuzen/domain consommé par le front et l'API | ✅ vérifié |
 
 <!-- labs-gestes:end -->
 

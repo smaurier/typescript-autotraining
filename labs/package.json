@@ -43,7 +43,10 @@
     "check:14a": "tsc --noEmit -p lab-14-decorateurs/partie-a",
     "lab:14b": "node lab-14-decorateurs/partie-b/run-oracle.mjs lab",
     "solution:14b": "node lab-14-decorateurs/partie-b/run-oracle.mjs solution",
-    "check:14b": "tsc --noEmit -p lab-14-decorateurs/partie-b"
+    "check:14b": "tsc --noEmit -p lab-14-decorateurs/partie-b",
+    "lab:19": "vitest run --typecheck --root lab-19-projet-final",
+    "solution:19": "vitest run --typecheck --root lab-19-projet-final --config vitest.solution.config.ts",
+    "check:19": "tsc --noEmit -p lab-19-projet-final"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -53,6 +56,7 @@
     "reflect-metadata": "^0.2.2",
     "typescript": "7.0.2",
     "vite": "^8.3.0",
-    "vitest": "5.0.1"
+    "vitest": "5.0.1",
+    "zod": "^4.6.5"
   }
 }

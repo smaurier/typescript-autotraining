@@ -34,7 +34,10 @@
     "check:09": "tsc --noEmit -p lab-09-modules",
     "lab:10": "vitest run --typecheck --root lab-10-utility-types",
     "solution:10": "vitest run --typecheck --root lab-10-utility-types --config vitest.solution.config.ts",
-    "check:10": "tsc --noEmit -p lab-10-utility-types"
+    "check:10": "tsc --noEmit -p lab-10-utility-types",
+    "lab:11": "vitest run --typecheck --root lab-11-durcir-une-base-any",
+    "solution:11": "vitest run --typecheck --root lab-11-durcir-une-base-any --config vitest.solution.config.ts",
+    "check:11": "tsc --noEmit -p lab-11-durcir-une-base-any"
   },
   "engines": {
     "node": ">=22.12.0"

@@ -37,13 +37,20 @@
     "check:10": "tsc --noEmit -p lab-10-utility-types",
     "lab:11": "vitest run --typecheck --root lab-11-durcir-une-base-any",
     "solution:11": "vitest run --typecheck --root lab-11-durcir-une-base-any --config vitest.solution.config.ts",
-    "check:11": "tsc --noEmit -p lab-11-durcir-une-base-any"
+    "check:11": "tsc --noEmit -p lab-11-durcir-une-base-any",
+    "lab:14a": "node lab-14-decorateurs/partie-a/run-oracle.mjs lab",
+    "solution:14a": "node lab-14-decorateurs/partie-a/run-oracle.mjs solution",
+    "check:14a": "tsc --noEmit -p lab-14-decorateurs/partie-a",
+    "lab:14b": "node lab-14-decorateurs/partie-b/run-oracle.mjs lab",
+    "solution:14b": "node lab-14-decorateurs/partie-b/run-oracle.mjs solution",
+    "check:14b": "tsc --noEmit -p lab-14-decorateurs/partie-b"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "reflect-metadata": "^0.2.2",
     "typescript": "7.0.2",
     "vite": "^8.3.0",
     "vitest": "5.0.1"

@@ -28,7 +28,10 @@
     "check:07": "tsc --noEmit -p lab-07-generics-avances",
     "lab:08": "vitest run --typecheck --root lab-08-enums-tuples",
     "solution:08": "vitest run --typecheck --root lab-08-enums-tuples --config vitest.solution.config.ts",
-    "check:08": "tsc --noEmit -p lab-08-enums-tuples"
+    "check:08": "tsc --noEmit -p lab-08-enums-tuples",
+    "lab:09": "vitest run --typecheck --root lab-09-modules",
+    "solution:09": "vitest run --typecheck --root lab-09-modules --config vitest.solution.config.ts",
+    "check:09": "tsc --noEmit -p lab-09-modules"
   },
   "engines": {
     "node": ">=22.12.0"

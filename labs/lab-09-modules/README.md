@@ -1,177 +1,100 @@
 # Lab 09 — Modules ES et résolution
 
-> **Outcome :** à la fin, tu sais organiser un dossier `types/` en barrel type-only, activer `verbatimModuleSyntax` et poser un alias `@/` résolu de bout en bout (tsconfig + Vite).
-> **Vrai outil :** `tsc` (TypeScript ^5) + Vite. Pas de harnais simulé — tu observes le vrai JavaScript émis pour prouver l'effacement des types.
-> **Feedback :** le coach valide en session (pas de test-runner auto-correcteur).
+> **Outcome :** à la fin, tu sais construire un barrel `types/index.ts` qui mélange
+> correctement des re-exports de **types** (`export type`) et de **valeurs** (`export`),
+> sous `verbatimModuleSyntax` — et un service qui consomme UNIQUEMENT ce barrel, jamais les
+> fichiers internes.
+> **Vrai outil :** TypeScript 7 (`tsc` en `strict` + `verbatimModuleSyntax`) + vitest 5 en
+> mode typecheck. L'oracle est un vrai runner : tests de **types** (`test/*.test-d.ts`) et
+> tests **runtime** (`test/*.test.ts`).
+> **Feedback :** `npm run lab:09` depuis `00-typescript/labs` — RED tant que
+> `src/types/index.ts` ne satisfait pas l'oracle. Au GREEN, le correcteur-labs tranche
+> (GO/FIX/STOP). La solution de référence vit dans `solution/` : `npm run solution:09` prouve
+> que l'oracle est juste, tu ne l'ouvres pas avant ton GREEN.
+
+## Lire avant (une lecture bornée, pas le module entier)
+
+Module [`09-modules-et-resolution.md`](../../modules/09-modules-et-resolution.md), **une
+fois**, puis on ferme :
+- §2.3 re-export et barrel files · §2.4 `import type` / `export type` · §2.5
+  `verbatimModuleSyntax`
+- §4 piège #1 (`import type` n'est pas cosmétique)
+
+⛔ **Pas §3 Worked examples avant ton GREEN** (Exemple 1 = ce lab, résolu).
 
 ## Énoncé
 
-Tu pars d'un mini-projet TribuZen où les types métier sont dispersés et importés en `../../`. Objectif : construire l'API publique `@/types` sous forme de barrel type-only, prouver que ces imports disparaissent du build, et configurer l'alias `@/` pour qu'il fonctionne au type-check ET au runtime.
+Le dossier `src/types/` contient quatre fichiers déjà écrits et corrects : `family.ts`,
+`member.ts`, `event.ts` (des TYPES purs — interfaces, alias) et `roles.ts` (une VALEUR — un
+`const ROLES` avec de vraies données au runtime). `src/services/familyService.ts` est donné
+et déjà correct : il importe TOUT depuis `../types` (le barrel), jamais les fichiers
+internes directement.
 
-Starter (à créer tel quel) :
+Ta mission : écrire `src/types/index.ts`, le barrel, vide pour l'instant. Tant qu'il est
+vide, rien ne compile en aval — c'est le point de départ.
 
-```
-lab-09/
-  package.json          # "type": "module", scripts tsc + vite build
-  tsconfig.json         # à compléter (moduleResolution, verbatimModuleSyntax, paths)
-  vite.config.ts        # à compléter (resolve.alias)
-  src/
-    types/
-      family.ts         # export interface Family
-      member.ts         # export interface Member, export type Role
-      event.ts          # export interface Event
-      index.ts          # BARREL — à écrire
-    services/
-      family.service.ts # export function fetchFamily (vraie valeur, survit au build)
-    screens/
-      FamilyScreen.ts   # consomme @/types + @/services
-```
-
-Contenu de départ des types :
-
-```ts
-// src/types/family.ts
-export interface Family {
-  id: string;
-  name: string;
-  memberIds: string[];
-}
-
-// src/types/member.ts
-export type Role = 'admin' | 'parent' | 'child';
-export interface Member {
-  id: string;
-  name: string;
-  role: Role;
-  familyId: string;
-}
-
-// src/types/event.ts
-export interface Event {
-  id: string;
-  title: string;
-  familyId: string;
-}
-```
+Contraintes (le tsconfig de ce lab impose `verbatimModuleSyntax: true`) :
+1. `Family`, `Member`, `Role`, `Event` sont des types purs → `export type { ... }`.
+2. `ROLES` est une valeur → `export { ROLES }`, SANS `type`.
+3. Se tromper dans le sens « oublier `type` sur un type pur » laisse une ligne d'import
+   inutile dans le JS émis (piège #1 — pas d'erreur de compilation, mais un bug de bundle).
+4. Se tromper dans l'autre sens (`export type { ROLES }`) est une **erreur de compilation**
+   sous `verbatimModuleSyntax` : TS refuse de type-exporter un identifiant qui n'est pas un
+   type.
 
 ## Étapes (en friction)
 
-1. **Barrel type-only.** Écris `src/types/index.ts` qui ré-exporte `Family`, `Member`, `Role`, `Event` en `export type`. Aucune valeur ne transite par ce barrel.
-2. **tsconfig.** Configure `moduleResolution: "bundler"`, `module: "ESNext"`, `verbatimModuleSyntax: true`, `baseUrl: "."`, `paths: { "@/*": ["src/*"] }`, `strict: true`.
-3. **Service (vraie valeur).** Écris `src/services/family.service.ts` avec une **fonction** exportée `fetchFamily(id: string): Family` — c'est une valeur, elle doit survivre au build.
-4. **Écran consommateur.** Dans `src/screens/FamilyScreen.ts`, importe les types via `import type { Family, Member, Event } from '@/types'` et la fonction via `import { fetchFamily } from '@/services/family.service'`.
-5. **Alias runtime.** Configure `resolve.alias` dans `vite.config.ts` pour que `@/` pointe vers `src/`. Sans ça, `vite build` échoue même si `tsc` passe.
-6. **Preuve d'effacement.** Lance `npx tsc --noEmit` (doit passer), puis inspecte le JS émis de `FamilyScreen` : la ligne `import type { Family, … }` doit avoir **disparu**, alors que l'import de `fetchFamily` doit **rester**.
-7. **Piège volontaire.** Retire le mot-clé `type` d'un `import type` et relance : observe que l'import réapparaît dans le JS (effet de `verbatimModuleSyntax`).
+1. `npm run lab:09` : RED (« has no exported member » partout — le barrel est vide).
+2. Écris les trois lignes `export type { ... } from './...'` pour Family, Member+Role, Event.
+3. Écris la ligne `export { ROLES } from './roles'` — sans `type`.
+4. `npm run check:09` : `tsc` seul, si tu veux isoler une erreur de compilation avant de
+   relancer l'oracle complet.
 
-## Corrigé complet commenté
+## Vérifier
 
-```ts
-// ─── src/types/index.ts — barrel 100% type-only ─────────────────
-// Aucune valeur ici : tout est `export type`, donc ce fichier
-// n'émet AUCUN JavaScript. C'est l'API publique du dossier types/.
-export type { Family } from './family';
-export type { Member, Role } from './member';
-export type { Event } from './event';
+```bash
+cd 00-typescript/labs
+npm install
+npm run lab:09
+npm run check:09
 ```
 
-```ts
-// ─── src/services/family.service.ts — VALEUR (survit au build) ──
-import type { Family } from '@/types'; // type-only : élidé
-import type { Member } from '@/types';
+**Contrat attendu par l'oracle**
 
-// fetchFamily est une fonction = valeur runtime → présente dans le JS émis
-export function fetchFamily(id: string): Family {
-  // (mock synchrone pour le lab)
-  return { id, name: 'Famille Test', memberIds: [] };
-}
+`src/types/index.ts` doit re-exporter : `Family`, `Member`, `Role`, `Event` (type-only) et
+`ROLES` (valeur normale). Rien d'autre à écrire — `family.ts`, `member.ts`, `event.ts`,
+`roles.ts` et `familyService.ts` sont déjà corrects et ne se modifient pas.
 
-// createMember aussi est une valeur exportée
-export function createMember(name: string, familyId: string): Member {
-  return { id: crypto.randomUUID(), name, role: 'child', familyId };
-}
-```
+**Ce que l'oracle vérifie** (le *quoi*, jamais le *comment*)
 
-```ts
-// ─── src/screens/FamilyScreen.ts — consommateur ─────────────────
-// import type : ces 3 identifiants ne servent qu'à l'annotation
-import type { Family, Member, Event } from '@/types';
-// import de valeur : fetchFamily est appelé, donc l'import RESTE au build
-import { fetchFamily } from '@/services/family.service';
+- **Types** : `Family`/`Member`/`Event` ont exactement leurs champs (un champ manquant est
+  refusé) ; `Role` est l'union exacte des trois littéraux (`"root"` refusé) ; `ROLES` a le
+  type `readonly ["admin", "parent", "enfant"]` — une VALEUR typée, pas juste un type ;
+  `estUnRoleValide` est un vrai type-guard qui narrow une chaîne en `Role`.
+- **Runtime** : `ROLES` existe réellement (`["admin","parent","enfant"]`) ; `estUnRoleValide`
+  accepte les trois rôles connus, rejette le reste ; `creerFamilleVide` retourne la forme
+  exacte ; `nomsDesMembres` extrait les noms dans l'ordre ; `evenementsAVenir` filtre le
+  passé et trie par date croissante.
 
-export function renderFamilyScreen(id: string): {
-  family: Family;
-  members: Member[];
-  events: Event[];
-} {
-  const family = fetchFamily(id); // appel runtime réel
-  const members: Member[] = [];   // Member : pur type, disparaît du JS
-  const events: Event[] = [];     // Event : idem
-  return { family, members, events };
-}
-```
-
-```jsonc
-// ─── tsconfig.json ──────────────────────────────────────────────
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",   // app buildée → imports sans extension
-    "verbatimModuleSyntax": true,    // règle littérale : `type` = effacé, sinon préservé
-    "strict": true,
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "outDir": "dist",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]               // alias côté TYPE-CHECKER seulement
-    }
-  },
-  "include": ["src", "vite.config.ts"]
-}
-```
-
-```ts
-// ─── vite.config.ts ─────────────────────────────────────────────
-import { defineConfig } from 'vite';
-import path from 'node:path';
-
-export default defineConfig({
-  resolve: {
-    // OBLIGATOIRE : réplique l'alias @/ pour le build/runtime.
-    // paths (tsconfig) ne suffit pas — Vite a sa propre résolution.
-    alias: { '@': path.resolve(__dirname, 'src') },
-  },
-});
-```
-
-**Preuve attendue (étape 6).** Le JS émis de `FamilyScreen` ressemble à :
-
-```js
-// dist/screens/FamilyScreen.js — l'import type a DISPARU
-import { fetchFamily } from '@/services/family.service';
-export function renderFamilyScreen(id) {
-  const family = fetchFamily(id);
-  const members = [];
-  const events = [];
-  return { family, members, events };
-}
-```
-
-La ligne `import type { Family, Member, Event }` n'apparaît nulle part : preuve visuelle de l'élision garantie par `import type`.
+Une ligne `// @ts-expect-error` de l'oracle qui ne produit **pas** d'erreur compte comme un
+échec : ton barrel est trop permissif à cet endroit.
 
 ## Variante J+30 (fading)
 
-Reprends le projet **en 25 min, sans relire le corrigé**, avec une contrainte ajoutée : **cible Node ESM au lieu d'un bundler**. Passe `moduleResolution` à `"nodenext"` et `module` à `"NodeNext"`, puis corrige toutes les erreurs qui apparaissent — notamment ajouter l'extension `.js` sur chaque import relatif (`./family.js`, etc.) et remplacer l'alias par le champ `imports` de `package.json` (`"#/*": ["./src/*"]`) puisque `paths` n'est plus résolu au runtime Node. Objectif : ressentir la seule vraie différence entre `bundler` et `nodenext` — l'extension obligatoire.
+Reprends à froid, **en 15 minutes** :
+
+1. Ajoute un cinquième fichier `types/invitation.ts` avec un type `InvitationStatus =
+   'pending' | 'accepted' | 'declined'` ET une valeur `DEFAULT_STATUS: InvitationStatus`.
+   Ajoute les DEUX au barrel, chacun avec le bon mode d'export.
+2. Sans relire le module, explique à voix haute pourquoi `export type { ROLES }` planterait
+   la compilation — pas juste "parce que c'est écrit comme ça".
 
 ## Application TribuZen
 
-Porte le résultat dans `smaurier/tribuzen` :
-1. Crée `src/types/{family,member,event}.ts` et le barrel `src/types/index.ts` (100 % `export type`).
-2. Active `verbatimModuleSyntax: true` et `moduleResolution: "bundler"` dans le `tsconfig.json` du repo.
-3. Ajoute `paths: { "@/*": ["src/*"] }` et réplique `resolve.alias` dans `vite.config.ts`.
-4. Remplace tous les `import { … } from '../../types/…'` par `import type { … } from '@/types'`.
-5. Vérifie via `npm run build` que le bundle ne contient plus aucune trace des interfaces métier.
+Porte le résultat dans le vrai dépôt :
 
-Commit : `git commit -m "chore(types): barrel type-only + alias @/ + verbatimModuleSyntax"` sur `smaurier/tribuzen`.
+- `tribuzen/types/index.ts` : barrel type-only pour `Family`/`Member`/`Role`/`Event`, plus
+  toute constante métier partagée (rôles, statuts) exportée en valeur normale à côté.
+- Vérifie `npx tsc --noEmit` avec `verbatimModuleSyntax: true` actif.
+- Commit sur `smaurier/tribuzen` :
+  `feat(types): barrel types/index.ts type-only + ROLES exporté en valeur`.
